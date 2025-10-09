@@ -6,11 +6,12 @@ interface ToolbarProps {
   onAddText: () => void;
   onAddImage: () => void;
   onAddShape: (shape: 'rectangle' | 'circle') => void;
+  onAddChart: () => void;
   onSave: () => void;
   onExport: () => void;
 }
 
-export const Toolbar = ({ onAddText, onAddImage, onAddShape, onSave, onExport }: ToolbarProps) => {
+export const Toolbar = ({ onAddText, onAddImage, onAddShape, onAddChart, onSave, onExport }: ToolbarProps) => {
   return (
     <div className="glass-toolbar px-6 py-3 flex items-center gap-2 border-b">
       <div className="flex items-center gap-1">
@@ -61,6 +62,7 @@ export const Toolbar = ({ onAddText, onAddImage, onAddShape, onSave, onExport }:
         <Button
           variant="ghost"
           size="sm"
+          onClick={onAddChart}
           className="hover:bg-accent/10"
           title="Add Chart"
         >

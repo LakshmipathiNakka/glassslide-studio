@@ -1,8 +1,8 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useState } from "react";
 
 interface Element {
   id: string;
-  type: 'text' | 'image' | 'shape';
+  type: 'text' | 'image' | 'shape' | 'chart';
   x: number;
   y: number;
   width: number;
@@ -10,6 +10,8 @@ interface Element {
   content?: string;
   shapeType?: 'rectangle' | 'circle';
   fill?: string;
+  chartType?: 'bar' | 'line' | 'pie';
+  chartData?: any;
 }
 
 interface CanvasProps {
@@ -114,6 +116,19 @@ export const Canvas = ({ elements, onElementsChange }: CanvasProps) => {
                   border: '2px solid hsl(var(--accent))',
                 }}
               />
+            )}
+            
+            {element.type === 'chart' && element.chartData && (
+              <div className="w-full h-full bg-card rounded-lg p-4 flex items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                  <div className="text-lg font-semibold mb-2">
+                    {element.chartType?.toUpperCase()} Chart
+                  </div>
+                  <div className="text-xs">
+                    {element.chartData.labels?.join(', ')}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         ))}
