@@ -97,3 +97,62 @@ All colors MUST be HSL.
     text-wrap: balance;
   }
 }
+
+.moveable-control-box {
+  --moveable-color: hsl(var(--accent)) !important;
+}
+
+.moveable-line {
+  background: hsl(var(--accent)) !important;
+}
+
+.moveable-control {
+  background: white !important;
+  border: 2px solid hsl(var(--accent)) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.moveable-direction {
+  background: white !important;
+  border: 2px solid hsl(var(--accent)) !important;
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 2px !important;
+}
+
+.moveable-rotation {
+  background: white !important;
+  border: 2px solid hsl(var(--accent)) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.moveable-line.moveable-rotation-line {
+  background: hsl(var(--accent)) !important;
+  height: 1px !important;
+}
+
+.moveable-origin {
+  background: hsl(var(--accent)) !important;
+  border: 2px solid white !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.moveable-guideline {
+  background: hsl(var(--accent)) !important;
+  pointer-events: none !important;
+}
+
+.moveable-gap {
+  background: rgba(64, 150, 255, 0.1) !important;
+  border: 1px dashed hsl(var(--accent)) !important;
+}
+
+.moveable-snap-digit {
+  color: white !important;
+  background: hsl(var(--accent)) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}

@@ -1,138 +1,132 @@
-import { useRef, useState } from "react";
-
-interface Element {
-  id: string;
-  type: 'text' | 'image' | 'shape' | 'chart';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  content?: string;
-  shapeType?: 'rectangle' | 'circle';
-  fill?: string;
-  chartType?: 'bar' | 'line' | 'pie';
-  chartData?: any;
-}
+import { useRef, useEffect, useState } from 'react';
+import { useSlideStore, SlideElement } from '@/store/slideStore';
+import { MoveableElement } from './MoveableElement';
 
 interface CanvasProps {
-  elements: Element[];
-  onElementsChange: (elements: Element[]) => void;
+  elements: SlideElement[];
+  onElementsChange: (elements: SlideElement[]) => void;
 }
 
-export const Canvas = ({ elements, onElementsChange }: CanvasProps) => {
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [dragState, setDragState] = useState<{ id: string; startX: number; startY: number } | null>(null);
+export const Canvas = ({ elements: externalElements, onElementsChange }: CanvasProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const slideRef = useRef<HTMLDivElement>(null);
+  const [snapTargets, setSnapTargets] = useState<Element[]>([]);
 
-  const handleMouseDown = (e: React.MouseEvent, id: string) => {
-    const element = elements.find(el => el.id === id);
-    if (!element) return;
+  const {
+    elements: storeElements,
+    selectedId,
+    setSelectedId,
+    updateElement,
+    setElements,
+    pushHistory,
+  } = useSlideStore();
 
-    setSelectedId(id);
-    setDragState({
-      id,
-      startX: e.clientX - element.x,
-      startY: e.clientY - element.y,
-    });
+  const elements = externalElements.length > 0 ? externalElements : storeElements;
+
+  useEffect(() => {
+    if (externalElements.length > 0) {
+      setElements(externalElements);
+    }
+  }, [externalElements, setElements]);
+
+  useEffect(() => {
+    if (slideRef.current) {
+      const elementNodes = Array.from(
+        slideRef.current.querySelectorAll('[data-moveable-element]')
+      );
+      setSnapTargets(elementNodes);
+    }
+  }, [elements, selectedId]);
+
+  const handleElementUpdate = (id: string, updates: Partial<SlideElement>) => {
+    updateElement(id, updates);
+    const updatedElements = elements.map((el) =>
+      el.id === id ? { ...el, ...updates } : el
+    );
+    onElementsChange(updatedElements);
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!dragState) return;
+  const handleUpdateEnd = () => {
+    pushHistory();
+  };
 
-    const newElements = elements.map(el => {
-      if (el.id === dragState.id) {
-        return {
-          ...el,
-          x: e.clientX - dragState.startX,
-          y: e.clientY - dragState.startY,
-        };
+  const handleCanvasClick = (e: React.MouseEvent) => {
+    if (e.target === slideRef.current || e.target === containerRef.current) {
+      setSelectedId(null);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        useSlideStore.getState().undo();
+        const newElements = useSlideStore.getState().elements;
+        onElementsChange(newElements);
       }
-      return el;
-    });
 
-    onElementsChange(newElements);
-  };
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'z' && e.shiftKey || e.key === 'y')) {
+        e.preventDefault();
+        useSlideStore.getState().redo();
+        const newElements = useSlideStore.getState().elements;
+        onElementsChange(newElements);
+      }
 
-  const handleMouseUp = () => {
-    setDragState(null);
-  };
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+        e.preventDefault();
+        const { deleteElement } = useSlideStore.getState();
+        deleteElement(selectedId);
+        const newElements = useSlideStore.getState().elements;
+        onElementsChange(newElements);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedId, onElementsChange]);
 
   return (
     <div
-      ref={canvasRef}
+      ref={containerRef}
       className="flex-1 bg-background relative overflow-hidden cursor-default"
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
+      onClick={handleCanvasClick}
     >
-      {/* Canvas background with grid */}
-      <div className="absolute inset-0" style={{
-        backgroundImage: 'radial-gradient(circle, hsl(var(--muted)) 1px, transparent 1px)',
-        backgroundSize: '24px 24px',
-        opacity: 0.1,
-      }} />
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: 'radial-gradient(circle, hsl(var(--muted)) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+          opacity: 0.1,
+        }}
+      />
 
-      {/* Slide area */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card shadow-2xl"
-        style={{ width: '960px', height: '540px' }}
+      <div
+        ref={slideRef}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card shadow-2xl"
+        style={{ width: '960px', height: '540px', position: 'relative' }}
       >
-        {/* Elements */}
-        {elements.map(element => (
-          <div
-            key={element.id}
-            className={`absolute cursor-move select-none ${
-              selectedId === element.id ? 'ring-2 ring-accent' : ''
-            }`}
-            style={{
-              left: element.x,
-              top: element.y,
-              width: element.width,
-              height: element.height,
-            }}
-            onMouseDown={(e) => handleMouseDown(e, element.id)}
-          >
-            {element.type === 'text' && (
-              <div className="w-full h-full flex items-center justify-center text-foreground font-medium text-lg p-4">
-                {element.content || 'Double-click to edit'}
-              </div>
-            )}
-            
-            {element.type === 'shape' && element.shapeType === 'rectangle' && (
-              <div 
-                className="w-full h-full"
-                style={{ 
-                  backgroundColor: element.fill || 'hsl(var(--accent) / 0.2)',
-                  border: '2px solid hsl(var(--accent))',
-                  borderRadius: '8px',
-                }}
-              />
-            )}
-            
-            {element.type === 'shape' && element.shapeType === 'circle' && (
-              <div 
-                className="w-full h-full rounded-full"
-                style={{ 
-                  backgroundColor: element.fill || 'hsl(var(--accent) / 0.2)',
-                  border: '2px solid hsl(var(--accent))',
-                }}
-              />
-            )}
-            
-            {element.type === 'chart' && element.chartData && (
-              <div className="w-full h-full bg-card rounded-lg p-4 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <div className="text-lg font-semibold mb-2">
-                    {element.chartType?.toUpperCase()} Chart
-                  </div>
-                  <div className="text-xs">
-                    {element.chartData.labels?.join(', ')}
-                  </div>
-                </div>
-              </div>
-            )}
+        {elements.map((element) => (
+          <div key={element.id} data-moveable-element>
+            <MoveableElement
+              element={element}
+              isSelected={selectedId === element.id}
+              onSelect={() => setSelectedId(element.id)}
+              onUpdate={(updates) => handleElementUpdate(element.id, updates)}
+              onUpdateEnd={handleUpdateEnd}
+              containerRef={slideRef}
+              snapElements={snapTargets.filter(
+                (el) => !el.querySelector(`[data-element-id="${element.id}"]`)
+              )}
+            />
           </div>
         ))}
       </div>
+
+      {selectedId && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-sm border rounded-lg px-4 py-2 text-xs text-muted-foreground shadow-lg">
+          <span className="font-medium">Tip:</span> Drag to move • Drag corners to resize • Hold Shift for aspect ratio • Cmd/Ctrl+Z to undo
+        </div>
+      )}
     </div>
   );
 };

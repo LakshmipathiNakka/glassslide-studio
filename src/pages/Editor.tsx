@@ -9,23 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/landing/Logo";
 import pptxgen from "pptxgenjs";
 
-interface Element {
-  id: string;
-  type: 'text' | 'image' | 'shape' | 'chart';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  content?: string;
-  shapeType?: 'rectangle' | 'circle';
-  fill?: string;
-  chartType?: 'bar' | 'line' | 'pie';
-  chartData?: any;
-}
+import { SlideElement } from '@/store/slideStore';
 
 interface Slide {
   id: string;
-  elements: Element[];
+  elements: SlideElement[];
 }
 
 const Editor = () => {
@@ -38,7 +26,7 @@ const Editor = () => {
 
   const currentElements = slides[currentSlide]?.elements || [];
 
-  const updateCurrentSlide = (elements: Element[]) => {
+  const updateCurrentSlide = (elements: SlideElement[]) => {
     const newSlides = [...slides];
     newSlides[currentSlide] = {
       ...newSlides[currentSlide],
@@ -48,13 +36,15 @@ const Editor = () => {
   };
 
   const handleAddText = () => {
-    const newElement: Element = {
+    const newElement: SlideElement = {
       id: Date.now().toString(),
       type: 'text',
       x: 100,
       y: 100,
       width: 300,
       height: 60,
+      rotation: 0,
+      zIndex: currentElements.length,
       content: 'New Text',
     };
     updateCurrentSlide([...currentElements, newElement]);
@@ -68,26 +58,30 @@ const Editor = () => {
   };
 
   const handleAddShape = (shapeType: 'rectangle' | 'circle') => {
-    const newElement: Element = {
+    const newElement: SlideElement = {
       id: Date.now().toString(),
       type: 'shape',
       x: 150,
       y: 150,
       width: shapeType === 'circle' ? 150 : 200,
       height: shapeType === 'circle' ? 150 : 120,
+      rotation: 0,
+      zIndex: currentElements.length,
       shapeType,
     };
     updateCurrentSlide([...currentElements, newElement]);
   };
 
   const handleAddChart = (chartType: 'bar' | 'line' | 'pie', chartData: any) => {
-    const newElement: Element = {
+    const newElement: SlideElement = {
       id: Date.now().toString(),
       type: 'chart',
       x: 100,
       y: 100,
       width: 400,
       height: 300,
+      rotation: 0,
+      zIndex: currentElements.length,
       chartType,
       chartData,
     };
