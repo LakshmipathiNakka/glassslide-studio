@@ -105,6 +105,25 @@ export const Canvas = ({ elements: externalElements, onElementsChange }: CanvasP
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card shadow-2xl"
         style={{ width: '960px', height: '540px', position: 'relative' }}
       >
+        {selectedId && (
+          <>
+            <div
+              className="absolute top-0 bottom-0 w-px pointer-events-none opacity-0 transition-opacity duration-150"
+              style={{
+                left: '480px',
+                background: 'linear-gradient(to bottom, transparent, hsl(var(--accent) / 0.3) 20%, hsl(var(--accent) / 0.3) 80%, transparent)',
+              }}
+            />
+            <div
+              className="absolute left-0 right-0 h-px pointer-events-none opacity-0 transition-opacity duration-150"
+              style={{
+                top: '270px',
+                background: 'linear-gradient(to right, transparent, hsl(var(--accent) / 0.3) 20%, hsl(var(--accent) / 0.3) 80%, transparent)',
+              }}
+            />
+          </>
+        )}
+
         {elements.map((element) => (
           <div key={element.id} data-moveable-element>
             <MoveableElement
@@ -123,8 +142,18 @@ export const Canvas = ({ elements: externalElements, onElementsChange }: CanvasP
       </div>
 
       {selectedId && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-sm border rounded-lg px-4 py-2 text-xs text-muted-foreground shadow-lg">
-          <span className="font-medium">Tip:</span> Drag to move • Drag corners to resize • Hold Shift for aspect ratio • Cmd/Ctrl+Z to undo
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-card/98 backdrop-blur-md border border-border/60 rounded-lg px-5 py-2.5 text-xs text-muted-foreground shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-foreground">PowerPoint Mode:</span>
+            <span className="opacity-80">Drag to move</span>
+            <span className="opacity-40">•</span>
+            <span className="opacity-80">Corners/edges to resize</span>
+            <span className="opacity-40">•</span>
+            <span className="font-medium text-accent">Hold Shift</span>
+            <span className="opacity-80">for aspect ratio</span>
+            <span className="opacity-40">•</span>
+            <span className="opacity-80">Cmd/Ctrl+Z to undo</span>
+          </div>
         </div>
       )}
     </div>

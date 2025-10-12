@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react';
-import Moveable from 'react-moveable';
+import { useRef, useEffect, useState } from 'react';
+import Moveable, { OnResize, OnDrag, OnRotate } from 'react-moveable';
 import { SlideElement } from '@/store/slideStore';
 
 interface MoveableElementProps {
@@ -23,12 +23,40 @@ export const MoveableElement = ({
 }: MoveableElementProps) => {
   const targetRef = useRef<HTMLDivElement>(null);
   const moveableRef = useRef<Moveable>(null);
+  const [isShiftPressed, setIsShiftPressed] = useState(false);
+  const aspectRatio = useRef(element.width / element.height);
 
   useEffect(() => {
     if (isSelected && moveableRef.current) {
       moveableRef.current.updateRect();
     }
   }, [isSelected, element]);
+
+  useEffect(() => {
+    aspectRatio.current = element.width / element.height;
+  }, [element.width, element.height]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setIsShiftPressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setIsShiftPressed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   const renderContent = () => {
     switch (element.type) {
@@ -88,11 +116,79 @@ export const MoveableElement = ({
     }
   };
 
+  const handleDrag = (e: OnDrag) => {
+    e.target.style.transform = e.transform;
+  };
+
+  const handleDragEnd = (e: OnDrag) => {
+    const translate = e.lastEvent?.translate || [element.x, element.y];
+    onUpdate({
+      x: Math.round(translate[0]),
+      y: Math.round(translate[1]),
+    });
+    onUpdateEnd();
+  };
+
+  const handleResize = (e: OnResize) => {
+    let width = e.width;
+    let height = e.height;
+
+    if (isShiftPressed || e.direction.some(dir => dir === 1 || dir === -1)) {
+      if (isShiftPressed) {
+        if (Math.abs(e.delta[0]) > Math.abs(e.delta[1])) {
+          height = width / aspectRatio.current;
+        } else {
+          width = height * aspectRatio.current;
+        }
+      }
+    }
+
+    e.target.style.width = `${width}px`;
+    e.target.style.height = `${height}px`;
+    e.target.style.transform = e.drag.transform;
+  };
+
+  const handleResizeEnd = (e: OnResize) => {
+    const translate = e.lastEvent?.drag.translate || [element.x, element.y];
+    let width = e.lastEvent?.width || element.width;
+    let height = e.lastEvent?.height || element.height;
+
+    if (isShiftPressed) {
+      if (Math.abs(width - element.width) > Math.abs(height - element.height)) {
+        height = width / aspectRatio.current;
+      } else {
+        width = height * aspectRatio.current;
+      }
+    }
+
+    onUpdate({
+      x: Math.round(translate[0]),
+      y: Math.round(translate[1]),
+      width: Math.round(width),
+      height: Math.round(height),
+    });
+    onUpdateEnd();
+  };
+
+  const handleRotate = (e: OnRotate) => {
+    e.target.style.transform = e.drag.transform;
+  };
+
+  const handleRotateEnd = (e: OnRotate) => {
+    const translate = e.lastEvent?.drag.translate || [element.x, element.y];
+    onUpdate({
+      x: Math.round(translate[0]),
+      y: Math.round(translate[1]),
+      rotation: Math.round((e.lastEvent?.rotate || element.rotation) * 10) / 10,
+    });
+    onUpdateEnd();
+  };
+
   return (
     <>
       <div
         ref={targetRef}
-        className="absolute select-none"
+        className="absolute select-none transition-shadow"
         data-element-id={element.id}
         style={{
           transform: `translate(${element.x}px, ${element.y}px) rotate(${element.rotation}deg)`,
@@ -100,6 +196,7 @@ export const MoveableElement = ({
           height: `${element.height}px`,
           zIndex: element.zIndex,
           cursor: isSelected ? 'move' : 'pointer',
+          willChange: 'transform',
         }}
         onClick={onSelect}
       >
@@ -118,57 +215,44 @@ export const MoveableElement = ({
           snapThreshold={5}
           isDisplaySnapDigit={true}
           snapGap={true}
-          snapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
-          elementSnapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
+          snapDirections={{
+            top: true,
+            left: true,
+            bottom: true,
+            right: true,
+            center: true,
+            middle: true,
+          }}
+          elementSnapDirections={{
+            top: true,
+            left: true,
+            bottom: true,
+            right: true,
+            center: true,
+            middle: true,
+          }}
           snapElement={true}
           elementGuidelines={snapElements}
+          verticalGuidelines={[0, 480, 960]}
+          horizontalGuidelines={[0, 270, 540]}
+          snapDigit={0}
+          snapGridWidth={20}
+          snapGridHeight={20}
           bounds={{ left: 0, top: 0, right: 960, bottom: 540, position: 'css' }}
           origin={false}
-          keepRatio={false}
+          keepRatio={isShiftPressed}
           throttleDrag={0}
           throttleResize={0}
           throttleRotate={0}
           renderDirections={['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se']}
           edge={false}
           zoom={1}
-          onDrag={(e) => {
-            e.target.style.transform = e.transform;
-          }}
-          onDragEnd={(e) => {
-            const translate = e.lastEvent?.translate || [element.x, element.y];
-            onUpdate({
-              x: translate[0],
-              y: translate[1],
-            });
-            onUpdateEnd();
-          }}
-          onResize={(e) => {
-            e.target.style.width = `${e.width}px`;
-            e.target.style.height = `${e.height}px`;
-            e.target.style.transform = e.drag.transform;
-          }}
-          onResizeEnd={(e) => {
-            const translate = e.lastEvent?.drag.translate || [element.x, element.y];
-            onUpdate({
-              x: translate[0],
-              y: translate[1],
-              width: e.lastEvent?.width || element.width,
-              height: e.lastEvent?.height || element.height,
-            });
-            onUpdateEnd();
-          }}
-          onRotate={(e) => {
-            e.target.style.transform = e.drag.transform;
-          }}
-          onRotateEnd={(e) => {
-            const translate = e.lastEvent?.drag.translate || [element.x, element.y];
-            onUpdate({
-              x: translate[0],
-              y: translate[1],
-              rotation: e.lastEvent?.rotate || element.rotation,
-            });
-            onUpdateEnd();
-          }}
+          onDrag={handleDrag}
+          onDragEnd={handleDragEnd}
+          onResize={handleResize}
+          onResizeEnd={handleResizeEnd}
+          onRotate={handleRotate}
+          onRotateEnd={handleRotateEnd}
         />
       )}
     </>
