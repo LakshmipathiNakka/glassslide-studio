@@ -2246,3 +2246,139 @@ div.canvas-element.placeholder {
 .moveable-line {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2) !important;
 }
+
+.moveable-control-box {
+  --moveable-color: hsl(var(--accent)) !important;
+  will-change: transform;
+}
+
+.moveable-line {
+  background: hsl(var(--accent)) !important;
+  transition: opacity 0.15s ease;
+}
+
+.moveable-control {
+  background: white !important;
+  border: 2px solid hsl(var(--accent)) !important;
+  box-shadow: 0 2px 6px rgba(64, 150, 255, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.9) !important;
+  transition: all 0.15s cubic-bezier(0.2, 0.9, 0.2, 1) !important;
+}
+
+.moveable-control:hover {
+  transform: scale(1.15) !important;
+  box-shadow: 0 3px 8px rgba(64, 150, 255, 0.35), 0 0 0 1px rgba(255, 255, 255, 1) !important;
+}
+
+.moveable-direction {
+  background: white !important;
+  border: 2px solid hsl(var(--accent)) !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 1.5px !important;
+  box-shadow: 0 2px 6px rgba(64, 150, 255, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.9) !important;
+  transition: all 0.15s cubic-bezier(0.2, 0.9, 0.2, 1) !important;
+}
+
+.moveable-direction:hover {
+  transform: scale(1.2) !important;
+  box-shadow: 0 3px 8px rgba(64, 150, 255, 0.35), 0 0 0 1px rgba(255, 255, 255, 1) !important;
+}
+
+.moveable-direction.moveable-nw {
+  cursor: nwse-resize !important;
+}
+
+.moveable-direction.moveable-ne {
+  cursor: nesw-resize !important;
+}
+
+.moveable-direction.moveable-sw {
+  cursor: nesw-resize !important;
+}
+
+.moveable-direction.moveable-se {
+  cursor: nwse-resize !important;
+}
+
+.moveable-direction.moveable-n {
+  cursor: ns-resize !important;
+}
+
+.moveable-direction.moveable-s {
+  cursor: ns-resize !important;
+}
+
+.moveable-direction.moveable-w {
+  cursor: ew-resize !important;
+}
+
+.moveable-direction.moveable-e {
+  cursor: ew-resize !important;
+}
+
+.moveable-rotation {
+  background: white !important;
+  border: 2px solid hsl(var(--accent)) !important;
+  box-shadow: 0 2px 6px rgba(64, 150, 255, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.9) !important;
+  cursor: crosshair !important;
+  transition: all 0.15s cubic-bezier(0.2, 0.9, 0.2, 1) !important;
+}
+
+.moveable-rotation:hover {
+  transform: scale(1.15) !important;
+  box-shadow: 0 3px 8px rgba(64, 150, 255, 0.35), 0 0 0 1px rgba(255, 255, 255, 1) !important;
+}
+
+.moveable-line.moveable-rotation-line {
+  background: hsl(var(--accent)) !important;
+  height: 1px !important;
+  opacity: 0.7 !important;
+}
+
+.moveable-origin {
+  background: hsl(var(--accent)) !important;
+  border: 2px solid white !important;
+  box-shadow: 0 2px 8px rgba(64, 150, 255, 0.3) !important;
+}
+
+.moveable-guideline {
+  background: hsl(var(--accent)) !important;
+  pointer-events: none !important;
+  z-index: 10000 !important;
+  box-shadow: 0 0 4px rgba(64, 150, 255, 0.3) !important;
+}
+
+.moveable-guideline-horizontal {
+  height: 1px !important;
+}
+
+.moveable-guideline-vertical {
+  width: 1px !important;
+}
+
+.moveable-gap {
+  background: rgba(64, 150, 255, 0.08) !important;
+  border: 1px dashed hsl(var(--accent)) !important;
+  pointer-events: none !important;
+}
+
+.moveable-snap-digit {
+  color: white !important;
+  background: hsl(var(--accent)) !important;
+  padding: 3px 7px !important;
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+  letter-spacing: 0.3px !important;
+  pointer-events: none !important;
+}
+
+.moveable-dragging {
+  cursor: move !important;
+}
+
+.moveable-area {
+  will-change: transform;
+}
