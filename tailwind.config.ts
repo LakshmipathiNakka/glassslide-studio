@@ -7,14 +7,62 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: {
+        DEFAULT: "1rem",
+        sm: "1.5rem",
+        lg: "2rem",
+        xl: "2.5rem",
+        "2xl": "3rem",
+      },
       screens: {
+        sm: "640px",
+        md: "768px",
+        lg: "1024px",
+        xl: "1280px",
         "2xl": "1400px",
       },
     },
+    screens: {
+      'xs': '475px',
+      'sm': '640px',
+      'md': '768px',
+      'lg': '1024px',
+      'xl': '1280px',
+      '2xl': '1536px',
+      '3xl': '1920px',
+    },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'Poppins', 'system-ui', 'sans-serif'],
+      },
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
+        '128': '32rem',
+      },
+      maxWidth: {
+        '8xl': '88rem',
+        '9xl': '96rem',
+      },
+      animation: {
+        'ripple': 'ripple 0.6s linear',
+        'bounce-subtle': 'bounce-subtle 0.2s ease-out',
+      },
+      keyframes: {
+        'ripple': {
+          'to': {
+            transform: 'scale(4)',
+            opacity: '0',
+          },
+        },
+        'bounce-subtle': {
+          '0%, 100%': {
+            transform: 'translateY(0)',
+          },
+          '50%': {
+            transform: 'translateY(-2px)',
+          },
+        },
       },
       colors: {
         border: "hsl(var(--border))",
