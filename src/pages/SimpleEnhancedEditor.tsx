@@ -7,6 +7,7 @@ import { ChartPanel } from "@/components/editor/ChartPanel";
 import { PropertiesPanel } from "@/components/editor/PropertiesPanel";
 import { PresentationMode } from "@/components/editor/PresentationMode";
 import { ExportDialog } from "@/components/editor/ExportDialog";
+// Removed TextScopeToggle import - using only entire text mode
 import { useToast } from "@/hooks/use-toast";
 import { useActionManager } from "@/hooks/use-action-manager";
 import { usePersistence } from "@/hooks/use-persistence";
@@ -67,7 +68,6 @@ const SimpleEnhancedEditor = () => {
     };
     
     // Initial slide created successfully
-    console.log('Creating initial slide with elements:', slide.elements);
     return slide;
   };
   
@@ -120,7 +120,6 @@ const SimpleEnhancedEditor = () => {
   
   // Function to update current slide elements
   const updateCurrentSlide = useCallback((newElements: Element[]) => {
-    console.log('Updating current slide with elements:', newElements);
     setSlides(prevSlides => 
       prevSlides.map((slide, index) => 
         index === currentSlide 
@@ -137,7 +136,6 @@ const SimpleEnhancedEditor = () => {
 
   // Function to handle element deletion
   const handleDeleteElement = useCallback((elementId: string) => {
-    console.log('handleDeleteElement called with:', elementId);
     const newElements = slides[currentSlide]?.elements.filter(el => el.id !== elementId) || [];
     updateCurrentSlide(newElements);
     setSelectedElement(null);
@@ -151,6 +149,7 @@ const SimpleEnhancedEditor = () => {
   const [selectedElement, setSelectedElement] = useState<Element | null>(null);
   const [editingChart, setEditingChart] = useState<Element | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  // Removed textScope state - using only entire text mode
 
   // PowerPoint-like action manager
   const {
@@ -553,8 +552,6 @@ const SimpleEnhancedEditor = () => {
             onSlideChange={setCurrentSlide}
             onAddSlide={handleAddSlide}
             onUpdateSlide={(index, updates) => {
-              console.log('SimpleEnhancedEditor onUpdateSlide called with:', { index, updates });
-              console.log('Current slides before update:', slides);
               const newSlides = [...slides];
               
               // Check if this is a slide deletion
@@ -573,7 +570,6 @@ const SimpleEnhancedEditor = () => {
                 }
               }
               
-              console.log('Updated slides in SimpleEnhancedEditor:', newSlides);
               setSlides(newSlides);
               
               // Regenerate thumbnail for the updated slide
@@ -601,8 +597,6 @@ const SimpleEnhancedEditor = () => {
             onSlideChange={setCurrentSlide}
             onAddSlide={handleAddSlide}
             onUpdateSlide={(index, updates) => {
-              console.log('SimpleEnhancedEditor onUpdateSlide called with:', { index, updates });
-              console.log('Current slides before update:', slides);
               const newSlides = [...slides];
               
               // Check if this is a slide deletion
@@ -621,7 +615,6 @@ const SimpleEnhancedEditor = () => {
                 }
               }
               
-              console.log('Updated slides in SimpleEnhancedEditor:', newSlides);
               setSlides(newSlides);
               
               // Regenerate thumbnail for the updated slide
@@ -668,6 +661,7 @@ const SimpleEnhancedEditor = () => {
               <SimplePowerPointCanvas
                 elements={slides[currentSlide]?.elements || []}
                 background={slides[currentSlide]?.background || '#ffffff'}
+                // Removed textScope prop
                 onElementSelect={handleElementSelect}
                 onElementUpdate={(element) => {
                   const newElements = slides[currentSlide]?.elements.map(el => 
@@ -690,6 +684,7 @@ const SimpleEnhancedEditor = () => {
             <PropertiesPanel
               key={`properties-${selectedElement.id}`}
               selectedElement={selectedElement}
+              // Removed textScope props
               onElementUpdate={(elementId: string, updates: Partial<Element>) => {
                 const currentElement = slides[currentSlide]?.elements.find(el => el.id === elementId);
                 if (currentElement) {
@@ -722,7 +717,6 @@ const SimpleEnhancedEditor = () => {
           open={chartPanelOpen}
           onClose={() => setChartPanelOpen(false)}
           onAddChart={(chartType, chartData) => {
-            console.log('ChartPanel onAddChart called with:', { chartType, chartData });
             const newElement: Element = {
               id: `chart-${Date.now()}`,
               type: 'chart',
@@ -736,7 +730,6 @@ const SimpleEnhancedEditor = () => {
               zIndex: 1,
             };
 
-            console.log('Creating chart element:', newElement);
             addElement(newElement);
             // Automatically select the new chart element
             setSelectedElement(newElement);

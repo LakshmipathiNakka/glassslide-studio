@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useLayoutEffect
 } from "react";
+import { Move } from "lucide-react";
 import { Element } from "@/hooks/use-action-manager";
 import { ChartJSChart } from "@/components/editor/ChartJSChart";
 
@@ -17,6 +18,7 @@ interface Props {
   background?: string; // slide background color (default white)
   slideWidth?: number;  // canonical slide size
   slideHeight?: number;
+  // Removed textScope - using only entire text mode
   onElementSelect?: (el: SlideElement | null) => void;
   onElementUpdate?: (el: SlideElement) => void; // commit update
   onElementAdd?: (el: SlideElement) => void;
@@ -29,6 +31,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
   background = "#ffffff",
   slideWidth = 1024,
   slideHeight = 768,
+  // Removed textScope parameter
   onElementSelect,
   onElementUpdate,
   onElementAdd,
@@ -40,6 +43,66 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
   const [selectedElement, setSelectedElement] = useState<SlideElement | null>(null);
   const [editingElement, setEditingElement] = useState<SlideElement | null>(null);
   const [dragState, setDragState] = useState<any>(null);
+  const [rotatingElement, setRotatingElement] = useState<SlideElement | null>(null);
+  const [rotationStart, setRotationStart] = useState<{
+    angle: number;
+    centerX: number;
+    centerY: number;
+    initialRotation: number;
+  } | null>(null);
+  const [rotationAngle, setRotationAngle] = useState<number>(0);
+  
+  // Global editing context state management
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [isPropertyPanelFocused, setIsPropertyPanelFocused] = useState(false);
+  const lastSelection = useRef<Range | null>(null);
+
+  // Selection preservation functions
+  const saveSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      lastSelection.current = sel.getRangeAt(0);
+      // Also store globally for Properties Panel access
+      (window as any).__SAVED_SELECTION__ = sel.getRangeAt(0).cloneRange();
+    }
+  }, []);
+
+  const restoreSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (sel && lastSelection.current) {
+      sel.removeAllRanges();
+      sel.addRange(lastSelection.current);
+    }
+  }, []);
+
+  // Listen for Properties Panel focus events
+  useEffect(() => {
+    const handlePropertyPanelFocus = (event: CustomEvent) => {
+      setIsPropertyPanelFocused(event.detail);
+    };
+
+    window.addEventListener('propertyPanelFocus', handlePropertyPanelFocus as EventListener);
+    
+    return () => {
+      window.removeEventListener('propertyPanelFocus', handlePropertyPanelFocus as EventListener);
+    };
+  }, []);
+
+  // Global click handler to preserve text selection
+  useEffect(() => {
+    // Listen for selection changes to continuously save selection
+    const handleSelectionChange = () => {
+      if (isEditingText) {
+        saveSelection();
+      }
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, [isEditingText, saveSelection]);
 
   // responsive scale: compute scale to fit container
   const [scale, setScale] = useState<number>(1);
@@ -70,10 +133,17 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
   const buildTransform = useCallback((el: SlideElement) => {
     const tx = el.x ?? 0;
     const ty = el.y ?? 0;
-    const rotate = (el.rotation ?? 0);
+    const rotate = el.rotation ?? 0;
     const extra = el.transform || "";
-    // translate in slide-space; Moveable and real styles will be scaled by container scale
-    return `translate(${tx}px, ${ty}px) rotate(${rotate}deg) ${extra}`;
+    const width = el.width ?? 100;
+    const height = el.height ?? 60;
+    
+    // With transformOrigin: "center", we need to offset by half width/height
+    const centerX = tx + width / 2;
+    const centerY = ty + height / 2;
+    
+    // Translate to center, rotate, then translate back
+    return `translate(${centerX}px, ${centerY}px) rotate(${rotate}deg) translate(-${width/2}px, -${height/2}px) ${extra}`;
   }, []);
 
   // Custom drag handlers inspired by reference code
@@ -115,53 +185,72 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     const deltaY = currentY - dragState.startY;
     
     if (dragState.handle) {
-      // Resizing
+      // Smooth resizing inspired by Interact.js
+      const minWidth = 50;
+      const minHeight = 20;
+      
       let newWidth = dragState.startElementWidth;
       let newHeight = dragState.startElementHeight;
       let newX = dragState.startElementX;
       let newY = dragState.startElementY;
       
+      // Calculate delta rect (like Interact.js)
+      let deltaRect = { left: 0, top: 0, right: 0, bottom: 0 };
+      
       switch (dragState.handle) {
-        case 'se':
-          newWidth = Math.max(50, dragState.startElementWidth + deltaX);
-          newHeight = Math.max(20, dragState.startElementHeight + deltaY);
+        case 'se': // Bottom-right
+          newWidth = Math.max(minWidth, dragState.startElementWidth + deltaX);
+          newHeight = Math.max(minHeight, dragState.startElementHeight + deltaY);
+          deltaRect.right = newWidth - dragState.startElementWidth;
+          deltaRect.bottom = newHeight - dragState.startElementHeight;
           break;
-        case 'sw':
-          newWidth = Math.max(50, dragState.startElementWidth - deltaX);
-          newHeight = Math.max(20, dragState.startElementHeight + deltaY);
-          newX = dragState.startElementX + deltaX;
+        case 'sw': // Bottom-left
+          newWidth = Math.max(minWidth, dragState.startElementWidth - deltaX);
+          newHeight = Math.max(minHeight, dragState.startElementHeight + deltaY);
+          deltaRect.left = dragState.startElementWidth - newWidth;
+          deltaRect.bottom = newHeight - dragState.startElementHeight;
+          newX = dragState.startElementX + deltaRect.left;
           break;
-        case 'ne':
-          newWidth = Math.max(50, dragState.startElementWidth + deltaX);
-          newHeight = Math.max(20, dragState.startElementHeight - deltaY);
-          newY = dragState.startElementY + deltaY;
+        case 'ne': // Top-right
+          newWidth = Math.max(minWidth, dragState.startElementWidth + deltaX);
+          newHeight = Math.max(minHeight, dragState.startElementHeight - deltaY);
+          deltaRect.right = newWidth - dragState.startElementWidth;
+          deltaRect.top = dragState.startElementHeight - newHeight;
+          newY = dragState.startElementY + deltaRect.top;
           break;
-        case 'nw':
-          newWidth = Math.max(50, dragState.startElementWidth - deltaX);
-          newHeight = Math.max(20, dragState.startElementHeight - deltaY);
-          newX = dragState.startElementX + deltaX;
-          newY = dragState.startElementY + deltaY;
+        case 'nw': // Top-left
+          newWidth = Math.max(minWidth, dragState.startElementWidth - deltaX);
+          newHeight = Math.max(minHeight, dragState.startElementHeight - deltaY);
+          deltaRect.left = dragState.startElementWidth - newWidth;
+          deltaRect.top = dragState.startElementHeight - newHeight;
+          newX = dragState.startElementX + deltaRect.left;
+          newY = dragState.startElementY + deltaRect.top;
           break;
-        case 'e':
-          newWidth = Math.max(50, dragState.startElementWidth + deltaX);
+        case 'e': // Right edge
+          newWidth = Math.max(minWidth, dragState.startElementWidth + deltaX);
+          deltaRect.right = newWidth - dragState.startElementWidth;
           break;
-        case 'w':
-          newWidth = Math.max(50, dragState.startElementWidth - deltaX);
-          newX = dragState.startElementX + deltaX;
+        case 'w': // Left edge
+          newWidth = Math.max(minWidth, dragState.startElementWidth - deltaX);
+          deltaRect.left = dragState.startElementWidth - newWidth;
+          newX = dragState.startElementX + deltaRect.left;
           break;
-        case 'n':
-          newHeight = Math.max(20, dragState.startElementHeight - deltaY);
-          newY = dragState.startElementY + deltaY;
+        case 'n': // Top edge
+          newHeight = Math.max(minHeight, dragState.startElementHeight - deltaY);
+          deltaRect.top = dragState.startElementHeight - newHeight;
+          newY = dragState.startElementY + deltaRect.top;
           break;
-        case 's':
-          newHeight = Math.max(20, dragState.startElementHeight + deltaY);
+        case 's': // Bottom edge
+          newHeight = Math.max(minHeight, dragState.startElementHeight + deltaY);
+          deltaRect.bottom = newHeight - dragState.startElementHeight;
           break;
         default:
           break;
       }
       
+      // Smooth update with proper delta calculations
       if (onElementUpdate) {
-        onElementUpdate({
+    onElementUpdate({
           ...dragState.element,
           x: newX,
           y: newY,
@@ -170,7 +259,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         });
       }
     } else {
-      // Moving
+      // Smooth moving
       const newX = Math.max(0, dragState.startElementX + deltaX);
       const newY = Math.max(0, dragState.startElementY + deltaY);
       
@@ -188,6 +277,74 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     setDragState(null);
   }, []);
 
+  // Rotation handlers
+  const startRotation = useCallback((e: React.MouseEvent, element: SlideElement) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!slideRef.current) return;
+
+    // Get the element's center-top point (center horizontally, top vertically)
+    const elementRect = e.currentTarget.parentElement!.getBoundingClientRect();
+    const centerX = elementRect.left + elementRect.width / 2;
+    const centerTopY = elementRect.top; // Top edge, not center
+
+    // Calculate initial angle from center-top to mouse position
+    const angle = Math.atan2(e.clientY - centerTopY, e.clientX - centerX) * (180 / Math.PI);
+    
+    setRotationStart({
+      angle,
+      centerX,
+      centerY: centerTopY, // Use center-top as reference point
+      initialRotation: element.rotation || 0
+    });
+    setRotatingElement(element);
+    setRotationAngle(element.rotation || 0);
+  }, []);
+
+  const handleRotationMove = useCallback((e: MouseEvent) => {
+    if (!rotatingElement || !rotationStart) return;
+
+    const { centerX, centerY, angle: startAngle, initialRotation } = rotationStart;
+    // Use center-top as reference point for rotation calculation
+    const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+    const deltaAngle = currentAngle - startAngle;
+    let newRotation = initialRotation + deltaAngle;
+
+    // Normalize angle to 0-360 range
+    const normalizedAngle = ((newRotation % 360) + 360) % 360;
+    
+    // Optional snapping to 0°, 90°, 180°, 270° (within 5 degrees)
+    let finalAngle = normalizedAngle;
+    const snapThreshold = 5;
+    const snapAngles = [0, 90, 180, 270];
+    
+    for (const snapAngle of snapAngles) {
+      const diff = Math.abs(normalizedAngle - snapAngle);
+      const diff360 = Math.abs(normalizedAngle - (snapAngle + 360));
+      const diffMinus360 = Math.abs(normalizedAngle - (snapAngle - 360));
+      
+      if (diff < snapThreshold || diff360 < snapThreshold || diffMinus360 < snapThreshold) {
+        finalAngle = snapAngle;
+        break;
+      }
+    }
+    
+    setRotationAngle(finalAngle);
+
+    // Update element with new rotation
+    onElementUpdate?.({
+      ...rotatingElement,
+      rotation: finalAngle,
+    });
+  }, [rotatingElement, rotationStart, onElementUpdate]);
+
+  const stopRotation = useCallback(() => {
+    setRotatingElement(null);
+    setRotationStart(null);
+    setRotationAngle(0);
+  }, []);
+
+
   // Global mouse event listeners
   useEffect(() => {
     if (dragState) {
@@ -200,6 +357,19 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
       };
     }
   }, [dragState, handleMouseMove, handleMouseUp]);
+
+  // Rotation event listeners
+  useEffect(() => {
+    if (rotatingElement) {
+      document.addEventListener('mousemove', handleRotationMove);
+      document.addEventListener('mouseup', stopRotation);
+      return () => {
+        document.removeEventListener('mousemove', handleRotationMove);
+        document.removeEventListener('mouseup', stopRotation);
+      };
+    }
+  }, [rotatingElement, handleRotationMove, stopRotation]);
+
 
   // Global keyboard handlers
   useEffect(() => {
@@ -221,106 +391,101 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     setSelectedElement(el);
     onElementSelect?.(el);
     
-    // For text elements, start editing if empty, or position cursor if has content
-    if (el.type === 'text') {
-      const isEmpty = !el.text || el.text.trim() === "";
-      
-      if (isEmpty) {
-        // If empty, start editing immediately
-        setEditingElement(el);
-        setTimeout(() => {
-          const textElement = document.querySelector(`#element-${el.id} .ppt-text`) as HTMLElement;
-          if (textElement) {
-            textElement.focus();
-            // Clear placeholder and position cursor at start
-            textElement.innerHTML = '';
-            const range = document.createRange();
-            range.setStart(textElement, 0);
-            range.collapse(true);
-            const selection = window.getSelection();
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-          }
-        }, 10);
-      } else {
-        // If has content, start editing and position cursor
-        setEditingElement(el);
-        setTimeout(() => {
-          const textElement = document.querySelector(`#element-${el.id} .ppt-text`) as HTMLElement;
-          if (textElement) {
-            textElement.focus();
-            
-            // Position cursor at click position
-            const range = document.createRange();
-            const selection = window.getSelection();
-            
-            try {
-              const rect = textElement.getBoundingClientRect();
-              const clickX = ev.clientX - rect.left;
-              const clickY = ev.clientY - rect.top;
-              
-              // Simple approximation for cursor position
-              const textLength = textElement.textContent?.length || 0;
-              const charWidth = rect.width / Math.max(textLength, 1);
-              const charIndex = Math.min(Math.floor(clickX / charWidth), textLength);
-              
-              if (textElement.firstChild) {
-                range.setStart(textElement.firstChild, Math.min(charIndex, textElement.firstChild.textContent?.length || 0));
-                range.collapse(true);
-              } else {
-                range.setStart(textElement, 0);
-                range.collapse(true);
-              }
-            } catch {
-              // Fallback: position at end
-              range.selectNodeContents(textElement);
-              range.collapse(false);
-            }
-            
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-          }
-        }, 10);
-      }
-    }
+    // For text elements, editing is handled by the text element's own click handler
+    // This parent click handler is mainly for non-text elements
   }, [onElementSelect]);
 
-  // element double click
-  const handleElementDoubleClick = useCallback((el: SlideElement, ev: React.MouseEvent) => {
-    ev.stopPropagation();
-    setSelectedElement(el);
-    onElementSelect?.(el);
+
+  // Render selection controls for all elements
+  const renderElementControls = useCallback((element: SlideElement) => {
+    if (selectedElement?.id !== element.id) return null;
     
-    // For text elements, clear placeholder and start editing
-    if (el.type === 'text') {
-      setEditingElement(el);
-      
-      // Clear placeholder text and set empty content
-      if (onElementUpdate) {
-    onElementUpdate({
-          ...el,
-          text: '',
-          content: '',
-          placeholder: el.placeholder || "Double click to edit text"
-        });
-      }
-      
-      requestAnimationFrame(() => {
-        const textElement = document.querySelector(`#element-${el.id} .ppt-text`) as HTMLElement;
-        if (textElement) {
-          textElement.focus();
-          // Clear any existing content and position cursor at start
-          textElement.innerHTML = '';
-          const range = document.createRange();
-          range.setStart(textElement, 0);
-          range.collapse(true);
-          const selection = window.getSelection();
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        }
-      });
-    }
-  }, [onElementSelect, onElementUpdate]);
+    return (
+      <>
+        {/* Drag Handle */}
+        <div
+          className="absolute -top-8 left-0 flex items-center gap-1"
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            handleMouseDown(e, element);
+          }}
+          style={{
+            position: 'absolute',
+            top: '-32px',
+            left: '0px',
+            zIndex: 9999, // 👈 High zIndex for better layering
+            cursor: 'grab',
+            userSelect: 'none'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.cursor = 'grabbing';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.cursor = 'grab';
+          }}
+        >
+          <Move className="w-4 h-4 text-primary" />
+          <span className="text-xs text-primary font-medium">Drag to move</span>
+        </div>
+
+        {/* Rotation Handle */}
+        <div
+          className="rotation-handle"
+          onMouseDown={(e) => startRotation(e, element)}
+        style={{
+            position: "absolute",
+            top: "-40px", // Position above the drag handle
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1002,
+            width: "20px",
+            height: "20px",
+            backgroundColor: rotatingElement?.id === element.id ? "#106ebe" : "#0078d4",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            userSelect: 'none',
+            fontSize: '14px',
+            color: 'white',
+            fontWeight: 'bold',
+            boxShadow: rotatingElement?.id === element.id 
+              ? "0 4px 12px rgba(0, 120, 212, 0.4)" 
+              : "0 2px 6px rgba(0, 0, 0, 0.2)",
+            border: "2px solid white",
+          }}
+          title="Rotate element"
+        >
+          ⟳
+        </div>
+
+        {/* Rotation Angle Tooltip */}
+        {rotatingElement?.id === element.id && (
+          <div
+            className="rotation-tooltip"
+            style={{
+              position: "absolute",
+              top: "-60px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              color: "white",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              fontWeight: "500",
+              zIndex: 1003,
+              pointerEvents: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {Math.round(rotationAngle)}°
+          </div>
+        )}
+
+      </>
+    );
+  }, [selectedElement, handleMouseDown, startRotation, rotatingElement, rotationAngle]);
 
   // Render resize handles for selected element
   const renderResizeHandles = useCallback((element: SlideElement) => {
@@ -335,14 +500,24 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         onMouseDown={(e) => handleMouseDown(e, element, handle)}
         style={{
           position: 'absolute',
-          width: '8px',
-          height: '8px',
+          width: '10px',
+          height: '10px',
           backgroundColor: '#0078d4',
-          border: '1px solid white',
+          border: '2px solid white',
           borderRadius: '50%',
           cursor: getResizeCursor(handle),
           zIndex: 1000,
+          transition: 'all 0.15s ease',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
           ...getHandlePosition(handle, element)
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#106ebe';
+          e.currentTarget.style.transform = 'scale(1.2)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#0078d4';
+          e.currentTarget.style.transform = 'scale(1)';
         }}
       />
     ));
@@ -375,21 +550,21 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     
     switch (handle) {
       case 'nw':
-        return { top: '-4px', left: '-4px' };
+        return { top: '-5px', left: '-5px' };
       case 'n':
-        return { top: '-4px', left: `${width / 2 - 4}px` };
+        return { top: '-5px', left: `${width / 2 - 5}px` };
       case 'ne':
-        return { top: '-4px', right: '-4px' };
+        return { top: '-5px', right: '-5px' };
       case 'e':
-        return { top: `${height / 2 - 4}px`, right: '-4px' };
+        return { top: `${height / 2 - 5}px`, right: '-5px' };
       case 'se':
-        return { bottom: '-4px', right: '-4px' };
+        return { bottom: '-5px', right: '-5px' };
       case 's':
-        return { bottom: '-4px', left: `${width / 2 - 4}px` };
+        return { bottom: '-5px', left: `${width / 2 - 5}px` };
       case 'sw':
-        return { bottom: '-4px', left: '-4px' };
+        return { bottom: '-5px', left: '-5px' };
       case 'w':
-        return { top: `${height / 2 - 4}px`, left: '-4px' };
+        return { top: `${height / 2 - 5}px`, left: '-5px' };
       default:
         return {};
     }
@@ -409,14 +584,6 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     }
   }, []);
 
-  const restoreSelection = useCallback(() => {
-    const store = (window as any).__PRESENTIFY_SELECTION__;
-    if (store && store.element && store.range) {
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(store.range);
-    }
-  }, []);
 
   // Calculate text dimensions for auto-sizing
   const calculateTextDimensions = useCallback((el: SlideElement, html: string) => {
@@ -440,11 +607,20 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     tempDiv.style.fontSize = `${el.fontSize || 18}px`;
     tempDiv.style.fontWeight = el.fontWeight || 'normal';
     tempDiv.style.fontStyle = (el as any).fontStyle || 'normal';
+    tempDiv.style.textTransform = (el as any).textTransform || 'none';
+    tempDiv.style.textDecoration = (el as any).textDecoration || 'none';
+    tempDiv.style.letterSpacing = (el as any).letterSpacing ? `${(el as any).letterSpacing}px` : '0px';
     tempDiv.style.fontFamily = el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif';
     tempDiv.style.padding = `${el.padding || 8}px`;
     tempDiv.style.border = 'none';
     tempDiv.style.outline = 'none';
     tempDiv.style.boxSizing = 'border-box';
+    tempDiv.style.borderWidth = (el as any).borderWidth ? `${(el as any).borderWidth}px` : '0px';
+    tempDiv.style.borderStyle = (el as any).borderStyle || 'solid';
+    tempDiv.style.borderColor = (el as any).borderColor || 'transparent';
+    tempDiv.style.borderRadius = (el as any).borderRadius ? `${(el as any).borderRadius}px` : '0px';
+    tempDiv.style.opacity = (el as any).opacity || 1;
+    tempDiv.style.backgroundColor = (el as any).backgroundColor || 'transparent';
     tempDiv.style.lineHeight = `${el.lineHeight || 1.2}`;
     tempDiv.style.margin = '0';
     
@@ -482,11 +658,20 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     tempDiv.style.fontSize = `${el.fontSize || 18}px`;
     tempDiv.style.fontWeight = el.fontWeight || 'normal';
     tempDiv.style.fontStyle = (el as any).fontStyle || 'normal';
+    tempDiv.style.textTransform = (el as any).textTransform || 'none';
+    tempDiv.style.textDecoration = (el as any).textDecoration || 'none';
+    tempDiv.style.letterSpacing = (el as any).letterSpacing ? `${(el as any).letterSpacing}px` : '0px';
     tempDiv.style.fontFamily = el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif';
     tempDiv.style.padding = `${el.padding || 8}px`;
     tempDiv.style.border = 'none';
     tempDiv.style.outline = 'none';
     tempDiv.style.boxSizing = 'border-box';
+    tempDiv.style.borderWidth = (el as any).borderWidth ? `${(el as any).borderWidth}px` : '0px';
+    tempDiv.style.borderStyle = (el as any).borderStyle || 'solid';
+    tempDiv.style.borderColor = (el as any).borderColor || 'transparent';
+    tempDiv.style.borderRadius = (el as any).borderRadius ? `${(el as any).borderRadius}px` : '0px';
+    tempDiv.style.opacity = (el as any).opacity || 1;
+    tempDiv.style.backgroundColor = (el as any).backgroundColor || 'transparent';
     tempDiv.style.lineHeight = `${el.lineHeight || 1.2}`;
     tempDiv.style.margin = '0';
     
@@ -507,154 +692,174 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     return { width: targetWidth, height: newHeight };
   }, []);
 
+  // Removed applySelectiveTextStyling function - using only entire text mode
+
   // render helpers: use your existing renderers for children content
   const renderElementContent = useCallback((el: SlideElement) => {
     if (el.type === "text") {
       const isSelected = selectedElement?.id === el.id;
-      const isEditing = editingElement?.id === el.id; // Use separate editing state
+      const isEditing = editingElement?.id === el.id;
       const textContent = el.text || "";
       const isEmpty = !el.text || el.text.trim() === "";
-      const displayText = isEmpty ? (el.placeholder || "Double click to edit text") : textContent;
+      const displayText = isEmpty ? (el.placeholder || "Click to edit") : textContent;
     
-    return (
-      <div
-          className="ppt-text"
+      return (
+        <div
+          className={`ppt-text text-element ${isSelected ? "text-box-outline" : ""} ${isEditing ? "text-editing-active" : ""}`}
           contentEditable={isEditing}
             suppressContentEditableWarning
-          data-placeholder={el.placeholder || "Double click to edit text"}
+          data-placeholder={el.placeholder || "Click to edit"}
           dir="ltr"
             onInput={(e) => {
-            // Real-time text updates during editing with auto-sizing
+            // Update dimensions during editing
             const html = e.currentTarget.innerHTML;
             const text = e.currentTarget.textContent || "";
-            
-            // Calculate new dimensions based on content
             const { width, height } = calculateTextDimensions(el, html);
             
               if (onElementUpdate) {
               onElementUpdate({ 
                 ...el, 
-                text: text,
-                content: html,
                 width: width,
                 height: height
               });
             }
           }}
+          onFocus={() => {
+            setIsEditingText(true);
+            saveSelection();
+          }}
+          onSelect={() => {
+            // Save selection whenever text is selected
+            saveSelection();
+          }}
           onBlur={(e) => {
-            // Final text update when editing is complete
-            const html = e.currentTarget.innerHTML;
-            const text = e.currentTarget.textContent || "";
+            // Only blur if not clicking on Properties Panel
+            if (!isPropertyPanelFocused) {
+              // Save text when done editing
+              const html = e.currentTarget.innerHTML;
+              const text = e.currentTarget.textContent || "";
+              
               if (onElementUpdate) {
-              onElementUpdate({ 
-                ...el, 
-                text: text,
-                content: html
-              });
+                onElementUpdate({ 
+                  ...el, 
+                  text: text,
+                  content: html
+                });
+              }
+              
+              setEditingElement(null);
+              setIsEditingText(false);
+            } else {
+              // Prevent blur and restore focus
+              e.preventDefault();
+              e.stopPropagation();
+              setTimeout(() => {
+                if (e.currentTarget) {
+                  e.currentTarget.focus();
+                  restoreSelection();
+                }
+              }, 0);
             }
-            setEditingElement(null);
           }}
           onKeyDown={(e) => {
-            // Keynote-style keyboard shortcuts
             if (e.key === 'Escape') {
               e.currentTarget.blur();
             }
-            // Allow Enter for line breaks
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               document.execCommand('insertHTML', false, '<br>');
             }
-            // Prevent arrow keys from moving the element when editing
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
               e.stopPropagation();
             }
           }}
           onMouseDown={(e) => {
-            // For text elements, handle mouse down like the reference
-            if (!isEditing) {
-              // When not editing, allow dragging by calling handleMouseDown
-              handleMouseDown(e, el);
-            } else {
-              // When editing, prevent dragging
-              e.stopPropagation();
-            }
-          }}
-          onClick={(e) => {
-            // Prevent canvas deselection when clicking text
+            // Always prevent dragging on text element - dragging is handled by drag handle only
             e.stopPropagation();
           }}
-          onMouseUp={() => {
-            // Store selection for formatting
-            storeSelection();
+          onClick={(e) => {
+            // Handle text click for editing
+            e.stopPropagation();
+            
+            // Always select the element first
+            setSelectedElement(el);
+            onElementSelect?.(el);
+            
+            if (!isEditing) {
+              // Single click on text content - start editing and preserve existing text
+              setEditingElement(el);
+              
+              setTimeout(() => {
+                const textElement = document.querySelector(`#element-${el.id} .ppt-text`) as HTMLElement;
+                if (!textElement) return;
+                
+                textElement.focus();
+                
+                // Always preserve existing text content
+                if (el.content) {
+                  textElement.innerHTML = el.content;
+                } else if (el.text) {
+                  textElement.textContent = el.text;
+                }
+                
+                // Position cursor at the end of the text
+                const range = document.createRange();
+                range.selectNodeContents(textElement);
+                range.collapse(false); // Collapse to end
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              }, 50);
+            }
           }}
-          onKeyUp={() => {
-            // Store selection for formatting
-            storeSelection();
-          }}
+          // No double-click handler for text elements - single click handles everything
             style={{
             width: "100%", 
             height: "100%", 
             outline: "none",
             fontSize: el.fontSize ?? 18,
-            color: isEmpty ? '#999999' : (el.color ?? "#000"),
-            display: "flex", 
-            alignItems: el.verticalAlign === 'top' ? 'flex-start' : 
-                       el.verticalAlign === 'bottom' ? 'flex-end' : 'center',
-            justifyContent: el.textAlign === 'center' ? 'center' :
-                           el.textAlign === 'right' ? 'flex-end' : 'flex-start',
-            padding: el.padding ?? 8,
-            boxSizing: "border-box",
+            color: isEmpty ? '#999' : (el.color ?? "#000"),
             fontFamily: el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
             fontWeight: el.fontWeight || 'normal',
-            fontStyle: isEmpty ? 'italic' : ((el as any).fontStyle || 'normal'),
-            textDecoration: (el as any).textDecoration || 'none',
+            fontStyle: isEmpty ? 'italic' : (el.fontStyle ?? 'normal'),
             textTransform: (el as any).textTransform || 'none',
-            backgroundColor: el.backgroundColor || 'transparent',
-            borderColor: el.borderColor || '#000000',
-            borderWidth: el.borderWidth || 0,
-            borderStyle: (el as any).borderStyle || 'solid',
-            borderRadius: el.borderRadius || 0,
+            textDecoration: (el as any).textDecoration || 'none',
+            textAlign: el.textAlign ?? 'left',
             lineHeight: el.lineHeight || 1.2,
-            letterSpacing: (el as any).letterSpacing || 0,
-            opacity: (el as any).opacity || 1,
+            letterSpacing: (el as any).letterSpacing ? `${(el as any).letterSpacing}px` : '0px',
+            padding: el.padding ?? 8,
+            boxSizing: "border-box",
             cursor: isEditing ? 'text' : 'pointer',
+            borderWidth: (el as any).borderWidth ? `${(el as any).borderWidth}px` : '0px',
+            borderStyle: (el as any).borderStyle || 'solid',
+            borderColor: (el as any).borderColor || 'transparent',
+            borderRadius: (el as any).borderRadius ? `${(el as any).borderRadius}px` : '0px',
+            opacity: (el as any).opacity || 1,
+            caretColor: isEditing ? (el.color ?? "#000") : 'transparent',
             minHeight: '20px',
+            overflow: "visible", // 👈 Critical: Allow text overflow like PowerPoint/Keynote
             wordWrap: 'break-word',
             whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word', // 👈 Handle long words gracefully
             userSelect: isEditing ? 'text' : 'none',
-            // Keynote-style visual feedback
-            transition: 'all 0.2s ease',
-            transform: isSelected ? 'scale(1.02)' : 'scale(1)',
-            boxShadow: isSelected ? '0 4px 20px rgba(0,0,0,0.15)' : 'none',
-            overflow: 'auto',
+            display: 'flex',
+            alignItems: (el as any).verticalAlign === 'top' ? 'flex-start' : 
+                      (el as any).verticalAlign === 'bottom' ? 'flex-end' : 'center',
+            justifyContent: el.textAlign === 'center' ? 'center' : el.textAlign === 'right' ? 'flex-end' : 'flex-start',
+            background: (el as any).backgroundColor || 'transparent', // 👈 Use element's background color
           }}
         >
-          {isEditing ? (
-            <div 
-              dangerouslySetInnerHTML={{ __html: el.content || textContent }}
-              style={{ 
-                width: "100%",
-                height: "100%",
-                outline: "none",
-                border: "none",
-                background: "transparent",
-                color: "inherit",
-                fontFamily: "inherit",
-                fontSize: "inherit",
-                fontWeight: "inherit",
-                fontStyle: "inherit"
-              }}
-            />
-          ) : (
-            <div style={{ 
-              color: isEmpty ? "#999" : (el.color ?? "#000"),
-              fontStyle: isEmpty ? "italic" : (el.fontStyle ?? "normal"),
-              width: "100%",
-              height: "100%"
-            }}>
-              {displayText}
-            </div>
-        )}
+          <span
+            style={{
+              overflow: 'visible', // 👈 ensures text itself doesn't clip
+              display: 'inline-block',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              width: '100%',
+            }}
+          >
+            {displayText}
+          </span>
       </div>
     );
     }
@@ -700,27 +905,41 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
   }, [onElementUpdate, selectedElement, onElementDelete]);
 
   // build element styles (slide-space units) - Optimized for performance
-  const buildElementStyle = (el: SlideElement) => ({
-    position: "absolute" as const,
-    left: 0,
-    top: 0,
-    width: el.width ?? 100,
-    height: el.height ?? 60,
-    transform: buildTransform(el),
-    transformOrigin: "top left",
-    zIndex: el.zIndex ?? 1,
-    touchAction: "none" as const,
-    userSelect: "none" as const,
-    boxSizing: "border-box" as const,
-    overflow: "hidden" as const,
-    background: "transparent",
-    // Performance optimizations
-    willChange: "auto",
-    backfaceVisibility: "hidden" as const,
-    transformStyle: "preserve-3d" as const,
-    // Smooth transitions only when not interacting
-    transition: selectedElement?.id === el.id ? "none" : "transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-  });
+  const buildElementStyle = (el: SlideElement) => {
+    const baseStyle = {
+      position: "absolute" as const,
+      left: 0,
+      top: 0,
+      width: el.width ?? 100,
+      height: el.height ?? 60,
+      transform: buildTransform(el),
+      transformOrigin: "center",
+      zIndex: el.zIndex ?? 1,
+      touchAction: "none" as const,
+      userSelect: "none" as const,
+      boxSizing: "border-box" as const,
+      background: "transparent",
+      // Performance optimizations
+      willChange: "auto",
+      backfaceVisibility: "hidden" as const,
+      transformStyle: "preserve-3d" as const,
+      // Smooth transitions only when not interacting
+      transition: selectedElement?.id === el.id ? "none" : "transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    };
+
+    // Text elements allow overflow for professional slide editor behavior
+    if (el.type === "text") {
+      return {
+        ...baseStyle,
+        overflow: "visible", // 👈 Allow text overflow like PowerPoint/Keynote
+      };
+    }
+
+    return {
+      ...baseStyle,
+      overflow: "hidden" as const,
+    };
+  };
 
   return (
     <div
@@ -748,7 +967,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
           background,
           boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
           borderRadius: 8,
-          overflow: "hidden",
+          overflow: "visible",
           transform: `scale(${scale})`,
           transformOrigin: "center center",
           position: "relative",
@@ -761,14 +980,26 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
           <div
             id={`element-${el.id}`}
             key={el.id}
-            style={buildElementStyle(el)}
+            style={{
+              ...buildElementStyle(el),
+              overflow: selectedElement?.id === el.id ? "visible" : "hidden", // 👈 Selected elements always visible for controls
+            }}
             onClick={(ev) => handleElementClick(el, ev)}
-            onDoubleClick={(ev) => handleElementDoubleClick(el, ev)}
-            onMouseDown={(e) => handleMouseDown(e, el)}
+            onDoubleClick={(ev) => {
+              // For all elements, just select them
+              ev.stopPropagation();
+              setSelectedElement(el);
+              onElementSelect?.(el);
+            }}
+            onMouseDown={(e) => {
+              // All elements use their drag handle for dragging
+              // This prevents accidental dragging when clicking on element content
+            }}
             data-slide-id={el.id}
             className={selectedElement?.id === el.id ? 'ring-2 ring-blue-400' : ''}
           >
             {renderElementContent(el)}
+            {renderElementControls(el)}
             {renderResizeHandles(el)}
           </div>
         ))}

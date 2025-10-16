@@ -52,7 +52,6 @@ export const useSlideThumbnails = ({
   onAddSlide,
   onUpdateSlide
 }: UseSlideThumbnailsProps): UseSlideThumbnailsReturn => {
-  console.log('useSlideThumbnails initialized with onUpdateSlide:', typeof onUpdateSlide, onUpdateSlide?.toString() || 'undefined');
   const [slides, setSlides] = useState<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(initialCurrentSlide);
   const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
@@ -378,14 +377,9 @@ export const useSlideThumbnails = ({
   }, [slides, onUpdateSlide]);
 
   const handleChangeSlideBackground = useCallback((index: number, background: string) => {
-    console.log('handleChangeSlideBackground called with:', { index, background });
-    console.log('Current slides before update:', slides);
     const updatedSlides = [...slides];
     updatedSlides[index] = { ...updatedSlides[index], background };
-    console.log('Updated slides:', updatedSlides);
     setSlides(updatedSlides);
-    console.log('Calling onUpdateSlide with:', { index, background });
-    console.log('onUpdateSlide function:', onUpdateSlide);
     onUpdateSlide(index, { background });
 
     // Regenerate thumbnail

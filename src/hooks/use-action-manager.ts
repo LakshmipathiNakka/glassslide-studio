@@ -21,7 +21,7 @@ export interface Element {
   fontFamily?: string;
   fontWeight?: 'normal' | 'medium' | 'bold';
   fontStyle?: 'normal' | 'italic';
-  textAlign?: 'left' | 'center' | 'right' | 'justify';
+  textAlign?: 'left' | 'center' | 'right';
   textDecoration?: string;
   textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   verticalAlign?: 'top' | 'middle' | 'bottom';

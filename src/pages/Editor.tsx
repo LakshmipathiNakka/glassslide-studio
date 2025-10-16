@@ -445,7 +445,7 @@ const Editor = () => {
             onSlideChange={setCurrentSlide}
             onAddSlide={handleAddSlide}
             onUpdateSlide={(index, updates) => {
-              console.log('Editor onUpdateSlide called with:', { index, updates });
+              // console.log('Editor onUpdateSlide called with:', { index, updates });
               // Update the slide at the specified index
               const newSlides = [...slides];
               newSlides[index] = { ...newSlides[index], ...updates };
@@ -462,7 +462,7 @@ const Editor = () => {
             onSlideChange={setCurrentSlide}
             onAddSlide={handleAddSlide}
             onUpdateSlide={(index, updates) => {
-              console.log('Editor onUpdateSlide called with:', { index, updates });
+              // console.log('Editor onUpdateSlide called with:', { index, updates });
               // Update the slide at the specified index
               const newSlides = [...slides];
               newSlides[index] = { ...newSlides[index], ...updates };

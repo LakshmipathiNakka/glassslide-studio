@@ -7,10 +7,11 @@ import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Trash2, Type, Palette, AlignLeft, AlignCenter, AlignRight, AlertTriangle, Plus, X, BarChart3, PieChart, TrendingUp, Settings, Tag, Database, Bold, Italic, Underline, Strikethrough, AlignJustify, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Eye, EyeOff } from "lucide-react";
+import { Trash2, Type, Palette, AlignLeft, AlignCenter, AlignRight, AlertTriangle, Plus, X, BarChart3, PieChart, TrendingUp, Settings, Tag, Database, Bold, Italic, Underline, Strikethrough, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Eye, EyeOff } from "lucide-react";
 import { SlideElement } from "@/types/canvas";
 import { Element } from "@/hooks/use-action-manager";
 import { motion, AnimatePresence } from "framer-motion";
+// Removed TextScopeToggle import - using only entire text mode
 
 // Predefined color palette for chart datasets
 const CHART_COLOR_PALETTE = [
@@ -51,12 +52,25 @@ const TEXT_CASE_OPTIONS = [
 ];
 
 interface PropertiesPanelProps {
-  selectedElement: Element;
+  selectedElement: Element | null;
   onElementUpdate: (elementId: string, updates: Partial<Element>) => void;
   onElementDelete: (elementId: string) => void;
 }
 
 export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDelete }: PropertiesPanelProps) => {
+  if (!selectedElement) {
+    return (
+      <div className="w-80 h-full bg-gray-50 border-l border-gray-200 flex items-center justify-center">
+        <div className="text-center text-gray-500">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
+            <Settings className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium mb-2">No Element Selected</h3>
+          <p className="text-sm">Select an element to view its properties</p>
+        </div>
+      </div>
+    );
+  }
   const [properties, setProperties] = useState({
     fontSize: 18,
     fontFamily: 'system-ui',
@@ -64,7 +78,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
     fontStyle: 'normal' as 'normal' | 'italic',
     textDecoration: 'none' as string,
     textTransform: 'none' as 'none' | 'uppercase' | 'lowercase' | 'capitalize',
-    textAlign: 'center' as 'left' | 'center' | 'right' | 'justify',
+    textAlign: 'center' as 'left' | 'center' | 'right',
     verticalAlign: 'middle' as 'top' | 'middle' | 'bottom',
     lineHeight: 1.2,
     letterSpacing: 0,
@@ -82,6 +96,9 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
   // State for tracking label and data counts
   const [labelCount, setLabelCount] = useState(0);
   const [dataCounts, setDataCounts] = useState<number[]>([]);
+  // Removed textScope functionality - using only entire text mode
+
+  // Removed handleTextScopeChange - no longer needed
 
   useEffect(() => {
     if (selectedElement) {
@@ -92,7 +109,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
         fontStyle: selectedElement.fontStyle || 'normal',
         textDecoration: (selectedElement as any).textDecoration || 'none',
         textTransform: (selectedElement as any).textTransform || 'none',
-        textAlign: selectedElement.textAlign || 'center',
+        textAlign: (selectedElement.textAlign as 'left' | 'center' | 'right') || 'center',
         verticalAlign: (selectedElement as any).verticalAlign || 'middle',
         lineHeight: selectedElement.lineHeight || 1.2,
         letterSpacing: (selectedElement as any).letterSpacing || 0,
@@ -123,8 +140,11 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
   const updateProperty = (key: string, value: any) => {
     if (!selectedElement) return;
     
+    // Apply to entire element (simplified - no selective text styling)
     onElementUpdate(selectedElement.id, { [key]: value });
   };
+
+  // Removed applySelectiveTextStyling function - using only entire text mode
 
   // Helper function to get warning message for data count mismatch
   const getDataCountWarning = (datasetIndex: number) => {
@@ -181,7 +201,38 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
 
   return (
     <TooltipProvider>
-      <aside className="w-full md:w-80 lg:w-96 h-full bg-gradient-to-b from-gray-50 via-white to-gray-100 border-l border-gray-200 shadow-inner flex flex-col overflow-hidden">
+      <aside 
+        data-property-panel="true"
+        className="w-full md:w-80 lg:w-96 h-full bg-gradient-to-b from-gray-50 via-white to-gray-100 border-l border-gray-200 shadow-inner flex flex-col overflow-hidden"
+        onMouseDown={() => {
+          // Signal that Properties Panel is being interacted with
+          window.dispatchEvent(new CustomEvent('propertyPanelFocus', { detail: true }));
+        }}
+        onMouseUp={() => {
+          // Reset after a short delay
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('propertyPanelFocus', { detail: false }));
+          }, 100);
+        }}
+        onClick={(e) => {
+          // Restore text selection when clicking on Properties Panel
+          const editingElement = document.querySelector('.text-editing-active') as HTMLElement;
+          if (editingElement) {
+            editingElement.focus();
+            
+            // Try to restore selection if it exists
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount === 0) {
+              // No current selection, try to restore from saved selection
+              const savedRange = (window as any).__SAVED_SELECTION__;
+              if (savedRange) {
+                selection.removeAllRanges();
+                selection.addRange(savedRange);
+              }
+            }
+          }
+        }}
+      >
       {/* Header */}
       <div className="px-5 py-4 border-b bg-white/70 backdrop-blur-lg sticky top-0 z-10">
         <div className="flex items-center justify-between">
@@ -222,8 +273,11 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
+            className="space-y-4"
           >
-            <Accordion type="single" collapsible className="space-y-2">
+            {/* Removed TextScopeToggle - using only entire text mode */}
+
+            <Accordion type="single" collapsible className="space-y-2" defaultValue="text-formatting">
               {/* Text Formatting */}
               <AccordionItem value="text-formatting" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
                 <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
@@ -235,6 +289,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 space-y-4">
+                  
                   {/* Font Family */}
                   <div>
                     <Label className="text-xs text-gray-500 mb-1 block">Font Family</Label>
@@ -413,15 +468,6 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                         title="Align Right"
                       >
                         <AlignRight className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant={properties.textAlign === 'justify' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handlePropertyChange('textAlign', 'justify')}
-                        className="flex-1 h-8"
-                        title="Justify Text"
-                      >
-                        <AlignJustify className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -995,11 +1041,11 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                           {(() => {
                             const hasMismatch = dataCounts[datasetIndex] !== labelCount && labelCount > 0;
                             if (datasetIndex === 0) {
-                              console.log('Dataset 1 mismatch check:', {
-                                dataCount: dataCounts[datasetIndex],
-                                labelCount,
-                                hasMismatch
-                              });
+                              // console.log('Dataset 1 mismatch check:', {
+                              //   dataCount: dataCounts[datasetIndex],
+                              //   labelCount,
+                              //   hasMismatch
+                              // });
                             }
                             return hasMismatch;
                           })() && (

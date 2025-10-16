@@ -21,7 +21,6 @@ export const SlideThumbnails = ({
   onAddSlide,
   onUpdateSlide
 }: SlideThumbnailsProps) => {
-  console.log('SlideThumbnails received props:', { slides, currentSlide, onSlideChange, onAddSlide, onUpdateSlide });
   const {
     slides: enhancedSlides,
     currentSlide: enhancedCurrentSlide,
@@ -49,8 +48,6 @@ export const SlideThumbnails = ({
     onUpdateSlide
   });
   
-  console.log('SlideThumbnails onUpdateSlide prop:', onUpdateSlide);
-  console.log('SlideThumbnails passing to hook:', onUpdateSlide);
 
   return (
     <>

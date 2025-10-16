@@ -9,7 +9,7 @@ export const TestPage = () => {
   useEffect(() => {
     if (targetRef.current) {
       setTarget(targetRef.current);
-      console.log('Target element set:', targetRef.current);
+      // console.log('Target element set:', targetRef.current);
     }
   }, []);
 
@@ -28,24 +28,24 @@ export const TestPage = () => {
 
         {target && (
           <>
-            {console.log('Rendering Moveable with target:', target)}
+            {/* console.log('Rendering Moveable with target:', target) */}
             <Moveable
               target={target}
               draggable={true}
               resizable={true}
               rotatable={true}
               onDrag={({ target, transform }) => {
-                console.log('Drag:', transform);
+                // console.log('Drag:', transform);
                 target.style.transform = transform;
               }}
               onResize={({ target, width, height, transform }) => {
-                console.log('Resize:', width, height);
+                // console.log('Resize:', width, height);
                 target.style.width = `${width}px`;
                 target.style.height = `${height}px`;
                 target.style.transform = transform;
               }}
               onRotate={({ target, transform }) => {
-                console.log('Rotate:', transform);
+                // console.log('Rotate:', transform);
                 target.style.transform = transform;
               }}
               style={{

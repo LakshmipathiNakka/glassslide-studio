@@ -189,12 +189,12 @@ export const EnhancedPowerPointEditor: React.FC<EnhancedPowerPointEditorProps> =
   useHotkeys('ctrl+c', () => {
     if (selectedElementId) {
       // Copy functionality would be implemented here
-      console.log('Copy element:', selectedElementId);
+      // console.log('Copy element:', selectedElementId);
     }
   }, { preventDefault: true });
   useHotkeys('ctrl+v', () => {
     // Paste functionality would be implemented here
-    console.log('Paste element');
+    // console.log('Paste element');
   }, { preventDefault: true });
   useHotkeys('delete', () => {
     if (selectedElementId) {
@@ -208,7 +208,7 @@ export const EnhancedPowerPointEditor: React.FC<EnhancedPowerPointEditorProps> =
   }, { preventDefault: true });
   useHotkeys('ctrl+s', () => {
     // Save functionality would be implemented here
-    console.log('Save presentation');
+    // console.log('Save presentation');
   }, { preventDefault: true });
   useHotkeys('f11', () => {
     setIsFullscreen(!isFullscreen);

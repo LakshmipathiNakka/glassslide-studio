@@ -519,22 +519,22 @@ export const FabricPowerPointCanvas: React.FC<FabricPowerPointCanvasProps> = ({
 
   useHotkeys('ctrl+z', () => {
     // Undo functionality would be implemented here
-    console.log('Undo');
+    // console.log('Undo');
   });
 
   useHotkeys('ctrl+y', () => {
     // Redo functionality would be implemented here
-    console.log('Redo');
+    // console.log('Redo');
   });
 
   useHotkeys('ctrl+c', () => {
     // Copy functionality would be implemented here
-    console.log('Copy');
+    // console.log('Copy');
   });
 
   useHotkeys('ctrl+v', () => {
     // Paste functionality would be implemented here
-    console.log('Paste');
+    // console.log('Paste');
   });
 
   // Calculate canvas scale for responsive design

@@ -70,7 +70,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onAddShape,
   onAddChart,
 }) => {
-  console.log('Canvas component rendered with elements:', elements);
+  // console.log('Canvas component rendered with elements:', elements);
 
   // Refs
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -626,13 +626,13 @@ export const Canvas: React.FC<CanvasProps> = ({
 
   // Handle element deletion (from properties panel or keyboard)
   const handleDeleteElement = useCallback((elementId: string) => {
-    console.log('Canvas: Deleting element:', elementId);
+    // console.log('Canvas: Deleting element:', elementId);
     
     // Special handling for default elements
     if (elementId === 'default-title' || elementId === 'default-subtitle') {
       // Mark the default element as deleted
       setDeletedDefaultElements(prev => new Set(prev).add(elementId));
-      console.log('Canvas: Marked default element as deleted:', elementId);
+      // console.log('Canvas: Marked default element as deleted:', elementId);
       handleElementSelect(null);
     } else {
       // Normal deletion for regular elements
