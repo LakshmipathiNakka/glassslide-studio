@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Toolbar } from "@/components/editor/Toolbar";
 import SimplePowerPointCanvas from "@/components/canvas/SimplePowerPointCanvas";
-import { SlideThumbnails } from "@/components/editor/SlideThumbnails";
+import SlideThumbnailsMovable from "@/components/editor/SlideThumbnailsMovable";
 import { Slide } from '@/types/slide-thumbnails';
 import { ChartPanel } from "@/components/editor/ChartPanel";
 import { PropertiesPanel } from "@/components/editor/PropertiesPanel";
@@ -64,7 +64,8 @@ const SimpleEnhancedEditor = () => {
         }
       ],
       background: '#FFFFFF',
-      createdAt: new Date()
+      createdAt: new Date(),
+      lastUpdated: Date.now()
     };
     
     // Initial slide created successfully
@@ -73,7 +74,30 @@ const SimpleEnhancedEditor = () => {
   
   const initialSlides = [createInitialSlide()];
   const [slides, setSlides] = useState<Slide[]>(initialSlides);
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentSlideId, setCurrentSlideId] = useState(initialSlides[0].id);
+  
+  // Helper functions for current slide management
+  const currentSlide = slides.find(slide => slide.id === currentSlideId) || slides[0];
+  const currentSlideIndex = slides.findIndex(slide => slide.id === currentSlideId);
+  
+  console.log('📊 SIMPLE ENHANCED EDITOR - Current slide state:', {
+    currentSlideId,
+    currentSlideIndex,
+    currentSlideElements: currentSlide?.elements?.length || 0,
+    slidesCount: slides.length,
+    slideIds: slides.map(s => s.id)
+  });
+  
+  
+  
+  
+  
+  // Safety effect to ensure current slide ID is always valid
+  useEffect(() => {
+    if (!slides.find(slide => slide.id === currentSlideId) && slides.length > 0) {
+      setCurrentSlideId(slides[0].id);
+    }
+  }, [slides, currentSlideId]);
   
   // Zoom state for slide editor
   const [zoomLevel, setZoomLevel] = useState(90); // Default 90% zoom
@@ -120,15 +144,50 @@ const SimpleEnhancedEditor = () => {
   
   // Function to update current slide elements
   const updateCurrentSlide = useCallback((newElements: Element[]) => {
+    console.log('📝 MAIN EDITOR - Updating slide content:', {
+      currentSlideId,
+      elementCount: newElements.length,
+      elementIds: newElements.map(el => el.id)
+    });
+    
     setSlides(prevSlides => 
-      prevSlides.map((slide, index) => 
-        index === currentSlide 
-          ? { ...slide, elements: newElements }
+      prevSlides.map((slide) => 
+        slide.id === currentSlideId 
+          ? { ...slide, elements: newElements, lastUpdated: Date.now() }
           : slide
       )
     );
-  }, [currentSlide]);
+  }, [currentSlideId]);
+
+  // Function to handle slide reordering
+  const handleReorderSlides = useCallback((reorderedSlides: Slide[]) => {
+    console.log('🔄 MAIN EDITOR - Reordering slides:', {
+      currentSlideId,
+      reorderedCount: reorderedSlides.length,
+      reorderedIds: reorderedSlides.map(s => s.id)
+    });
+    
+    // Update slides with timestamp
+    const updatedSlides = reorderedSlides.map(slide => ({ ...slide, lastUpdated: Date.now() }));
+    setSlides(updatedSlides);
+    
+    // The currentSlideId should remain the same - it identifies the slide by ID, not position
+    // The slide content will automatically update because we're using currentSlideId to find the slide
+    console.log('🔄 MAIN EDITOR - Keeping current slide ID:', currentSlideId);
+  }, [currentSlideId]);
   
+  // Function to handle slide change
+  const handleSlideChange = useCallback((index: number) => {
+    const newSlideId = slides[index]?.id || slides[0]?.id || '';
+    console.log('🔄 MAIN EDITOR - Changing slide:', {
+      from: currentSlideId,
+      to: newSlideId,
+      index,
+      totalSlides: slides.length
+    });
+    setCurrentSlideId(newSlideId);
+  }, [slides, currentSlideId]);
+
   // Function to handle element selection
   const handleElementSelect = useCallback((element: Element | null) => {
     setSelectedElement(element);
@@ -136,10 +195,10 @@ const SimpleEnhancedEditor = () => {
 
   // Function to handle element deletion
   const handleDeleteElement = useCallback((elementId: string) => {
-    const newElements = slides[currentSlide]?.elements.filter(el => el.id !== elementId) || [];
+    const newElements = currentSlide?.elements.filter(el => el.id !== elementId) || [];
     updateCurrentSlide(newElements);
     setSelectedElement(null);
-  }, [currentSlide, slides, updateCurrentSlide]);
+  }, [currentSlide, updateCurrentSlide]);
 
 
   
@@ -170,9 +229,9 @@ const SimpleEnhancedEditor = () => {
     reorderSlides,
   } = useActionManager({
     slides,
-    currentSlideIndex: currentSlide,
+    currentSlideIndex: currentSlideIndex,
     onSlidesChange: setSlides,
-    onSlideIndexChange: setCurrentSlide,
+    onSlideIndexChange: (index) => setCurrentSlideId(slides[index]?.id || slides[0]?.id),
   });
 
   // Track if this is the initial load (don't track placeholder creation)
@@ -342,7 +401,7 @@ const SimpleEnhancedEditor = () => {
 
   const handleElementUpdate = useCallback((updatedElement: Element) => {
     // Find the current element to get the updates
-    const currentElement = slides[currentSlide]?.elements.find(el => el.id === updatedElement.id);
+    const currentElement = currentSlide?.elements.find(el => el.id === updatedElement.id);
     if (!currentElement) return;
 
     // Calculate the updates by comparing current and updated element
@@ -358,14 +417,10 @@ const SimpleEnhancedEditor = () => {
       editElement(updatedElement.id, updates);
     } else {
       // Just update the slides directly for placeholder changes
-      const newSlides = [...slides];
-      newSlides[currentSlide] = {
-        ...newSlides[currentSlide],
-        elements: newSlides[currentSlide].elements.map(el => 
-          el.id === updatedElement.id ? updatedElement : el
-        )
-      };
-      setSlides(newSlides);
+      const newElements = currentSlide?.elements.map(el => 
+        el.id === updatedElement.id ? updatedElement : el
+      ) || [];
+      updateCurrentSlide(newElements);
     }
     setSelectedElement(updatedElement);
   }, [editElement, isInitialLoad, slides, currentSlide]);
@@ -546,96 +601,74 @@ const SimpleEnhancedEditor = () => {
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden keynote-bg">
         {/* Mobile: Slide Thumbnails at top */}
         <aside className="lg:hidden relative z-20">
-          <SlideThumbnails
+          <SlideThumbnailsMovable
+            key={`mobile-thumbnails-${slides.length}-${slides[0]?.lastUpdated || 0}`}
             slides={slides}
-            currentSlide={currentSlide}
-            onSlideChange={setCurrentSlide}
+            currentSlide={currentSlideIndex}
+            onSlideChange={handleSlideChange}
             onAddSlide={handleAddSlide}
-            onUpdateSlide={(index, updates) => {
-              const newSlides = [...slides];
-              
-              // Check if this is a slide deletion
-              if ((updates as any)._deleted) {
-                // Remove the slide at the specified index
-                newSlides.splice(index, 1);
-              }
-              // Check if this is a new slide being added (has all slide properties)
-              else if (updates.id && updates.elements && updates.background !== undefined) {
-                // This is a complete new slide, insert it at the specified index
-                newSlides.splice(index, 0, updates as Slide);
-              } else {
-                // This is an update to an existing slide
-                if (newSlides[index]) {
-                  newSlides[index] = { ...newSlides[index], ...updates };
-                }
-              }
-              
-              setSlides(newSlides);
-              
-              // Regenerate thumbnail for the updated slide
-              const updatedSlide = newSlides[index];
-              if (updatedSlide) {
-                // Trigger thumbnail regeneration by updating the slide ID
-                // This will cause the thumbnail to be regenerated
-                setTimeout(() => {
-                  const slideId = updatedSlide.id;
-                  // Force re-render by updating a timestamp
-                  setSlides(prev => prev.map(slide => 
-                    slide.id === slideId ? { ...slide, lastUpdated: Date.now() } : slide
-                  ));
-                }, 100);
-              }
-            }}
+            onReorderSlides={handleReorderSlides}
           />
         </aside>
 
         {/* Desktop: Slide Thumbnails on left */}
         <aside className="hidden lg:block relative z-20">
-          <SlideThumbnails
+          <SlideThumbnailsMovable
+            key={`desktop-thumbnails-${slides.length}-${slides[0]?.lastUpdated || 0}`}
             slides={slides}
-            currentSlide={currentSlide}
-            onSlideChange={setCurrentSlide}
+            currentSlide={currentSlideIndex}
+            onSlideChange={handleSlideChange}
             onAddSlide={handleAddSlide}
-            onUpdateSlide={(index, updates) => {
-              const newSlides = [...slides];
-              
-              // Check if this is a slide deletion
-              if ((updates as any)._deleted) {
-                // Remove the slide at the specified index
-                newSlides.splice(index, 1);
-              }
-              // Check if this is a new slide being added (has all slide properties)
-              else if (updates.id && updates.elements && updates.background !== undefined) {
-                // This is a complete new slide, insert it at the specified index
-                newSlides.splice(index, 0, updates as Slide);
-              } else {
-                // This is an update to an existing slide
-                if (newSlides[index]) {
-                  newSlides[index] = { ...newSlides[index], ...updates };
-                }
-              }
-              
-              setSlides(newSlides);
-              
-              // Regenerate thumbnail for the updated slide
-              const updatedSlide = newSlides[index];
-              if (updatedSlide) {
-                // Trigger thumbnail regeneration by updating the slide ID
-                // This will cause the thumbnail to be regenerated
-                setTimeout(() => {
-                  const slideId = updatedSlide.id;
-                  // Force re-render by updating a timestamp
-                  setSlides(prev => prev.map(slide => 
-                    slide.id === slideId ? { ...slide, lastUpdated: Date.now() } : slide
-                  ));
-                }, 100);
-              }
-            }}
+            onReorderSlides={handleReorderSlides}
           />
         </aside>
 
         {/* Canvas Area */}
-        <section className="flex-1 flex flex-col min-w-0 relative z-10 bg-gray-100">
+        <section key={`canvas-section-${currentSlideId}-${currentSlide?.lastUpdated || 0}`} className="flex-1 flex flex-col min-w-0 relative z-10 bg-gray-100">
+          {/* Debug info */}
+          <div className="absolute top-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded z-50">
+            <div className="bg-green-500 text-white px-1 rounded mb-1">SIMPLE ENHANCED EDITOR</div>
+            Slide {currentSlideIndex + 1} of {slides.length} | {currentSlide?.elements?.length || 0} elements
+            <br />
+            ID: {currentSlideId}
+            <br />
+            <button 
+              onClick={() => {
+                const newSlide = createInitialSlide();
+                const slideWithContent = {
+                  ...newSlide,
+                  elements: [
+                    {
+                      id: `text-${Date.now()}`,
+                      type: 'text' as const,
+                      x: 100,
+                      y: 100,
+                      width: 200,
+                      height: 50,
+                      content: `Test Slide ${slides.length + 1}`,
+                      fontSize: 24,
+                      fontFamily: 'Arial',
+                      color: '#000000',
+                      backgroundColor: 'transparent',
+                      textAlign: 'left' as const,
+                      fontWeight: 'normal' as const,
+                      fontStyle: 'normal' as const,
+                      textDecoration: 'none' as const,
+                      transform: '',
+                      rotation: 0,
+                      opacity: 1,
+                      zIndex: 1
+                    }
+                  ]
+                };
+                setSlides(prev => [...prev, slideWithContent]);
+                setCurrentSlideId(slideWithContent.id);
+              }}
+              className="bg-blue-500 text-white px-2 py-1 rounded text-xs mt-1"
+            >
+              Add Test Slide
+            </button>
+          </div>
           {/* Zoom Indicator */}
           {zoomLevel !== 90 && (
             <div className="absolute top-4 right-4 z-20 bg-black/80 text-white px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
@@ -659,18 +692,23 @@ const SimpleEnhancedEditor = () => {
               }}
             >
               <SimplePowerPointCanvas
-                elements={slides[currentSlide]?.elements || []}
-                background={slides[currentSlide]?.background || '#ffffff'}
+                key={`canvas-${currentSlideId}-${currentSlide?.lastUpdated || 0}`}
+                elements={currentSlide?.elements || []}
+                background={currentSlide?.background || '#ffffff'}
                 // Removed textScope prop
                 onElementSelect={handleElementSelect}
                 onElementUpdate={(element) => {
-                  const newElements = slides[currentSlide]?.elements.map(el => 
+                  const newElements = currentSlide?.elements.map(el => 
                     el.id === element.id ? element : el
                   ) || [];
                   updateCurrentSlide(newElements);
                 }}
+                onElementDelete={(elementId) => {
+                  const newElements = currentSlide?.elements.filter(el => el.id !== elementId) || [];
+                  updateCurrentSlide(newElements);
+                }}
                 onElementAdd={(element) => {
-                  const newElements = [...(slides[currentSlide]?.elements || []), element];
+                  const newElements = [...(currentSlide?.elements || []), element];
                   updateCurrentSlide(newElements);
                 }}
               />
@@ -686,18 +724,14 @@ const SimpleEnhancedEditor = () => {
               selectedElement={selectedElement}
               // Removed textScope props
               onElementUpdate={(elementId: string, updates: Partial<Element>) => {
-                const currentElement = slides[currentSlide]?.elements.find(el => el.id === elementId);
+                const currentElement = currentSlide?.elements.find(el => el.id === elementId);
                 if (currentElement) {
                   // Apply updates directly to the current element
                   const updatedElement = { ...currentElement, ...updates };
-                  const newSlides = [...slides];
-                  newSlides[currentSlide] = {
-                    ...newSlides[currentSlide],
-                    elements: newSlides[currentSlide].elements.map(el => 
-                      el.id === elementId ? updatedElement : el
-                    )
-                  };
-                  setSlides(newSlides);
+                  const newElements = currentSlide?.elements.map(el => 
+                    el.id === elementId ? updatedElement : el
+                  ) || [];
+                  updateCurrentSlide(newElements);
                   setSelectedElement(updatedElement);
                 }
               }}
@@ -744,9 +778,9 @@ const SimpleEnhancedEditor = () => {
       {presentationMode && (
         <PresentationMode
           slides={slides}
-          currentSlide={currentSlide}
+          currentSlide={currentSlideIndex}
           onClose={() => setPresentationMode(false)}
-          onSlideChange={setCurrentSlide}
+          onSlideChange={(index) => setCurrentSlideId(slides[index]?.id || slides[0]?.id)}
         />
       )}
 

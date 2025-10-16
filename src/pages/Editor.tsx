@@ -353,6 +353,21 @@ const Editor = () => {
     setCurrentSlide(slides.length);
   };
 
+  const handleReorderSlides = (reorderedSlides: Slide[]) => {
+    console.log('🔄 EDITOR - Reordering slides:', {
+      currentSlide,
+      reorderedCount: reorderedSlides.length,
+      reorderedIds: reorderedSlides.map(s => s.id)
+    });
+    
+    // Update slides with timestamp
+    const updatedSlides = reorderedSlides.map(slide => ({ ...slide, lastUpdated: Date.now() }));
+    pushSlides(updatedSlides);
+    
+    // Keep the same current slide index - the content will stay with the same slide
+    console.log('🔄 EDITOR - Keeping current slide index:', currentSlide);
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -444,6 +459,7 @@ const Editor = () => {
             currentSlide={currentSlide}
             onSlideChange={setCurrentSlide}
             onAddSlide={handleAddSlide}
+            onReorderSlides={handleReorderSlides}
             onUpdateSlide={(index, updates) => {
               // console.log('Editor onUpdateSlide called with:', { index, updates });
               // Update the slide at the specified index
@@ -461,6 +477,7 @@ const Editor = () => {
             currentSlide={currentSlide}
             onSlideChange={setCurrentSlide}
             onAddSlide={handleAddSlide}
+            onReorderSlides={handleReorderSlides}
             onUpdateSlide={(index, updates) => {
               // console.log('Editor onUpdateSlide called with:', { index, updates });
               // Update the slide at the specified index

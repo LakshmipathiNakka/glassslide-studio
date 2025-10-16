@@ -1,74 +1,45 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragStartEvent,
-  DragOverlay,
-  DragOverEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import {
-  Plus,
-  Grid3X3,
-  List,
-  Search,
-  Filter,
-  MoreHorizontal,
-  ChevronDown,
-  Sparkles,
-  Eye,
-  EyeOff
-} from 'lucide-react';
-import { EnhancedSlideThumbnailsProps, Slide, SlideAction, DragState } from '@/types/slide-thumbnails';
+import React, { useState, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, ChevronDown, Trash2 } from 'lucide-react';
+import { EnhancedSlideThumbnailsProps, Slide, SlideAction } from '@/types/slide-thumbnails';
 import SlideThumbnail from './SlideThumbnail';
 import SlideContextMenu from './SlideContextMenu';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-// Sortable Thumbnail Item
-const SortableThumbnailItem: React.FC<{
+// Draggable Thumbnail Item
+const DraggableThumbnailItem: React.FC<{
   slide: Slide;
   index: number;
   isActive: boolean;
+  isDragging: boolean;
   onSelect: (index: number) => void;
   onContextMenu: (event: React.MouseEvent, slide: Slide, index: number) => void;
-  onDragStart: (index: number) => void;
-  onDragEnd: () => void;
-}> = ({ slide, index, isActive, onSelect, onContextMenu, onDragStart, onDragEnd }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: slide.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
+  onDragStart: (e: React.DragEvent, index: number) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent, index: number) => void;
+  onDelete: (slideId: string) => void;
+}> = ({ slide, index, isActive, isDragging, onSelect, onContextMenu, onDragStart, onDragOver, onDrop, onDelete }) => {
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <motion.div
+      draggable
+      onDragStart={(e) => onDragStart(e as unknown as React.DragEvent, index)}
+      onDragOver={onDragOver}
+      onDrop={(e) => onDrop(e as unknown as React.DragEvent, index)}
+      onClick={() => onSelect(index)}
+      onContextMenu={(e) => {
+        const mouseEvent = e as unknown as React.MouseEvent;
+        onContextMenu(mouseEvent, slide, index);
+      }}
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0, scale: isDragging ? 1.05 : 1 }}
+      exit={{ opacity: 0, y: -20 }}
+      whileHover={{ scale: isDragging ? 1.05 : 1.02, y: isDragging ? 0 : -2 }}
+      whileTap={{ scale: 0.98 }}
+      className={`group relative slide-thumbnail ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''}`}
+    >
       <SlideThumbnail
         slide={slide}
         index={index}
@@ -77,10 +48,24 @@ const SortableThumbnailItem: React.FC<{
         isHovered={false}
         onSelect={onSelect}
         onContextMenu={onContextMenu}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
+        onDragStart={() => {}}
+        onDragEnd={() => {}}
       />
-    </div>
+
+      {/* Delete Button */}
+      {index > 0 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(slide.id);
+          }}
+          className="absolute top-2 right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 z-10"
+          title="Delete slide"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      )}
+    </motion.div>
   );
 };
 
@@ -89,292 +74,134 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
   currentSlide,
   onSlideChange,
   onAddSlide,
-  onAddSlideAtIndex,
   onDuplicateSlide,
   onDeleteSlide,
   onReorderSlides,
-  onUpdateSlide,
-  onRenameSlide,
-  onSetSlideCategory,
-  onAddSlideNotes,
-  onChangeSlideBackground,
-  onAddSlideCover,
-  onContextMenuAction
+  onContextMenuAction,
 }) => {
-  // State
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{
-    slide: Slide;
-    index: number;
-    position: { x: number; y: number };
-  } | null>(null);
-  const [dragState, setDragState] = useState<DragState>({
-    isDragging: false,
-    draggedIndex: null,
-    hoveredIndex: null,
-    dragOffset: { x: 0, y: 0 }
-  });
+  console.log('🚨 OLD ENHANCED THUMBNAILS - Component rendered (this should not be called!)');
+  console.log('🚨 Current URL:', window.location.pathname);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ slide: Slide; index: number; x: number; y: number } | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // Sensors for drag and drop
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  // Drag & Drop handlers
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
 
-  // Filtered slides
-  const filteredSlides = slides.filter(slide => {
-    const matchesSearch = !searchQuery || 
-      slide.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      slide.notes?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = !filterCategory || slide.category === filterCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
 
-  // Event handlers
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { active } = event;
-    const index = slides.findIndex(slide => slide.id === active.id);
-    
-    setDragState(prev => ({
-      ...prev,
-      isDragging: true,
-      draggedIndex: index,
-    }));
-  }, [slides]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent, dropIndex: number) => {
+      e.preventDefault();
+      if (draggedIndex === null || draggedIndex === dropIndex) return;
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id) {
-      const overIndex = slides.findIndex(slide => slide.id === over.id);
-      setDragState(prev => ({
-        ...prev,
-        hoveredIndex: overIndex,
-      }));
-    }
-  }, [slides]);
+      // Clone slides and reorder
+      const reordered = Array.from(slides);
+      const [movedSlide] = reordered.splice(draggedIndex, 1);
+      reordered.splice(dropIndex, 0, movedSlide);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id) {
-      const oldIndex = slides.findIndex(slide => slide.id === active.id);
-      const newIndex = slides.findIndex(slide => slide.id === over.id);
+      // Update parent slides array
+      console.log('🔄 ENHANCED THUMBNAILS - Calling onReorderSlides with:', {
+        reorderedLength: reordered.length,
+        reorderedIds: reordered.map(s => s.id),
+        hasOnReorderSlides: !!onReorderSlides,
+        onReorderSlidesType: typeof onReorderSlides
+      });
       
-      onReorderSlides(oldIndex, newIndex);
-    }
-    
-    setDragState({
-      isDragging: false,
-      draggedIndex: null,
-      hoveredIndex: null,
-      dragOffset: { x: 0, y: 0 }
-    });
-  }, [slides, onReorderSlides]);
+      if (onReorderSlides) {
+        onReorderSlides(reordered);
+      }
+
+      // Don't change the current slide - keep editing the same slide
+      // The slide content will stay with the same slide ID
+
+      setDraggedIndex(null);
+    },
+    [draggedIndex, slides, currentSlide, onReorderSlides]
+  );
 
   const handleContextMenu = useCallback((event: React.MouseEvent, slide: Slide, index: number) => {
     event.preventDefault();
-    setContextMenu({
-      slide,
-      index,
-      position: { x: event.clientX, y: event.clientY }
-    });
+    setContextMenu({ slide, index, x: event.clientX, y: event.clientY });
   }, []);
 
-  const handleContextMenuAction = useCallback((action: SlideAction, slide: Slide, index: number) => {
-    // All context menu actions are handled by the useSlideThumbnails hook
-    onContextMenuAction(action, slide, index);
-  }, [onContextMenuAction]);
+  const handleCloseContextMenu = useCallback(() => setContextMenu(null), []);
 
-  const handleCloseContextMenu = useCallback(() => {
-    setContextMenu(null);
-  }, []);
+  const handleContextAction = useCallback(
+    (action: SlideAction, slide: Slide, index: number) => {
+      onContextMenuAction(action, slide, index);
+      setContextMenu(null);
+    },
+    [onContextMenuAction]
+  );
 
-  // Categories for filtering
-  const categories = [
-    { id: 'intro', name: 'Introduction', count: slides.filter(s => s.category === 'intro').length },
-    { id: 'content', name: 'Content', count: slides.filter(s => s.category === 'content').length },
-    { id: 'data', name: 'Data', count: slides.filter(s => s.category === 'data').length },
-    { id: 'conclusion', name: 'Conclusion', count: slides.filter(s => s.category === 'conclusion').length },
-    { id: 'custom', name: 'Custom', count: slides.filter(s => s.category === 'custom' || !s.category).length },
-  ];
+  // Close context menu on outside click
+  useEffect(() => {
+    const handleClickOutside = () => contextMenu && setContextMenu(null);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [contextMenu]);
 
   return (
-    <div className={`h-full flex flex-col bg-white/95 backdrop-blur-xl border-r border-gray-200/50 transition-all duration-300 ${
-      isCollapsed ? 'w-12 sm:w-16' : 'w-64 sm:w-72 lg:w-80'
-    }`}>
+    <div
+      className={`panel-background h-full flex flex-col border-r border-gray-200/60 transition-all duration-300 ${
+        isCollapsed ? 'w-12 sm:w-16' : 'w-[200px] md:w-[220px] lg:w-[240px]'
+      }`}
+    >
       {/* Header */}
-      <div className="p-2 sm:p-4 border-b border-gray-100/50 flex-shrink-0">
+      <div className="p-4 border-b border-gray-200/40 flex-shrink-0 bg-white/30 backdrop-blur-md">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <div className="flex items-center gap-1 sm:gap-2">
-              <h3 className="font-semibold text-gray-900 text-xs sm:text-sm">Slides</h3>
-              <Badge variant="secondary" className="text-xs px-1 sm:px-2">
-                {filteredSlides.length}
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-gray-800">Slides</h2>
+              <Badge variant="secondary" className="text-xs">
+                {slides.length}
               </Badge>
             </div>
           )}
-          
-          <div className="flex items-center gap-1">
-            {!isCollapsed && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 sm:h-8 sm:w-8 p-0"
-                  onClick={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
-                >
-                  {viewMode === 'list' ? <Grid3X3 className="w-3 h-3 sm:w-4 sm:h-4" /> : <List className="w-3 h-3 sm:w-4 sm:h-4" />}
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 sm:h-8 sm:w-8 p-0"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter className="w-3 h-3 sm:w-4 sm:h-4" />
-                </Button>
-              </>
-            )}
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 sm:h-8 sm:w-8 p-0"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-            >
-              <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isCollapsed ? 'rotate-90' : ''}`} />
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="p-1 h-8 w-8">
+            <ChevronDown
+              className={`h-4 w-4 transition-transform duration-200 ${isCollapsed ? 'rotate-90' : '-rotate-90'}`}
+            />
+          </Button>
         </div>
-
-        {/* Search and Filters */}
-        {!isCollapsed && (
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-2 sm:mt-3 space-y-2 sm:space-y-3"
-              >
-                <Input
-                  placeholder="Search slides..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-7 sm:h-8 text-xs sm:text-sm"
-                />
-                
-                <div className="flex flex-wrap gap-1">
-                  <Button
-                    variant={filterCategory === null ? "default" : "outline"}
-                    size="sm"
-                    className="h-5 sm:h-6 text-xs px-2"
-                    onClick={() => setFilterCategory(null)}
-                  >
-                    All
-                  </Button>
-                  {categories.map(category => (
-                    <Button
-                      key={category.id}
-                      variant={filterCategory === category.id ? "default" : "outline"}
-                      size="sm"
-                      className="h-5 sm:h-6 text-xs px-2"
-                      onClick={() => setFilterCategory(category.id)}
-                    >
-                      <span className="hidden sm:inline">{category.name} ({category.count})</span>
-                      <span className="sm:hidden">{category.name}</span>
-                    </Button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        )}
       </div>
 
-      {/* Thumbnails List */}
-      <ScrollArea className="flex-1 p-2 sm:p-4">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={filteredSlides.map(slide => slide.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className={`space-y-2 sm:space-y-4 ${
-              viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4' : 'flex flex-col'
-            }`}>
-              {filteredSlides.map((slide, index) => {
-                // Find the actual index in the main slides array
-                const actualIndex = slides.findIndex(s => s.id === slide.id);
-                return (
-                  <SortableThumbnailItem
-                    key={slide.id}
-                    slide={slide}
-                    index={actualIndex}
-                    isActive={currentSlide === actualIndex}
-                    onSelect={onSlideChange}
-                    onContextMenu={handleContextMenu}
-                    onDragStart={() => {}}
-                    onDragEnd={() => {}}
-                  />
-                );
-              })}
-            </div>
-          </SortableContext>
-
-          <DragOverlay>
-            {dragState.isDragging && dragState.draggedIndex !== null ? (
-              <div className="opacity-50">
-                <SlideThumbnail
-                  slide={slides[dragState.draggedIndex]}
-                  index={dragState.draggedIndex}
-                  isActive={false}
-                  isDragging={true}
-                  isHovered={false}
-                  onSelect={() => {}}
-                  onContextMenu={() => {}}
-                  onDragStart={() => {}}
-                  onDragEnd={() => {}}
-                />
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+      {/* Slides List */}
+      <ScrollArea className="flex-1 scrollbar-keynote">
+        <div className="space-y-3 flex flex-col p-2">
+          {slides.map((slide, index) => (
+            <DraggableThumbnailItem
+              key={`${slide.id}-${slide.lastUpdated || 0}`}
+              slide={slide}
+              index={index}
+              isActive={currentSlide === index}
+              isDragging={draggedIndex === index}
+              onSelect={onSlideChange}
+              onContextMenu={handleContextMenu}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onDelete={(slideId) => onDeleteSlide(slides.findIndex((s) => s.id === slideId))}
+            />
+          ))}
+        </div>
 
         {/* Add Slide Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-2 sm:mt-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-4 mb-2">
           <Button
             variant="outline"
-            className="w-full aspect-video border-dashed hover:border-blue-500 hover:bg-blue-50/50 transition-all duration-200"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:bg-gradient-to-b hover:from-gray-100 hover:to-gray-200 hover:border-gray-300 hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 shadow-sm"
             onClick={onAddSlide}
           >
-            <div className="flex flex-col items-center gap-1 sm:gap-2">
-              <Plus className="w-4 h-4 sm:w-6 sm:h-6 text-gray-400" />
-              <span className="text-xs sm:text-sm text-gray-500">Add Slide</span>
-            </div>
+            <Plus size={18} className="text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">New Slide</span>
           </Button>
         </motion.div>
       </ScrollArea>
@@ -385,10 +212,10 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
           <SlideContextMenu
             slide={contextMenu.slide}
             index={contextMenu.index}
-            position={contextMenu.position}
+            position={{ x: contextMenu.x, y: contextMenu.y }}
             totalSlides={slides.length}
+            onAction={handleContextAction}
             onClose={handleCloseContextMenu}
-            onAction={handleContextMenuAction}
           />
         )}
       </AnimatePresence>

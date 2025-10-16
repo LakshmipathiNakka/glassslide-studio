@@ -9,6 +9,7 @@ interface UseSlideThumbnailsProps {
   onSlideChange: (index: number) => void;
   onAddSlide: () => void;
   onUpdateSlide: (index: number, updates: Partial<Slide>) => void;
+  onReorderSlides?: (reorderedSlides: Slide[]) => void;
 }
 
 interface UseSlideThumbnailsReturn {
@@ -23,7 +24,7 @@ interface UseSlideThumbnailsReturn {
   handleAddSlideAtIndex: (index: number) => void;
   handleDuplicateSlide: (index: number) => void;
   handleDeleteSlide: (index: number) => void;
-  handleReorderSlides: (fromIndex: number, toIndex: number) => void;
+  handleReorderSlides: (reorderedSlides: Slide[]) => void;
   handleRenameSlide: (index: number, title: string) => void;
   handleSetSlideCategory: (index: number, category: Slide['category']) => void;
   handleAddSlideNotes: (index: number, notes: string) => void;
@@ -50,7 +51,8 @@ export const useSlideThumbnails = ({
   currentSlide: initialCurrentSlide,
   onSlideChange,
   onAddSlide,
-  onUpdateSlide
+  onUpdateSlide,
+  onReorderSlides: parentOnReorderSlides
 }: UseSlideThumbnailsProps): UseSlideThumbnailsReturn => {
   const [slides, setSlides] = useState<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(initialCurrentSlide);
@@ -334,26 +336,32 @@ export const useSlideThumbnails = ({
     }
   }, [slides, currentSlide, onSlideChange, onUpdateSlide]);
 
-  const handleReorderSlides = useCallback((fromIndex: number, toIndex: number) => {
-    const newSlides = [...slides];
-    const [movedSlide] = newSlides.splice(fromIndex, 1);
-    newSlides.splice(toIndex, 0, movedSlide);
-    setSlides(newSlides);
-
-    // Update current slide index
-    if (currentSlide === fromIndex) {
-      setCurrentSlide(toIndex);
-      onSlideChange(toIndex);
-    } else if (currentSlide > fromIndex && currentSlide <= toIndex) {
-      const newCurrentSlide = currentSlide - 1;
-      setCurrentSlide(newCurrentSlide);
-      onSlideChange(newCurrentSlide);
-    } else if (currentSlide < fromIndex && currentSlide >= toIndex) {
-      const newCurrentSlide = currentSlide + 1;
-      setCurrentSlide(newCurrentSlide);
-      onSlideChange(newCurrentSlide);
+  const handleReorderSlides = useCallback((reorderedSlides: Slide[]) => {
+    console.log('🔧 USE SLIDE THUMBNAILS - handleReorderSlides called:', {
+      hasParentOnReorderSlides: !!parentOnReorderSlides,
+      reorderedSlidesLength: reorderedSlides.length,
+      reorderedSlidesIds: reorderedSlides.map(s => s.id)
+    });
+    
+    // If parent provides a reorder callback, use it directly
+    if (parentOnReorderSlides) {
+      console.log('🔧 USE SLIDE THUMBNAILS - Calling parentOnReorderSlides');
+      parentOnReorderSlides(reorderedSlides);
+      return;
     }
-  }, [slides, currentSlide, onSlideChange]);
+
+    // Fallback: update local state
+    setSlides(reorderedSlides);
+
+    // Update current slide index to point to the same slide
+    const currentSlideId = slides[currentSlide]?.id;
+    const newCurrentIndex = reorderedSlides.findIndex(s => s.id === currentSlideId);
+    
+    if (newCurrentIndex !== -1) {
+      setCurrentSlide(newCurrentIndex);
+      onSlideChange(newCurrentIndex);
+    }
+  }, [slides, currentSlide, onSlideChange, parentOnReorderSlides]);
 
   const handleRenameSlide = useCallback((index: number, title: string) => {
     const updatedSlides = [...slides];

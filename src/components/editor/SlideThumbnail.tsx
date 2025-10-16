@@ -40,33 +40,9 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
   const [showNotes, setShowNotes] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
-  const dragStartPos = useRef<{ x: number; y: number } | null>(null);
+  // Removed dragStartPos ref as we're using native HTML5 drag and drop
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 0) { // Left click
-      dragStartPos.current = { x: e.clientX, y: e.clientY };
-      onDragStart(index);
-    }
-  }, [index, onDragStart]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (dragStartPos.current && isDragging) {
-      const deltaX = Math.abs(e.clientX - dragStartPos.current.x);
-      const deltaY = Math.abs(e.clientY - dragStartPos.current.y);
-      
-      // Start drag if moved more than 5 pixels
-      if (deltaX > 5 || deltaY > 5) {
-        // Drag logic would be handled by parent component
-      }
-    }
-  }, [isDragging]);
-
-  const handleMouseUp = useCallback(() => {
-    if (dragStartPos.current) {
-      dragStartPos.current = null;
-      onDragEnd();
-    }
-  }, [onDragEnd]);
+  // Removed custom drag handlers to avoid conflict with native HTML5 drag and drop
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -94,8 +70,6 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
       animate={{
         scale: isActive ? 1.02 : 1,
         y: isDragging ? -4 : 0,
-        rotateX: isHovered || isHoveredLocal ? 2 : 0,
-        rotateY: isHovered || isHoveredLocal ? 1 : 0,
       }}
       transition={{
         type: "spring",
@@ -106,25 +80,23 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
       className={`relative group cursor-pointer select-none ${
         isDragging ? 'z-[100]' : 'z-[10]'
       }`}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
+      // Removed mouse event handlers to avoid conflict with native HTML5 drag and drop
       onMouseEnter={() => setIsHoveredLocal(true)}
       onMouseLeave={() => setIsHoveredLocal(false)}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Main Thumbnail Container */}
+      {/* Main Thumbnail Container - Refined Apple Keynote Style */}
       <div className={`
-        relative w-full aspect-video rounded-2xl overflow-hidden
-        transition-all duration-300 ease-out
-        ${isActive 
-          ? 'ring-2 ring-blue-500 ring-offset-2 shadow-xl shadow-blue-500/20' 
-          : 'ring-1 ring-gray-200 hover:ring-gray-300'
+        thumbnail-container sortable-item relative w-full aspect-video rounded-xl overflow-hidden
+        transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
+        ${isActive ? 'active' : ''}
+        ${isDragging 
+          ? 'dragging shadow-2xl shadow-blue-200/50 ring-2 ring-blue-400 scale-105 rotate-1' 
+          : 'shadow-sm hover:shadow-md hover:-translate-y-1'
         }
-        ${isDragging ? 'shadow-2xl shadow-black/20' : 'shadow-lg shadow-black/5'}
-        ${isHovered || isHoveredLocal ? 'shadow-xl shadow-black/10' : ''}
+        group cursor-grab active:cursor-grabbing
       `}>
         {/* Background */}
         <div 
@@ -135,6 +107,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
         {/* Thumbnail Canvas */}
         <div className="absolute inset-0">
           <ThumbnailCanvas
+            key={`${slide.id}-${slide.lastUpdated || 0}`}
             slide={slide}
             width={200}
             height={112}
@@ -179,7 +152,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
         </div>
 
         {/* Slide Number */}
-        <div className="absolute bottom-2 left-2">
+        <div className="absolute bottom-2 right-2">
           <div className="px-2 py-1 bg-black/20 backdrop-blur-sm rounded-md">
             <span className="text-white text-xs font-medium">
               {index + 1}
@@ -189,7 +162,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
 
         {/* Animation Duration Indicator */}
         {slide.animationDuration && slide.animationDuration > 0 && (
-          <div className="absolute bottom-2 right-2">
+          <div className="absolute bottom-2 left-2">
             <div className="flex items-center gap-1 px-2 py-1 bg-black/20 backdrop-blur-sm rounded-md">
               <Play className="w-3 h-3 text-white" />
               <span className="text-white text-xs">
@@ -217,63 +190,6 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
           </div>
         )}
 
-        {/* Hover Actions */}
-        <AnimatePresence>
-          {(isHovered || isHoveredLocal) && !isDragging && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="absolute inset-0 z-[20] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            >
-              <div className="flex gap-1 sm:gap-2 flex-wrap justify-center">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 bg-white/90 hover:bg-white shadow-lg"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsPlaying(!isPlaying);
-                  }}
-                >
-                  {isPlaying ? (
-                    <Pause className="w-3 h-3 sm:w-4 sm:h-4" />
-                  ) : (
-                    <Play className="w-3 h-3 sm:w-4 sm:h-4" />
-                  )}
-                </Button>
-                
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 bg-white/90 hover:bg-white shadow-lg"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowNotes(!showNotes);
-                  }}
-                >
-                  {showNotes ? (
-                    <EyeOff className="w-3 h-3 sm:w-4 sm:h-4" />
-                  ) : (
-                    <StickyNote className="w-3 h-3 sm:w-4 sm:h-4" />
-                  )}
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 bg-white/90 hover:bg-white shadow-lg"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onContextMenu(e, slide, index);
-                  }}
-                >
-                  <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Drag Indicator */}
         {isDragging && (
@@ -285,16 +201,11 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
         )}
       </div>
 
-      {/* Slide Title */}
+      {/* Slide Title - Refined Apple Keynote Style */}
       <div className="mt-2 px-1">
-        <h4 className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+        <h4 className="text-xs font-medium text-gray-700 truncate tracking-wide">
           {slide.title || `Slide ${index + 1}`}
         </h4>
-        <p className="text-xs text-gray-500 truncate">
-          {slide.elements.length} elements
-          {slide.notes && ' • Has notes'}
-          {slide.animationDuration && ` • ${slide.animationDuration}s`}
-        </p>
       </div>
 
       {/* Notes Preview */}

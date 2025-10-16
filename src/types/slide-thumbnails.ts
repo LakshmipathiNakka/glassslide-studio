@@ -5,6 +5,7 @@ export interface Slide {
   elements: Element[];
   background: string;
   createdAt: Date;
+  lastUpdated?: number;
   thumbnail?: string;
   title?: string;
   notes?: string;
@@ -52,7 +53,7 @@ export interface EnhancedSlideThumbnailsProps {
   onAddSlideAtIndex: (index: number) => void;
   onDuplicateSlide: (index: number) => void;
   onDeleteSlide: (index: number) => void;
-  onReorderSlides: (fromIndex: number, toIndex: number) => void;
+  onReorderSlides: (reorderedSlides: Slide[]) => void;
   onUpdateSlide: (index: number, updates: Partial<Slide>) => void;
   onRenameSlide: (index: number, title: string) => void;
   onSetSlideCategory: (index: number, category: Slide['category']) => void;

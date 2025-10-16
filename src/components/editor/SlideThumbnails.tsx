@@ -11,6 +11,7 @@ interface SlideThumbnailsProps {
   currentSlide: number;
   onSlideChange: (index: number) => void;
   onAddSlide: () => void;
+  onReorderSlides: (reorderedSlides: Slide[]) => void;
   onUpdateSlide: (index: number, updates: Partial<Slide>) => void;
 }
 
@@ -19,6 +20,7 @@ export const SlideThumbnails = ({
   currentSlide, 
   onSlideChange, 
   onAddSlide,
+  onReorderSlides,
   onUpdateSlide
 }: SlideThumbnailsProps) => {
   const {
@@ -45,6 +47,7 @@ export const SlideThumbnails = ({
     currentSlide,
     onSlideChange,
     onAddSlide,
+    onReorderSlides,
     onUpdateSlide
   });
   
