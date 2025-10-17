@@ -3,6 +3,107 @@ import { Slide, SlideAction } from '@/types/slide-thumbnails';
 import { Element } from '@/hooks/use-action-manager';
 import { getDefaultSlideTemplate, createSlideFromTemplate } from '@/data/slideTemplates';
 
+// Helper function to parse CSS gradients and create canvas gradients
+const parseGradient = (gradientString: string, width: number, height: number, ctx: CanvasRenderingContext2D): CanvasGradient | null => {
+    try {
+      console.log('🎨 PARSING GRADIENT:', { 
+        gradientString, 
+        width, 
+        height,
+        stringLength: gradientString.length,
+        firstChar: gradientString[0],
+        lastChar: gradientString[gradientString.length - 1]
+      });
+      
+      // More flexible regex to handle various gradient formats
+      const match = gradientString.match(/linear-gradient\s*\(\s*([-\d.]+)deg\s*,\s*(.+)\s*\)/i);
+      if (!match) {
+        console.log('❌ GRADIENT PARSE FAILED - No match found for:', gradientString);
+        console.log('❌ Trying alternative regex...');
+        // Try without deg
+        const altMatch = gradientString.match(/linear-gradient\s*\(\s*([-\d.]+)\s*,\s*(.+)\s*\)/i);
+        if (altMatch) {
+          console.log('✅ Alternative regex matched:', altMatch);
+          const angle = parseFloat(altMatch[1]);
+          const colorStopsString = altMatch[2];
+          const colorStops = colorStopsString.split(/,(?![^(]*\))/).map(stop => stop.trim());
+          console.log('🎨 GRADIENT PARSED (alt):', { angle, colorStopsString, colorStops });
+          
+          const angleRad = (angle % 360) * Math.PI / 180;
+          const x0 = width/2 - Math.cos(angleRad) * width/2;
+          const y0 = height/2 - Math.sin(angleRad) * height/2;
+          const x1 = width/2 + Math.cos(angleRad) * width/2;
+          const y1 = height/2 + Math.sin(angleRad) * height/2;
+          
+          const gradient = ctx.createLinearGradient(x0, y0, x1, y1);
+          
+          colorStops.forEach((stop, i) => {
+            console.log(`🎨 PARSING COLOR STOP ${i}:`, stop);
+            const parts = stop.match(/(#[a-fA-F0-9]{3,8}|rgba?\([^)]*\)|[a-zA-Z]+)\s*(\d+%?)?/);
+            if (parts) {
+              const color = parts[1];
+              let position = 0;
+              if (parts[2]) {
+                position = parts[2].endsWith('%') ? parseFloat(parts[2])/100 : parseFloat(parts[2]);
+              } else {
+                position = i / (colorStops.length - 1);
+              }
+              console.log(`✅ COLOR STOP ${i}:`, { color, position });
+              gradient.addColorStop(position, color);
+            } else {
+              console.log('❌ COLOR STOP PARSE FAILED for:', stop);
+            }
+          });
+          
+          console.log('✅ GRADIENT CREATED SUCCESSFULLY (alt)');
+          return gradient;
+        }
+        return null;
+      }
+
+    const angle = parseFloat(match[1]);
+    const colorStopsString = match[2];
+    const colorStops = colorStopsString.split(/,(?![^(]*\))/).map(stop => stop.trim());
+    console.log('🎨 GRADIENT PARSED:', { angle, colorStopsString, colorStops });
+
+    // Calculate gradient direction (CSS 0deg = top to bottom, 90deg = left to right)
+    const angleRad = (angle % 360) * Math.PI / 180;
+    const x0 = width/2 - Math.cos(angleRad) * width/2;
+    const y0 = height/2 - Math.sin(angleRad) * height/2;
+    const x1 = width/2 + Math.cos(angleRad) * width/2;
+    const y1 = height/2 + Math.sin(angleRad) * height/2;
+
+    console.log('🎨 GRADIENT COORDINATES:', { x0, y0, x1, y1 });
+
+    const gradient = ctx.createLinearGradient(x0, y0, x1, y1);
+
+    // Parse each stop (supports #hex, rgb(), rgba(), etc.)
+    colorStops.forEach((stop, i) => {
+      console.log(`🎨 PARSING COLOR STOP ${i}:`, stop);
+      const parts = stop.match(/(#[a-fA-F0-9]{3,8}|rgba?\([^)]*\)|[a-zA-Z]+)\s*(\d+%?)?/);
+      if (parts) {
+        const color = parts[1];
+        let position = 0;
+        if (parts[2]) {
+          position = parts[2].endsWith('%') ? parseFloat(parts[2])/100 : parseFloat(parts[2]);
+        } else {
+          position = i / (colorStops.length - 1);
+        }
+        console.log(`✅ COLOR STOP ${i}:`, { color, position });
+        gradient.addColorStop(position, color);
+      } else {
+        console.log('❌ COLOR STOP PARSE FAILED for:', stop);
+      }
+    });
+
+    console.log('✅ GRADIENT CREATED SUCCESSFULLY');
+    return gradient;
+  } catch (error) {
+    console.error('❌ ERROR PARSING GRADIENT:', error);
+    return null;
+  }
+};
+
 interface UseSlideThumbnailsProps {
   slides: Slide[];
   currentSlide: number;
@@ -10,6 +111,13 @@ interface UseSlideThumbnailsProps {
   onAddSlide: () => void;
   onUpdateSlide: (index: number, updates: Partial<Slide>) => void;
   onReorderSlides?: (reorderedSlides: Slide[]) => void;
+  onAddSlideAtIndex?: (index: number) => void;
+  onDuplicateSlide?: (index: number) => void;
+  onDeleteSlide?: (index: number) => void;
+  onRenameSlide?: (index: number, title: string) => void;
+  onAddSlideNotes?: (index: number, notes: string) => void;
+  onChangeSlideBackground?: (index: number, background: string) => void;
+  onAddSlideCover?: (index: number, coverImage: string) => void;
 }
 
 interface UseSlideThumbnailsReturn {
@@ -52,7 +160,14 @@ export const useSlideThumbnails = ({
   onSlideChange,
   onAddSlide,
   onUpdateSlide,
-  onReorderSlides: parentOnReorderSlides
+  onReorderSlides: parentOnReorderSlides,
+  onAddSlideAtIndex,
+  onDuplicateSlide,
+  onDeleteSlide,
+  onRenameSlide,
+  onAddSlideNotes,
+  onChangeSlideBackground,
+  onAddSlideCover
 }: UseSlideThumbnailsProps): UseSlideThumbnailsReturn => {
   const [slides, setSlides] = useState<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(initialCurrentSlide);
@@ -72,33 +187,98 @@ export const useSlideThumbnails = ({
   }, [initialCurrentSlide]);
 
 
+  // Helper function to load images asynchronously
+  const loadImage = (src: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  };
+
   // Generate thumbnail for a slide using off-screen canvas
   const generateThumbnail = useCallback(async (slide: Slide): Promise<string> => {
+    console.log('🎨 GENERATING THUMBNAIL FOR SLIDE:', { 
+      slide, 
+      slideId: slide.id, 
+      background: slide.background,
+      backgroundType: typeof slide.background,
+      slideKeys: Object.keys(slide)
+    });
+    
     // Check cache first
     if (thumbnailCache.current.has(slide.id)) {
+      console.log('🎨 USING CACHED THUMBNAIL FOR:', slide.id);
       return thumbnailCache.current.get(slide.id)!;
     }
 
+    console.log('🎨 NO CACHE FOUND, GENERATING NEW THUMBNAIL FOR:', slide.id);
     try {
       // Create off-screen canvas
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Could not get canvas context');
 
-      // Set canvas size (thumbnail size)
+      // Set canvas size (thumbnail size) - maintain 16:9 aspect ratio
       const width = 200;
       const height = 112;
       canvas.width = width;
       canvas.height = height;
 
-      // Scale factor for rendering
-      const scale = 0.15;
+      // Scale factor for rendering (200/1024 ≈ 0.195, 112/768 ≈ 0.146)
+      const scale = Math.min(width / 1024, height / 768);
 
       // Draw background
-      ctx.fillStyle = slide.background || '#ffffff';
+      const backgroundValue = typeof slide.background === 'string' ? slide.background : (slide.background as any)?.background || '#ffffff';
+      console.log('🎨 DRAWING BACKGROUND:', { 
+        background: slide.background, 
+        backgroundValue,
+        backgroundType: typeof slide.background,
+        isGradient: backgroundValue?.startsWith?.('linear-gradient'),
+        slideKeys: Object.keys(slide),
+        backgroundValueLength: backgroundValue?.length,
+        backgroundValueChars: backgroundValue?.substring(0, 50) + '...'
+      });
+      
+      if (backgroundValue && backgroundValue.startsWith('linear-gradient')) {
+        // Handle gradient backgrounds
+        console.log('🎨 PROCESSING GRADIENT BACKGROUND');
+        
+        // Test with a known good gradient first
+        const testGradientString = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        console.log('🧪 TESTING WITH KNOWN GRADIENT:', testGradientString);
+        const testGradient = parseGradient(testGradientString, width, height, ctx);
+        if (testGradient) {
+          console.log('✅ TEST GRADIENT PARSING WORKS');
+        } else {
+          console.log('❌ TEST GRADIENT PARSING FAILED');
+        }
+        
+        const gradient = parseGradient(backgroundValue, width, height, ctx);
+        if (gradient) {
+          console.log('✅ USING PARSED GRADIENT');
+          ctx.fillStyle = gradient;
+        } else {
+          console.log('❌ GRADIENT PARSING FAILED, CREATING FALLBACK GRADIENT');
+          // Create a simple fallback gradient to verify gradient rendering works
+          const fallbackGradient = ctx.createLinearGradient(0, 0, width, height);
+          fallbackGradient.addColorStop(0, '#ff6b6b');
+          fallbackGradient.addColorStop(0.5, '#4ecdc4');
+          fallbackGradient.addColorStop(1, '#45b7d1');
+          ctx.fillStyle = fallbackGradient;
+          console.log('🎨 USING FALLBACK GRADIENT (red to teal to blue)');
+        }
+      } else {
+        // Handle solid color backgrounds
+        console.log('🎨 USING SOLID COLOR:', backgroundValue);
+        ctx.fillStyle = backgroundValue;
+      }
       ctx.fillRect(0, 0, width, height);
+      console.log('🎨 BACKGROUND DRAWN');
 
-      // Draw elements
+      // Draw elements with pixel-perfect scaling
       for (const element of slide.elements) {
         const x = element.x * scale;
         const y = element.y * scale;
@@ -107,7 +287,7 @@ export const useSlideThumbnails = ({
 
         ctx.save();
 
-        // Apply rotation
+        // Apply rotation around element center
         if (element.rotation) {
           ctx.translate(x + w / 2, y + h / 2);
           ctx.rotate((element.rotation * Math.PI) / 180);
@@ -115,31 +295,75 @@ export const useSlideThumbnails = ({
         }
 
         // Apply opacity (if available)
-        if ('opacity' in element && element.opacity) {
+        if ('opacity' in element && element.opacity !== undefined) {
           ctx.globalAlpha = element.opacity as number;
         }
 
         switch (element.type) {
           case 'text':
+            // Set text properties with proper scaling
             ctx.fillStyle = element.color || '#000000';
             ctx.font = `${element.fontWeight || 'normal'} ${(element.fontSize || 16) * scale}px ${element.fontFamily || 'Arial'}`;
             ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'left';
             ctx.textBaseline = 'top';
             
+            // Apply text decoration
+            if (element.textDecoration?.includes('underline')) {
+              ctx.strokeStyle = element.color || '#000000';
+              ctx.lineWidth = Math.max(1, scale);
+              ctx.beginPath();
+              ctx.moveTo(0, h - 2);
+              ctx.lineTo(w, h - 2);
+              ctx.stroke();
+            }
+            
+            if (element.textDecoration?.includes('line-through')) {
+              ctx.strokeStyle = element.color || '#000000';
+              ctx.lineWidth = Math.max(1, scale);
+              ctx.beginPath();
+              ctx.moveTo(0, h / 2);
+              ctx.lineTo(w, h / 2);
+              ctx.stroke();
+            }
+            
             const text = element.text || element.content || element.placeholder || 'Text';
             const lines = text.split('\n');
-            const lineHeight = (element.fontSize || 16) * scale * 1.2;
+            const lineHeight = (element.fontSize || 16) * scale * (element.lineHeight || 1.2);
+            
+            // Apply text transform
+            let processedText = text;
+            if (element.textTransform === 'uppercase') processedText = text.toUpperCase();
+            else if (element.textTransform === 'lowercase') processedText = text.toLowerCase();
+            else if (element.textTransform === 'capitalize') processedText = text.replace(/\b\w/g, l => l.toUpperCase());
             
             lines.forEach((line, index) => {
-              ctx.fillText(line, 0, index * lineHeight);
+              const processedLine = element.textTransform === 'uppercase' ? line.toUpperCase() :
+                                  element.textTransform === 'lowercase' ? line.toLowerCase() :
+                                  element.textTransform === 'capitalize' ? line.replace(/\b\w/g, l => l.toUpperCase()) : line;
+              ctx.fillText(processedLine, 0, index * lineHeight);
             });
             break;
 
           case 'shape':
+            // Draw shape with proper scaling and styling
             if (element.shapeType === 'circle') {
               ctx.beginPath();
               ctx.arc(w / 2, h / 2, Math.min(w, h) / 2, 0, 2 * Math.PI);
-              ctx.fillStyle = element.backgroundColor || '#0078d4';
+              ctx.fillStyle = element.backgroundColor || element.fill || '#0078d4';
+              ctx.fill();
+              
+              if (element.borderColor && element.borderWidth) {
+                ctx.strokeStyle = element.borderColor;
+                ctx.lineWidth = (element.borderWidth || 0) * scale;
+                ctx.stroke();
+              }
+            } else if (element.shapeType === 'triangle') {
+              ctx.beginPath();
+              ctx.moveTo(w / 2, 0);
+              ctx.lineTo(w, h);
+              ctx.lineTo(0, h);
+              ctx.closePath();
+              ctx.fillStyle = element.backgroundColor || element.fill || '#0078d4';
               ctx.fill();
               
               if (element.borderColor && element.borderWidth) {
@@ -148,30 +372,64 @@ export const useSlideThumbnails = ({
                 ctx.stroke();
               }
             } else {
-              ctx.fillStyle = element.backgroundColor || '#0078d4';
-              ctx.fillRect(0, 0, w, h);
-              
-              if (element.borderColor && element.borderWidth) {
-                ctx.strokeStyle = element.borderColor;
-                ctx.lineWidth = (element.borderWidth || 0) * scale;
-                ctx.strokeRect(0, 0, w, h);
+              // Rectangle or other shapes
+              const borderRadius = (element.borderRadius || 0) * scale;
+              if (borderRadius > 0) {
+                ctx.beginPath();
+                ctx.roundRect(0, 0, w, h, borderRadius);
+                ctx.fillStyle = element.backgroundColor || element.fill || '#0078d4';
+                ctx.fill();
+                
+                if (element.borderColor && element.borderWidth) {
+                  ctx.strokeStyle = element.borderColor;
+                  ctx.lineWidth = (element.borderWidth || 0) * scale;
+                  ctx.stroke();
+                }
+              } else {
+                ctx.fillStyle = element.backgroundColor || element.fill || '#0078d4';
+                ctx.fillRect(0, 0, w, h);
+                
+                if (element.borderColor && element.borderWidth) {
+                  ctx.strokeStyle = element.borderColor;
+                  ctx.lineWidth = (element.borderWidth || 0) * scale;
+                  ctx.strokeRect(0, 0, w, h);
+                }
               }
             }
             break;
 
           case 'image':
-            // For images, we'd need to load them asynchronously
-            // For now, draw a placeholder
-            ctx.fillStyle = '#f0f0f0';
-            ctx.fillRect(0, 0, w, h);
-            ctx.strokeStyle = '#d0d0d0';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([5, 5]);
-            ctx.strokeRect(0, 0, w, h);
-            ctx.setLineDash([]);
+            // Load and draw images asynchronously
+            const imageSrc = (element as any).src;
+            if (imageSrc) {
+              try {
+                const img = await loadImage(imageSrc);
+                ctx.drawImage(img, 0, 0, w, h);
+              } catch (error) {
+                console.warn('Failed to load image:', imageSrc, error);
+                // Draw placeholder
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(0, 0, w, h);
+                ctx.strokeStyle = '#d0d0d0';
+                ctx.lineWidth = Math.max(1, scale);
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(0, 0, w, h);
+                ctx.setLineDash([]);
+              }
+            } else {
+              // Draw placeholder
+              ctx.fillStyle = '#f0f0f0';
+              ctx.fillRect(0, 0, w, h);
+              ctx.strokeStyle = '#d0d0d0';
+              ctx.lineWidth = Math.max(1, scale);
+              ctx.setLineDash([5, 5]);
+              ctx.strokeRect(0, 0, w, h);
+              ctx.setLineDash([]);
+            }
             break;
 
           case 'chart':
+            // Draw chart with proper styling
             ctx.fillStyle = element.backgroundColor || '#f8f9fa';
             ctx.fillRect(0, 0, w, h);
             
@@ -179,6 +437,15 @@ export const useSlideThumbnails = ({
               ctx.strokeStyle = element.borderColor;
               ctx.lineWidth = (element.borderWidth || 2) * scale;
               ctx.strokeRect(0, 0, w, h);
+            }
+            
+            // Draw simple chart representation
+            if (element.chartData && element.chartType) {
+              ctx.fillStyle = element.color || '#0078d4';
+              ctx.font = `${12 * scale}px Arial`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(`${element.chartType.toUpperCase()} CHART`, w / 2, h / 2);
             }
             break;
         }
@@ -390,6 +657,12 @@ export const useSlideThumbnails = ({
     setSlides(updatedSlides);
     onUpdateSlide(index, { background });
 
+    // Clear cache for this slide to force regeneration
+    const slideId = updatedSlides[index].id;
+    const hadCache = thumbnailCache.current.has(slideId);
+    thumbnailCache.current.delete(slideId);
+    console.log('🎨 CLEARED CACHE FOR SLIDE:', { slideId, hadCache, cacheSize: thumbnailCache.current.size });
+
     // Regenerate thumbnail
     generateThumbnail(updatedSlides[index]).then(thumbnail => {
       setSlides(prev => prev.map(slide => 
@@ -439,15 +712,21 @@ export const useSlideThumbnails = ({
 
 
   const handleContextMenuAction = useCallback((action: SlideAction, slide: Slide, index: number) => {
+    console.log('🎯 CONTEXT MENU ACTION:', { action, slideId: slide.id, index, hasOnAddSlideAtIndex: !!onAddSlideAtIndex });
     switch (action) {
       case 'add-new':
-        handleAddSlideAtIndex(index);
+        console.log('➕ ADDING NEW SLIDE AT INDEX:', index);
+        if (onAddSlideAtIndex) {
+          onAddSlideAtIndex(index);
+        } else {
+          console.error('❌ onAddSlideAtIndex is not defined!');
+        }
         break;
       case 'duplicate':
-        handleDuplicateSlide(index);
+        onDuplicateSlide?.(index);
         break;
       case 'delete':
-        handleDeleteSlide(index);
+        onDeleteSlide?.(index);
         break;
       case 'change-background':
         // Open color picker for background
@@ -460,41 +739,42 @@ export const useSlideThumbnails = ({
         // This would open a file picker
         const coverUrl = prompt('Enter cover image URL:', slide.thumbnail || '');
         if (coverUrl) {
-          handleAddSlideCover(index, coverUrl);
+          onAddSlideCover?.(index, coverUrl);
         }
         break;
       case 'rename':
         const newTitle = prompt('Enter slide title:', slide.title || `Slide ${index + 1}`);
         if (newTitle) {
-          handleRenameSlide(index, newTitle);
+          onRenameSlide?.(index, newTitle);
         }
         break;
       case 'add-notes':
         const notes = prompt('Enter slide notes:', slide.notes || '');
         if (notes !== null) {
-          handleAddSlideNotes(index, notes);
+          onAddSlideNotes?.(index, notes);
         }
         break;
     }
   }, [
-    handleAddSlideAtIndex,
-    handleDuplicateSlide,
-    handleDeleteSlide,
-    handleChangeSlideBackground,
-    handleRenameSlide,
-    handleAddSlideNotes,
-    handleAddSlideCover,
-    slides,
-    onUpdateSlide
+    onAddSlideAtIndex,
+    onDuplicateSlide,
+    onDeleteSlide,
+    onRenameSlide,
+    onAddSlideNotes,
+    onAddSlideCover
   ]);
 
   // Modal handlers
   const handleColorChange = useCallback((color: string) => {
+    console.log('🎨 COLOR CHANGE:', { color, currentSlideForSettings, hasOnChangeSlideBackground: !!onChangeSlideBackground });
     if (currentSlideForSettings) {
-      handleChangeSlideBackground(currentSlideForSettings.index, color);
+      console.log('🎨 CALLING onChangeSlideBackground:', { index: currentSlideForSettings.index, color });
+      onChangeSlideBackground?.(currentSlideForSettings.index, color);
+    } else {
+      console.error('❌ No currentSlideForSettings found!');
     }
     setShowColorPicker(false);
-  }, [currentSlideForSettings, handleChangeSlideBackground]);
+  }, [currentSlideForSettings, onChangeSlideBackground]);
 
   return {
     slides,

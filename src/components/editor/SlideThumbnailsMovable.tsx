@@ -60,7 +60,7 @@ const SlideThumbnailsMovable: React.FC<SlideThumbnailsProps> = ({
           renderItem={({ value: slide, index, props, isDragged }) => (
             <div
               {...props}
-              key={slide.id}
+              key={`${slide.id}-${slide.lastUpdated || 0}-${slide.elements?.length || 0}`}
               className={`slide-thumbnail group relative ${
                 currentSlide === index ? "active" : ""
               } ${isDragged ? "dragging" : ""}`}
@@ -75,6 +75,7 @@ const SlideThumbnailsMovable: React.FC<SlideThumbnailsProps> = ({
               }}
             >
               <SlideThumbnail 
+                key={`thumbnail-${slide.id}-${slide.lastUpdated || 0}`}
                 slide={slide} 
                 index={index} 
                 isActive={currentSlide === index}
@@ -85,12 +86,6 @@ const SlideThumbnailsMovable: React.FC<SlideThumbnailsProps> = ({
                 onDragStart={() => {}}
                 onDragEnd={() => {}}
               />
-              {/* Debug info */}
-              <div className="absolute top-1 left-1 text-xs bg-black/50 text-white px-1 rounded">
-                {slide.elements?.length || 0} elements
-                <br />
-                ID: {slide.id.slice(-4)}
-              </div>
             </div>
           )}
         />

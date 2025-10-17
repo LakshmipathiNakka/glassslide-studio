@@ -37,6 +37,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
   onElementAdd,
   onElementDelete,
 }) => {
+  console.log('🎨 CANVAS - Received background:', { background, elementsCount: propElements.length });
   const containerRef = useRef<HTMLDivElement | null>(null);
   const slideRef = useRef<HTMLDivElement | null>(null);
   const elements = propElements; // Use propElements directly for real-time updates

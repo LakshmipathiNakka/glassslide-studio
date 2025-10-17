@@ -13,6 +13,13 @@ interface SlideThumbnailsProps {
   onAddSlide: () => void;
   onReorderSlides: (reorderedSlides: Slide[]) => void;
   onUpdateSlide: (index: number, updates: Partial<Slide>) => void;
+  onAddSlideAtIndex?: (index: number) => void;
+  onDuplicateSlide?: (index: number) => void;
+  onDeleteSlide?: (index: number) => void;
+  onRenameSlide?: (index: number, title: string) => void;
+  onAddSlideNotes?: (index: number, notes: string) => void;
+  onChangeSlideBackground?: (index: number, background: string) => void;
+  onAddSlideCover?: (index: number, coverImage: string) => void;
 }
 
 export const SlideThumbnails = ({ 
@@ -21,7 +28,14 @@ export const SlideThumbnails = ({
   onSlideChange, 
   onAddSlide,
   onReorderSlides,
-  onUpdateSlide
+  onUpdateSlide,
+  onAddSlideAtIndex,
+  onDuplicateSlide,
+  onDeleteSlide,
+  onRenameSlide,
+  onAddSlideNotes,
+  onChangeSlideBackground,
+  onAddSlideCover
 }: SlideThumbnailsProps) => {
   const {
     slides: enhancedSlides,
@@ -48,7 +62,21 @@ export const SlideThumbnails = ({
     onSlideChange,
     onAddSlide,
     onReorderSlides,
-    onUpdateSlide
+    onUpdateSlide,
+    onAddSlideAtIndex,
+    onDuplicateSlide,
+    onDeleteSlide,
+    onRenameSlide,
+    onAddSlideNotes,
+    onChangeSlideBackground,
+    onAddSlideCover
+  });
+
+  console.log('🔧 SLIDE THUMBNAILS - Props received:', { 
+    hasOnAddSlideAtIndex: !!onAddSlideAtIndex,
+    hasOnDuplicateSlide: !!onDuplicateSlide,
+    hasOnDeleteSlide: !!onDeleteSlide,
+    slidesCount: slides.length
   });
   
 
@@ -73,13 +101,19 @@ export const SlideThumbnails = ({
       />
       
       {/* Color Picker Modal */}
-      <ColorPicker
-        isOpen={showColorPicker}
-        onClose={() => handleColorChange(currentSlideForSettings?.slide.background || '#ffffff')}
-        currentColor={currentSlideForSettings?.slide.background || '#ffffff'}
-        onColorChange={handleColorChange}
-        position={colorPickerPosition}
-      />
+      {showColorPicker && currentSlideForSettings && (
+        <ColorPicker
+          isOpen={showColorPicker}
+          onClose={() => {
+            console.log('🎨 COLOR PICKER - Closing without change');
+            // Just close the picker without changing the color
+            // The hook should handle closing the picker
+          }}
+          currentColor={currentSlideForSettings.slide.background || '#ffffff'}
+          onColorChange={handleColorChange}
+          position={colorPickerPosition}
+        />
+      )}
       
     </>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -8,12 +8,190 @@ import {
   Palette,
   Image,
   Type,
-  FileText
+  FileText,
+  Edit3
 } from 'lucide-react';
 import { SlideContextMenuProps, SlideAction } from '@/types/slide-thumbnails';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
+// Apple Keynote-style Tooltip Component
+const KeynoteTooltip: React.FC<{
+  text: string;
+  visible: boolean;
+  position: { x: number; y: number };
+  dark: boolean;
+}> = ({ text, visible, position, dark }) => {
+  if (!visible) return null;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 6, scale: 0.95 }}
+      transition={{ 
+        type: 'spring', 
+        stiffness: 300, 
+        damping: 25,
+        mass: 0.8
+      }}
+      className={`pointer-events-none fixed px-3 py-2 rounded-lg text-xs font-medium backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] ring-1 ${
+        dark 
+          ? 'text-white bg-gradient-to-br from-gray-800/80 to-gray-900/60 ring-white/10' 
+          : 'text-gray-800 bg-gradient-to-br from-white/80 to-gray-100/60 ring-gray-300/20'
+      }`}
+      style={{
+        left: position.x,
+        top: position.y - 45,
+        transform: 'translateX(-50%)',
+        zIndex: 999999,
+      }}
+    >
+      {text}
+    </motion.div>
+  );
+};
+
+// Ripple Menu Item Component
+const RippleMenuItem = ({
+  icon,
+  label,
+  description,
+  onClick,
+  danger = false,
+  disabled = false,
+  dark = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  onClick: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+  dark?: boolean;
+}) => {
+  const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [isPressed, setIsPressed] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    if (disabled) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({ x: rect.left + rect.width / 2, y: rect.top });
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setShowTooltip(true), 500);
+  };
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setShowTooltip(false);
+  };
+
+  return (
+    <>
+      <motion.button
+        onMouseDown={(e) => {
+          console.log('🎯 MENU ITEM MOUSE DOWN:', { label, action: onClick.name, event: e });
+          e.preventDefault();
+          e.stopPropagation();
+          
+          if (disabled) return;
+          setIsPressed(true);
+          const rect = e.currentTarget.getBoundingClientRect();
+          setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+          setTimeout(() => setRipple(null), 400);
+          
+          onClick();
+        }}
+        onMouseUp={() => setIsPressed(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={(e) => {
+          setIsPressed(false);
+          handleMouseLeave();
+        }}
+        disabled={disabled}
+        whileHover={!disabled ? { 
+          scale: 1.03,
+          backgroundColor: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'
+        } : {}}
+        whileTap={!disabled ? { 
+          scale: 0.98,
+          y: 1
+        } : {}}
+        animate={isPressed ? { y: 1 } : { y: 0 }}
+        transition={{ 
+          type: 'spring', 
+          stiffness: 220, 
+          damping: 20,
+          mass: 0.8
+        }}
+        className={`relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-lg text-left select-none w-full transition-colors duration-150 ${
+          disabled
+            ? 'opacity-50 cursor-not-allowed'
+            : danger
+            ? 'text-red-500 hover:text-red-600'
+            : dark
+            ? 'text-gray-100 hover:text-white'
+            : 'text-gray-800 hover:text-gray-900'
+        }`}
+      >
+        {ripple && (
+          <motion.span
+            className={`absolute w-24 h-24 rounded-full transform scale-0 ${
+              dark 
+                ? 'bg-gradient-radial from-cyan-400/40 to-transparent' 
+                : 'bg-gradient-radial from-white/50 to-transparent'
+            }`}
+            style={{ 
+              left: ripple.x - 48, 
+              top: ripple.y - 48,
+              background: dark 
+                ? 'radial-gradient(circle, rgba(34, 211, 238, 0.4) 0%, transparent 70%)'
+                : 'radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, transparent 70%)'
+            }}
+            animate={{ 
+              scale: [0, 1.2, 0], 
+              opacity: [0, 0.6, 0] 
+            }}
+            transition={{ 
+              duration: 0.4, 
+              ease: 'easeOut' 
+            }}
+          />
+        )}
+        <div
+          className={`p-1.5 rounded-lg transition-all duration-200 ${
+            disabled
+              ? 'bg-gray-100/30 dark:bg-gray-600/30'
+              : danger
+              ? 'bg-red-100/40 dark:bg-red-800/30'
+              : dark
+              ? 'bg-white/10 hover:bg-white/20'
+              : 'bg-gray-100/40 hover:bg-gray-200/50'
+          }`}
+        >
+          <div className="w-4 h-4 flex items-center justify-center">
+            {icon}
+          </div>
+        </div>
+        <span className="text-sm font-medium tracking-wide">{label}</span>
+      </motion.button>
+      
+      <AnimatePresence>
+        {showTooltip && (
+          <KeynoteTooltip
+            text={description}
+            visible={showTooltip}
+            position={tooltipPosition}
+            dark={dark}
+          />
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
 
 const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
   slide,
@@ -24,201 +202,161 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
   onAction
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [dark, setDark] = useState(false);
 
-  // Close menu when clicking outside
+  // Detect dark mode dynamically
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    setDark(media.matches);
+    const listener = (e: MediaQueryListEvent) => setDark(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, []);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
-
-  // Close menu on escape key
+  // Close outside or ESC
   useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
+    const handleClick = (e: MouseEvent) => {
+      // Add a small delay to prevent conflicts with menu item clicks
+      setTimeout(() => {
+        if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
+      }, 50);
     };
-
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', handleClick);
     document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, [onClose]);
 
-  const handleAction = (action: SlideAction) => {
+  const handleAction = useCallback((action: SlideAction) => {
+    console.log('🎯 SLIDE CONTEXT MENU - Action clicked:', { action, slideId: slide.id, index });
+    console.log('🎯 SLIDE CONTEXT MENU - Calling onAction with:', { action, slide, index });
     onAction(action, slide, index);
-    onClose();
-  };
+    console.log('🎯 SLIDE CONTEXT MENU - Calling onClose');
+    // Add a small delay to ensure the action is processed before closing
+    setTimeout(() => {
+      onClose();
+    }, 100);
+  }, [onAction, slide, index, onClose]);
 
   const menuItems = [
     {
-      icon: Plus,
+      icon: <Plus size={16} strokeWidth={1.5} />,
       label: 'Add New Slide',
       action: 'add-new' as SlideAction,
-      description: 'Insert a new slide below this one'
+      description: 'Insert a new blank slide below this one'
     },
     {
-      icon: Copy,
+      icon: <Copy size={16} strokeWidth={1.5} />,
       label: 'Duplicate Slide',
       action: 'duplicate' as SlideAction,
-      description: 'Create a copy of this slide'
+      description: 'Create an exact copy with all content'
     },
     {
-      icon: Trash2,
+      icon: <Trash2 size={16} strokeWidth={1.5} />,
       label: 'Delete Slide',
       action: 'delete' as SlideAction,
-      description: totalSlides <= 1 ? 'Cannot delete the last slide' : 'Remove this slide',
+      description: totalSlides <= 1 ? 'Cannot delete the last slide' : 'Remove this slide permanently',
       destructive: true,
       disabled: totalSlides <= 1
     },
     { separator: true },
     {
-      icon: Palette,
+      icon: <Palette size={16} strokeWidth={1.5} />,
       label: 'Change Background',
       action: 'change-background' as SlideAction,
-      description: 'Update slide background color'
+      description: 'Customize slide background color and style'
     },
     {
-      icon: Image,
+      icon: <Image size={16} strokeWidth={1.5} />,
       label: 'Add Cover Image',
       action: 'add-cover' as SlideAction,
-      description: 'Set thumbnail cover image'
+      description: 'Set a custom thumbnail cover image'
     },
     { separator: true },
     {
-      icon: Type,
+      icon: <Edit3 size={16} strokeWidth={1.5} />,
       label: 'Rename Slide',
       action: 'rename' as SlideAction,
-      description: `"${slide.title || `Slide ${index + 1}`}"`
+      description: `Rename "${slide.title || `Slide ${index + 1}`}"`
     },
     {
-      icon: FileText,
+      icon: <FileText size={16} strokeWidth={1.5} />,
       label: 'Add Notes',
       action: 'add-notes' as SlideAction,
-      description: 'Add speaker notes'
+      description: 'Add speaker notes for presentation'
     }
   ];
 
   return createPortal(
     <AnimatePresence>
-      {/* Backdrop */}
       <motion.div
-        key="context-menu-backdrop"
+        key="backdrop"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[99998] bg-black/5"
+        className="fixed inset-0 z-[99998] bg-transparent"
         onClick={onClose}
       />
-      
-      {/* Context Menu */}
       <motion.div
-        key="context-menu-content"
+        key="menu"
         ref={menuRef}
-        initial={{ opacity: 0, scale: 0.9, y: -20, rotateX: -15 }}
-        animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: -20, rotateX: -15 }}
+        initial={{ opacity: 0, scale: 0.95, y: -8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: -8 }}
         transition={{ 
-          duration: 0.3, 
-          ease: [0.16, 1, 0.3, 1],
-          type: "spring",
-          stiffness: 300,
-          damping: 30
+          type: 'spring', 
+          stiffness: 300, 
+          damping: 25,
+          mass: 0.8
         }}
-        className="fixed z-[99999] w-72 max-w-80 bg-white/95 border border-gray-200/50 rounded-2xl shadow-2xl shadow-black/20 overflow-hidden"
+        className={`fixed z-[99999] w-56 rounded-2xl overflow-hidden border backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] ring-1 ${
+          dark 
+            ? 'bg-gradient-to-br from-gray-800/60 to-gray-900/30 border-gray-700/40 ring-white/10' 
+            : 'bg-gradient-to-br from-white/60 to-gray-200/30 border-white/40 ring-gray-300/20'
+        }`}
         style={{
-          left: Math.min(position.x, window.innerWidth - 320),
-          top: Math.min(position.y, window.innerHeight - 400),
-          maxWidth: 'calc(100vw - 1rem)',
-          maxHeight: 'calc(100vh - 1rem)',
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+          left: Math.min(position.x, window.innerWidth - 240),
+          top: Math.min(position.y, window.innerHeight - 320),
+          backdropFilter: 'blur(25px)',
+          WebkitBackdropFilter: 'blur(25px)',
         }}
       >
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-200/50 flex-shrink-0 bg-gradient-to-r from-gray-50/50 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
-              <span className="text-white text-sm font-semibold">
-                {index + 1}
-              </span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-gray-900 text-sm truncate">
-                {slide.title || `Slide ${index + 1}`}
-              </h3>
-              <p className="text-xs text-gray-600">
-                {slide.elements.length} elements • {slide.category || 'Custom'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Menu Items */}
-        <div className="py-2 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          {menuItems.map((item, itemIndex) => {
-            if (item.separator) {
-              return (
-                <Separator key={`separator-${itemIndex}`} className="my-2 bg-gray-200" />
-              );
-            }
-
-            const Icon = item.icon;
-            return (
-              <motion.div
-                key={item.action || `menu-item-${itemIndex}`}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ duration: 0.1 }}
-              >
-                <Button
-                  variant="ghost"
-                  disabled={item.disabled}
-                  className={`w-full justify-start gap-3 px-4 py-3 h-auto rounded-none transition-all duration-200 group ${
-                    item.disabled 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : 'hover:bg-gray-100'
-                  }`}
-                  onClick={() => !item.disabled && handleAction(item.action)}
-                >
-                  <Icon 
-                    className={`w-4 h-4 transition-colors duration-200 ${
-                      item.disabled
-                        ? 'text-gray-400'
-                        : item.destructive 
-                          ? 'text-red-500 group-hover:text-red-600' 
-                          : 'text-gray-600 group-hover:text-gray-900'
-                    }`} 
+            <div className="py-1">
+              {menuItems.map((item, i) => {
+                console.log('🎯 RENDERING MENU ITEM:', { item: item.label, action: item.action, disabled: item.disabled });
+                return item.separator ? (
+                  <div
+                    key={`sep-${i}`}
+                    className={`my-1 h-[0.5px] ${
+                      dark 
+                        ? 'bg-gradient-to-r from-transparent via-gray-600/30 to-transparent' 
+                        : 'bg-gradient-to-r from-transparent via-gray-300/20 to-transparent'
+                    }`}
                   />
-                  <div className="flex-1 text-left min-w-0">
-                    <div className={`text-sm font-medium truncate transition-colors duration-200 ${
-                      item.disabled
-                        ? 'text-gray-400'
-                        : item.destructive 
-                          ? 'text-red-600 group-hover:text-red-700' 
-                          : 'text-gray-900 group-hover:text-gray-900'
-                    }`}>
-                      {item.label}
-                    </div>
-                    <div className={`text-xs truncate transition-colors duration-200 ${
-                      item.disabled
-                        ? 'text-gray-400'
-                        : 'text-gray-500 group-hover:text-gray-600'
-                    }`}>
-                      {item.description}
-                    </div>
-                  </div>
-                </Button>
-              </motion.div>
-            );
-          })}
-        </div>
+                ) : (
+                  <RippleMenuItem
+                    key={item.label}
+                    icon={item.icon}
+                    label={item.label}
+                    description={item.description}
+                    onClick={() => {
+                      console.log('🎯 MENU ITEM ONCLICK TRIGGERED:', { label: item.label, action: item.action, disabled: item.disabled });
+                      if (!item.disabled) {
+                        handleAction(item.action as SlideAction);
+                      }
+                    }}
+                    danger={item.destructive}
+                    disabled={item.disabled}
+                    dark={dark}
+                  />
+                );
+              })}
+            </div>
       </motion.div>
     </AnimatePresence>,
     document.body

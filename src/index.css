@@ -2664,3 +2664,171 @@ div.canvas-element.placeholder {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   ring: 2px solid #3b82f6;
 }
+
+/* Apple Keynote-style slide thumbnail styles */
+.slide-thumbnail {
+  @apply relative rounded-lg overflow-hidden;
+  @apply bg-white border border-gray-200;
+  @apply transition-all duration-200 ease-out;
+  @apply transform-gpu will-change-transform;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e5e7eb !important;
+  background-color: white !important;
+  border-radius: 8px !important;
+}
+
+/* Keynote-style hover effect - subtle lift and shadow */
+.slide-thumbnail:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Keynote-style active state - clean blue border */
+.slide-thumbnail.active {
+  border: 2px solid #007AFF !important;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2) !important;
+  background-color: rgba(0, 122, 255, 0.05) !important;
+}
+
+/* Keynote-style dragging state - subtle scale and shadow */
+.slide-thumbnail.dragging {
+  transform: scale(1.02) translateY(-4px) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
+  border-color: #007AFF !important;
+  background-color: rgba(0, 122, 255, 0.05) !important;
+}
+
+/* Collapsed thumbnail styles - Keynote-style */
+.slide-thumbnail.collapsed {
+  @apply aspect-square;
+}
+
+.slide-thumbnail.collapsed:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.slide-thumbnail.collapsed.active {
+  border: 2px solid #007AFF;
+  box-shadow: 0 1px 4px rgba(0, 122, 255, 0.2);
+  background-color: rgba(0, 122, 255, 0.05);
+}
+
+.slide-thumbnail.collapsed.dragging {
+  transform: scale(1.02) translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  border-color: #007AFF;
+  background-color: rgba(0, 122, 255, 0.05);
+}
+
+/* Apple Keynote-style three dots menu button - now using inline styles */
+
+/* Ripple animation for context menu */
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.animate-ripple {
+  animation: ripple 0.45s ease-out forwards;
+}
+
+/* Apple Keynote-style tooltips */
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tooltipFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.95);
+  }
+}
+
+.keynote-tooltip {
+  position: absolute;
+  z-index: 100000;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 8px;
+  pointer-events: none;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: tooltipFadeIn 0.2s ease-out forwards;
+}
+
+.keynote-tooltip.fade-out {
+  animation: tooltipFadeOut 0.15s ease-in forwards;
+}
+
+.keynote-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Enhanced Color Picker Sliders */
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #007bff;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+input[type="range"]::-moz-range-thumb {
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #007bff;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+/* Slide thumbnail content */
+.slide-thumbnail-content {
+  @apply w-full h-full relative;
+  @apply flex items-center justify-center;
+  @apply bg-gray-50;
+  @apply rounded-lg overflow-hidden;
+}

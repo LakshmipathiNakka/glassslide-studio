@@ -82,20 +82,32 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
     switch (element.type) {
       case 'text':
         return (
-          <Text
-            key={element.id}
-            {...commonProps}
-            text={element.text || element.content || element.placeholder || 'Text'}
-            fontSize={(element.fontSize || 16) * scale}
-            fontFamily={element.fontFamily || 'Arial'}
-            fontStyle={element.fontWeight === 'bold' ? 'bold' : 'normal'}
-            fill={element.color || '#000000'}
-            align={element.textAlign || 'left'}
-            verticalAlign="top"
-            wrap="word"
-            width={scaledWidth}
-            height={scaledHeight}
-          />
+          <Group key={element.id}>
+            {/* Background for text */}
+            {element.backgroundColor && (
+              <Rect
+                {...commonProps}
+                fill={element.backgroundColor}
+                stroke={element.borderColor || 'transparent'}
+                strokeWidth={(element.borderWidth || 0) * scale}
+                cornerRadius={(element.borderRadius || 0) * scale}
+              />
+            )}
+            {/* Text content */}
+            <Text
+              {...commonProps}
+              text={element.text || element.content || element.placeholder || 'Text'}
+              fontSize={(element.fontSize || 16) * scale}
+              fontFamily={element.fontFamily || 'Arial'}
+              fontStyle={element.fontWeight === 'bold' ? 'bold' : 'normal'}
+              fill={element.color || '#000000'}
+              align={element.textAlign || 'left'}
+              verticalAlign="top"
+              wrap="word"
+              width={scaledWidth}
+              height={scaledHeight}
+            />
+          </Group>
         );
 
       case 'shape':
@@ -136,14 +148,35 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
 
       case 'chart':
         return (
-          <Rect
+          <ChartElement
             key={element.id}
+            element={element}
+            scale={scale}
             {...commonProps}
-            fill={element.backgroundColor || '#f8f9fa'}
-            stroke={element.borderColor || '#0078d4'}
-            strokeWidth={(element.borderWidth || 2) * scale}
-            cornerRadius={(element.borderRadius || 8) * scale}
           />
+        );
+
+      case 'table':
+        return (
+          <Group key={element.id}>
+            <Rect
+              {...commonProps}
+              fill={element.backgroundColor || '#ffffff'}
+              stroke={element.borderColor || '#cccccc'}
+              strokeWidth={(element.borderWidth || 1) * scale}
+              cornerRadius={(element.borderRadius || 0) * scale}
+            />
+            <Text
+              x={scaledX + scaledWidth / 2}
+              y={scaledY + scaledHeight / 2}
+              text="📋 Table"
+              fontSize={10 * scale}
+              fontFamily="Arial"
+              fill="#666666"
+              align="center"
+              verticalAlign="middle"
+            />
+          </Group>
         );
 
       default:
@@ -167,7 +200,7 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
         // For now, we just render the preview
       }
     }
-  }, [slide.elements, slide.background]);
+  }, [slide.elements, slide.background, slide.lastUpdated]);
 
   return (
     <div className={`thumbnail-canvas ${className}`} style={{ width, height }}>
@@ -215,16 +248,28 @@ const ImageElement: React.FC<{
   if (!image) {
     // Show placeholder while loading
     return (
-      <Rect
-        x={element.x * scale}
-        y={element.y * scale}
-        width={element.width * scale}
-        height={element.height * scale}
-        fill="#f0f0f0"
-        stroke="#d0d0d0"
-        strokeWidth={1}
-        dash={[5, 5]}
-      />
+      <Group>
+        <Rect
+          x={element.x * scale}
+          y={element.y * scale}
+          width={element.width * scale}
+          height={element.height * scale}
+          fill="#f0f0f0"
+          stroke="#d0d0d0"
+          strokeWidth={1}
+          dash={[5, 5]}
+        />
+        <Text
+          x={element.x * scale + (element.width * scale) / 2}
+          y={element.y * scale + (element.height * scale) / 2}
+          text="📷"
+          fontSize={12 * scale}
+          fontFamily="Arial"
+          fill="#999999"
+          align="center"
+          verticalAlign="middle"
+        />
+      </Group>
     );
   }
 
@@ -238,6 +283,248 @@ const ImageElement: React.FC<{
       rotation={element.rotation || 0}
       opacity={(element as any).opacity || 1}
     />
+  );
+};
+
+// Helper component for chart elements
+const ChartElement: React.FC<{
+  element: Element;
+  scale: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  opacity: number;
+}> = ({ element, scale, x, y, width, height, rotation, opacity }) => {
+  const chartData = element.chartData;
+  if (!chartData || !chartData.labels || !chartData.datasets) {
+    return (
+      <Group>
+        <Rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          fill={element.backgroundColor || '#f8f9fa'}
+          stroke={element.borderColor || '#0078d4'}
+          strokeWidth={(element.borderWidth || 2) * scale}
+          cornerRadius={(element.borderRadius || 8) * scale}
+        />
+        <Text
+          x={x + width / 2}
+          y={y + height / 2}
+          text="📊 Chart"
+          fontSize={10 * scale}
+          fontFamily="Arial"
+          fill="#666666"
+          align="center"
+          verticalAlign="middle"
+        />
+      </Group>
+    );
+  }
+
+  const labels = chartData.labels;
+  const datasets = chartData.datasets;
+  const maxValue = Math.max(...datasets.flatMap((ds: any) => ds.data));
+  const padding = 10 * scale;
+  const chartWidth = width - (padding * 2);
+  const chartHeight = height - (padding * 2);
+  const chartX = x + padding;
+  const chartY = y + padding;
+
+  return (
+    <Group>
+      {/* Background */}
+      <Rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={element.backgroundColor || '#f8f9fa'}
+        stroke={element.borderColor || '#0078d4'}
+        strokeWidth={(element.borderWidth || 2) * scale}
+        cornerRadius={(element.borderRadius || 8) * scale}
+      />
+      
+      {/* Chart title */}
+      {chartData.title && (
+        <Text
+          x={x + width / 2}
+          y={y + 5 * scale}
+          text={chartData.title}
+          fontSize={(chartData.titleFontSize || 14) * scale}
+          fontFamily={chartData.titleFontFamily || 'Arial'}
+          fill={chartData.titleColor || '#000000'}
+          align="center"
+          verticalAlign="top"
+        />
+      )}
+
+      {/* Chart content based on type */}
+      {element.chartType === 'bar' && (
+        <BarChart
+          chartX={chartX}
+          chartY={chartY}
+          chartWidth={chartWidth}
+          chartHeight={chartHeight}
+          labels={labels}
+          datasets={datasets}
+          maxValue={maxValue}
+          scale={scale}
+        />
+      )}
+      
+      {element.chartType === 'line' && (
+        <LineChart
+          chartX={chartX}
+          chartY={chartY}
+          chartWidth={chartWidth}
+          chartHeight={chartHeight}
+          labels={labels}
+          datasets={datasets}
+          maxValue={maxValue}
+          scale={scale}
+        />
+      )}
+      
+      {element.chartType === 'pie' && (
+        <PieChart
+          chartX={chartX}
+          chartY={chartY}
+          chartWidth={chartWidth}
+          chartHeight={chartHeight}
+          datasets={datasets}
+          scale={scale}
+        />
+      )}
+    </Group>
+  );
+};
+
+// Bar chart component
+const BarChart: React.FC<{
+  chartX: number;
+  chartY: number;
+  chartWidth: number;
+  chartHeight: number;
+  labels: string[];
+  datasets: any[];
+  maxValue: number;
+  scale: number;
+}> = ({ chartX, chartY, chartWidth, chartHeight, labels, datasets, maxValue, scale }) => {
+  const barWidth = chartWidth / labels.length * 0.6;
+  const barSpacing = chartWidth / labels.length * 0.4;
+  
+  return (
+    <Group>
+      {labels.map((label: string, i: number) => {
+        const x = chartX + i * (barWidth + barSpacing) + barSpacing / 2;
+        
+        return datasets.map((dataset: any, dsIndex: number) => {
+          const value = dataset.data[i] || 0;
+          const barHeight = (value / maxValue) * chartHeight;
+          const y = chartY + chartHeight - barHeight;
+          
+          return (
+            <Rect
+              key={`${i}-${dsIndex}`}
+              x={x}
+              y={y}
+              width={barWidth}
+              height={barHeight}
+              fill={dataset.backgroundColor || `hsl(${dsIndex * 60}, 70%, 50%)`}
+            />
+          );
+        });
+      })}
+    </Group>
+  );
+};
+
+// Line chart component
+const LineChart: React.FC<{
+  chartX: number;
+  chartY: number;
+  chartWidth: number;
+  chartHeight: number;
+  labels: string[];
+  datasets: any[];
+  maxValue: number;
+  scale: number;
+}> = ({ chartX, chartY, chartWidth, chartHeight, labels, datasets, maxValue, scale }) => {
+  return (
+    <Group>
+      {datasets.map((dataset: any, dsIndex: number) => {
+        const points = dataset.data.map((value: number, i: number) => {
+          const x = chartX + (i / (labels.length - 1)) * chartWidth;
+          const y = chartY + chartHeight - (value / maxValue) * chartHeight;
+          return { x, y };
+        });
+        
+        return (
+          <Group key={dsIndex}>
+            {points.map((point, i) => {
+              if (i === 0) return null;
+              const prevPoint = points[i - 1];
+              return (
+                <Rect
+                  key={i}
+                  x={prevPoint.x}
+                  y={prevPoint.y}
+                  width={Math.max(1, point.x - prevPoint.x)}
+                  height={2 * scale}
+                  fill={dataset.borderColor || dataset.backgroundColor || `hsl(${dsIndex * 60}, 70%, 50%)`}
+                />
+              );
+            })}
+          </Group>
+        );
+      })}
+    </Group>
+  );
+};
+
+// Pie chart component
+const PieChart: React.FC<{
+  chartX: number;
+  chartY: number;
+  chartWidth: number;
+  chartHeight: number;
+  datasets: any[];
+  scale: number;
+}> = ({ chartX, chartY, chartWidth, chartHeight, datasets, scale }) => {
+  const centerX = chartX + chartWidth / 2;
+  const centerY = chartY + chartHeight / 2;
+  const radius = Math.min(chartWidth, chartHeight) / 2 - 10 * scale;
+  
+  let currentAngle = 0;
+  const total = datasets[0]?.data.reduce((sum: number, val: number) => sum + val, 0) || 1;
+  
+  return (
+    <Group>
+      {datasets[0]?.data.map((value: number, i: number) => {
+        const sliceAngle = (value / total) * 2 * Math.PI;
+        const startAngle = currentAngle;
+        const endAngle = currentAngle + sliceAngle;
+        
+        currentAngle += sliceAngle;
+        
+        return (
+          <Rect
+            key={i}
+            x={centerX - radius / 2}
+            y={centerY - radius / 2}
+            width={radius}
+            height={radius}
+            fill={datasets[0].backgroundColor || `hsl(${i * 60}, 70%, 50%)`}
+            cornerRadius={radius / 2}
+            rotation={startAngle * (180 / Math.PI)}
+          />
+        );
+      })}
+    </Group>
   );
 };
 

@@ -12,35 +12,19 @@ import { usePersistence } from "@/hooks/use-persistence";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/landing/Logo";
+import { Slide } from "@/types/slide-thumbnails";
+import { Element } from "@/hooks/use-action-manager";
 import pptxgen from "pptxgenjs";
-
-interface Element {
-  id: string;
-  type: 'text' | 'image' | 'shape' | 'chart';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  content?: string;
-  shapeType?: 'rectangle' | 'circle';
-  fill?: string;
-  chartType?: 'bar' | 'line' | 'pie';
-  chartData?: any;
-  fontSize?: number;
-  fontWeight?: 'normal' | 'bold';
-  fontStyle?: 'normal' | 'italic';
-  textAlign?: 'left' | 'center' | 'right';
-  color?: string;
-}
-
-interface Slide {
-  id: string;
-  elements: Element[];
-}
 
 const Editor = () => {
   const { toast } = useToast();
-  const initialSlides = [{ id: '1', elements: [] }];
+  const initialSlides: Slide[] = [{ 
+    id: '1', 
+    elements: [],
+    background: '#ffffff',
+    createdAt: new Date(),
+    lastUpdated: Date.now()
+  }];
   const { state: slides, push: pushSlides, undo, redo, canUndo, canRedo } = useHistory<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [chartPanelOpen, setChartPanelOpen] = useState(false);
@@ -348,9 +332,100 @@ const Editor = () => {
   };
 
   const handleAddSlide = () => {
-    const newSlides = [...slides, { id: Date.now().toString(), elements: [] }];
+    const newSlide: Slide = { 
+      id: Date.now().toString(), 
+      elements: [],
+      background: '#ffffff',
+      createdAt: new Date(),
+      lastUpdated: Date.now()
+    };
+    const newSlides = [...slides, newSlide];
     pushSlides(newSlides);
     setCurrentSlide(slides.length);
+  };
+
+  const handleAddSlideAtIndex = (index: number) => {
+    console.log('🎯 EDITOR - handleAddSlideAtIndex called:', { index, currentSlidesCount: slides.length });
+    const newSlide: Slide = { 
+      id: Date.now().toString(), 
+      elements: [],
+      background: '#ffffff',
+      title: `Slide ${slides.length + 1}`,
+      createdAt: new Date(),
+      lastUpdated: Date.now()
+    };
+    const newSlides = [...slides];
+    newSlides.splice(index + 1, 0, newSlide);
+    console.log('🎯 EDITOR - New slides array:', { newSlidesCount: newSlides.length, newSlideId: newSlide.id });
+    pushSlides(newSlides);
+    setCurrentSlide(index + 1);
+    console.log('🎯 EDITOR - Set current slide to:', index + 1);
+  };
+
+  const handleDuplicateSlide = (index: number) => {
+    const slideToDuplicate = slides[index];
+    if (!slideToDuplicate) return;
+
+    const duplicatedSlide: Slide = {
+      ...slideToDuplicate,
+      id: Date.now().toString(),
+      title: `${slideToDuplicate.title || `Slide ${index + 1}`} (Copy)`,
+      createdAt: new Date(),
+      lastUpdated: Date.now()
+    };
+
+    const newSlides = [...slides];
+    newSlides.splice(index + 1, 0, duplicatedSlide);
+    pushSlides(newSlides);
+    setCurrentSlide(index + 1);
+  };
+
+  const handleDeleteSlide = (index: number) => {
+    if (slides.length <= 1) {
+      toast({
+        title: "Cannot Delete",
+        description: "Cannot delete the last slide.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newSlides = slides.filter((_, i) => i !== index);
+    pushSlides(newSlides);
+    
+    // Adjust current slide if necessary
+    if (currentSlide >= newSlides.length) {
+      setCurrentSlide(newSlides.length - 1);
+    } else if (currentSlide > index) {
+      setCurrentSlide(currentSlide - 1);
+    }
+  };
+
+  const handleRenameSlide = (index: number, title: string) => {
+    const newSlides = [...slides];
+    newSlides[index] = { ...newSlides[index], title, lastUpdated: Date.now() };
+    pushSlides(newSlides);
+  };
+
+  const handleAddSlideNotes = (index: number, notes: string) => {
+    const newSlides = [...slides];
+    newSlides[index] = { ...newSlides[index], notes, lastUpdated: Date.now() };
+    pushSlides(newSlides);
+  };
+
+  const handleChangeSlideBackground = (index: number, background: string) => {
+    console.log('🎨 EDITOR - handleChangeSlideBackground called:', { index, background, currentSlidesCount: slides.length });
+    const newSlides = [...slides];
+    newSlides[index] = { ...newSlides[index], background, lastUpdated: Date.now() };
+    console.log('🎨 EDITOR - Updated slide background:', { slideId: newSlides[index].id, background: newSlides[index].background });
+    pushSlides(newSlides);
+    console.log('🎨 EDITOR - Background change completed');
+  };
+
+  const handleAddSlideCover = (index: number, coverImage: string) => {
+    const newSlides = [...slides];
+    newSlides[index] = { ...newSlides[index], thumbnail: coverImage, lastUpdated: Date.now() };
+    pushSlides(newSlides);
   };
 
   const handleReorderSlides = (reorderedSlides: Slide[]) => {
@@ -467,6 +542,13 @@ const Editor = () => {
               newSlides[index] = { ...newSlides[index], ...updates };
               pushSlides(newSlides);
             }}
+            onAddSlideAtIndex={handleAddSlideAtIndex}
+            onDuplicateSlide={handleDuplicateSlide}
+            onDeleteSlide={handleDeleteSlide}
+            onRenameSlide={handleRenameSlide}
+            onAddSlideNotes={handleAddSlideNotes}
+            onChangeSlideBackground={handleChangeSlideBackground}
+            onAddSlideCover={handleAddSlideCover}
           />
         </aside>
 
@@ -485,13 +567,26 @@ const Editor = () => {
               newSlides[index] = { ...newSlides[index], ...updates };
               pushSlides(newSlides);
             }}
+            onAddSlideAtIndex={handleAddSlideAtIndex}
+            onDuplicateSlide={handleDuplicateSlide}
+            onDeleteSlide={handleDeleteSlide}
+            onRenameSlide={handleRenameSlide}
+            onAddSlideNotes={handleAddSlideNotes}
+            onChangeSlideBackground={handleChangeSlideBackground}
+            onAddSlideCover={handleAddSlideCover}
           />
         </aside>
 
         {/* Canvas Area */}
         <section className="flex-1 flex flex-col min-w-0" aria-label="Presentation canvas">
+          {console.log('🎨 EDITOR - Rendering canvas with background:', { 
+            background: slides[currentSlide]?.background, 
+            slideId: slides[currentSlide]?.id,
+            currentSlideIndex: currentSlide 
+          })}
           <SimplePowerPointCanvas
             elements={currentElements}
+            background={slides[currentSlide]?.background || '#ffffff'}
             onElementSelect={handleElementSelect}
             onElementUpdate={(element) => {
               const newElements = currentElements.map(el => 

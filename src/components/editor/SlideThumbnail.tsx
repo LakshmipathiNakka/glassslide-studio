@@ -107,7 +107,7 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
         {/* Thumbnail Canvas */}
         <div className="absolute inset-0">
           <ThumbnailCanvas
-            key={`${slide.id}-${slide.lastUpdated || 0}`}
+            key={`${slide.id}-${slide.lastUpdated || 0}-${slide.elements?.length || 0}`}
             slide={slide}
             width={200}
             height={112}

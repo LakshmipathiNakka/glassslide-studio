@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ChevronDown, Trash2 } from 'lucide-react';
+import { Plus, ChevronDown, Trash2, MoreVertical, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { EnhancedSlideThumbnailsProps, Slide, SlideAction } from '@/types/slide-thumbnails';
 import SlideThumbnail from './SlideThumbnail';
 import SlideContextMenu from './SlideContextMenu';
@@ -14,56 +14,105 @@ const DraggableThumbnailItem: React.FC<{
   index: number;
   isActive: boolean;
   isDragging: boolean;
+  isCollapsed: boolean;
   onSelect: (index: number) => void;
   onContextMenu: (event: React.MouseEvent, slide: Slide, index: number) => void;
   onDragStart: (e: React.DragEvent, index: number) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, index: number) => void;
   onDelete: (slideId: string) => void;
-}> = ({ slide, index, isActive, isDragging, onSelect, onContextMenu, onDragStart, onDragOver, onDrop, onDelete }) => {
+}> = ({ slide, index, isActive, isDragging, isCollapsed, onSelect, onContextMenu, onDragStart, onDragOver, onDrop, onDelete }) => {
   return (
-    <motion.div
-      draggable
-      onDragStart={(e) => onDragStart(e as unknown as React.DragEvent, index)}
-      onDragOver={onDragOver}
-      onDrop={(e) => onDrop(e as unknown as React.DragEvent, index)}
-      onClick={() => onSelect(index)}
-      onContextMenu={(e) => {
-        const mouseEvent = e as unknown as React.MouseEvent;
-        onContextMenu(mouseEvent, slide, index);
-      }}
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0, scale: isDragging ? 1.05 : 1 }}
-      exit={{ opacity: 0, y: -20 }}
-      whileHover={{ scale: isDragging ? 1.05 : 1.02, y: isDragging ? 0 : -2 }}
-      whileTap={{ scale: 0.98 }}
-      className={`group relative slide-thumbnail ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''}`}
-    >
-      <SlideThumbnail
-        slide={slide}
-        index={index}
-        isActive={isActive}
-        isDragging={isDragging}
-        isHovered={false}
-        onSelect={onSelect}
-        onContextMenu={onContextMenu}
-        onDragStart={() => {}}
-        onDragEnd={() => {}}
-      />
+      <motion.div
+        draggable
+        onDragStart={(e) => onDragStart(e as unknown as React.DragEvent, index)}
+        onDragOver={onDragOver}
+        onDrop={(e) => onDrop(e as unknown as React.DragEvent, index)}
+        onClick={() => onSelect(index)}
+        onContextMenu={(e) => {
+          const mouseEvent = e as unknown as React.MouseEvent;
+          onContextMenu(mouseEvent, slide, index);
+        }}
+        layout
+        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0, 
+          scale: isDragging ? 1.02 : 1,
+          rotate: 0
+        }}
+        exit={{ opacity: 0, y: -10, scale: 0.98 }}
+        whileHover={{ 
+          scale: isDragging ? 1.02 : 1,
+          y: isDragging ? 0 : -2,
+          rotate: 0
+        }}
+        whileTap={{ scale: 0.99 }}
+        transition={{
+          type: "tween",
+          duration: 0.2,
+          ease: "easeOut"
+        }}
+        className={`group relative slide-thumbnail ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isCollapsed ? 'collapsed' : ''}`}
+      >
+      {isCollapsed ? (
+        // Collapsed view - square thumbnail
+        <div className="w-full aspect-square bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center relative overflow-hidden">
+          <div className="text-xs font-medium text-gray-500">
+            {index + 1}
+          </div>
+          {/* Active indicator */}
+          {isActive && (
+            <div className="absolute inset-0 border-2 border-blue-500 rounded-lg bg-blue-50/50"></div>
+          )}
+        </div>
+      ) : (
+        // Expanded view - normal thumbnail
+        <>
+          <SlideThumbnail
+            slide={slide}
+            index={index}
+            isActive={isActive}
+            isDragging={isDragging}
+            isHovered={false}
+            onSelect={onSelect}
+            onContextMenu={onContextMenu}
+            onDragStart={() => {}}
+            onDragEnd={() => {}}
+          />
 
-      {/* Delete Button */}
-      {index > 0 && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(slide.id);
-          }}
-          className="absolute top-2 right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 z-10"
-          title="Delete slide"
-        >
-          <Trash2 className="w-3 h-3" />
-        </button>
+          {/* Slide Number Badge - Keynote style */}
+          <motion.div 
+            className="absolute top-2 left-2 w-6 h-6 bg-black/70 text-white text-xs rounded-full flex items-center justify-center font-medium opacity-0 group-hover:opacity-100 z-10"
+            initial={{ scale: 0.9, opacity: 0 }}
+            whileHover={{ scale: 1.05 }}
+            transition={{ 
+              duration: 0.15,
+              ease: "easeOut"
+            }}
+          >
+            {index + 1}
+          </motion.div>
+
+          {/* Three Dots Menu Button - Apple Keynote style */}
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation();
+              const mouseEvent = e as unknown as React.MouseEvent;
+              onContextMenu(mouseEvent, slide, index);
+            }}
+            className="absolute top-2 right-2 w-6 h-6 bg-white/90 hover:bg-white text-gray-500 hover:text-gray-700 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 ease-out shadow-sm hover:shadow-md border border-gray-200/50 hover:scale-105 z-10 transform-gpu will-change-transform"
+            title="Slide options"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{
+              duration: 0.15,
+              ease: "easeOut"
+            }}
+          >
+            <MoreVertical className="w-3 h-3" />
+          </motion.button>
+        </>
       )}
     </motion.div>
   );
@@ -79,8 +128,7 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
   onReorderSlides,
   onContextMenuAction,
 }) => {
-  console.log('🚨 OLD ENHANCED THUMBNAILS - Component rendered (this should not be called!)');
-  console.log('🚨 Current URL:', window.location.pathname);
+  // Keynote-style thumbnail component loaded
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ slide: Slide; index: number; x: number; y: number } | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -127,14 +175,17 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
   );
 
   const handleContextMenu = useCallback((event: React.MouseEvent, slide: Slide, index: number) => {
+    console.log('🎯 RIGHT CLICK DETECTED:', { slideId: slide.id, index, x: event.clientX, y: event.clientY });
     event.preventDefault();
     setContextMenu({ slide, index, x: event.clientX, y: event.clientY });
+    console.log('🎯 CONTEXT MENU STATE SET:', { slideId: slide.id, index });
   }, []);
 
   const handleCloseContextMenu = useCallback(() => setContextMenu(null), []);
 
   const handleContextAction = useCallback(
     (action: SlideAction, slide: Slide, index: number) => {
+      console.log('🎯 ENHANCED THUMBNAILS - Context action triggered:', { action, slideId: slide.id, index, hasOnContextMenuAction: !!onContextMenuAction });
       onContextMenuAction(action, slide, index);
       setContextMenu(null);
     },
@@ -151,11 +202,11 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
   return (
     <div
       className={`panel-background h-full flex flex-col border-r border-gray-200/60 transition-all duration-300 ${
-        isCollapsed ? 'w-12 sm:w-16' : 'w-[200px] md:w-[220px] lg:w-[240px]'
+        isCollapsed ? 'w-16 sm:w-20' : 'w-[200px] md:w-[220px] lg:w-[240px]'
       }`}
     >
       {/* Header */}
-      <div className="p-4 border-b border-gray-200/40 flex-shrink-0 bg-white/30 backdrop-blur-md">
+      <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-b border-gray-200/40 flex-shrink-0 bg-white/30 backdrop-blur-md`}>
         <div className="flex items-center justify-between">
           {!isCollapsed && (
             <div className="flex items-center gap-3">
@@ -165,24 +216,33 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
               </Badge>
             </div>
           )}
-          <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="p-1 h-8 w-8">
-            <ChevronDown
-              className={`h-4 w-4 transition-transform duration-200 ${isCollapsed ? 'rotate-90' : '-rotate-90'}`}
-            />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsCollapsed(!isCollapsed)} 
+            className="keynote-button p-1 h-8 w-8"
+            title={isCollapsed ? "Expand thumbnails" : "Collapse thumbnails"}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>
 
       {/* Slides List */}
       <ScrollArea className="flex-1 scrollbar-keynote">
-        <div className="space-y-3 flex flex-col p-2">
+        <div className={`${isCollapsed ? 'space-y-2 p-1' : 'space-y-3 p-2'} flex flex-col`}>
           {slides.map((slide, index) => (
             <DraggableThumbnailItem
-              key={`${slide.id}-${slide.lastUpdated || 0}`}
+              key={`${slide.id}-${slide.lastUpdated || 0}-${slide.elements?.length || 0}`}
               slide={slide}
               index={index}
               isActive={currentSlide === index}
               isDragging={draggedIndex === index}
+              isCollapsed={isCollapsed}
               onSelect={onSlideChange}
               onContextMenu={handleContextMenu}
               onDragStart={handleDragStart}
@@ -193,30 +253,61 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
           ))}
         </div>
 
-        {/* Add Slide Button */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-4 mb-2">
-          <Button
-            variant="outline"
-            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:bg-gradient-to-b hover:from-gray-100 hover:to-gray-200 hover:border-gray-300 hover:shadow-md hover:-translate-y-0.5 active:scale-95 transition-all duration-200 shadow-sm"
-            onClick={onAddSlide}
-          >
-            <Plus size={18} className="text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">New Slide</span>
-          </Button>
+        {/* Add Slide Button - Keynote style */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className={`${isCollapsed ? 'mt-2 mb-1' : 'mt-4 mb-2'}`}
+        >
+          {isCollapsed ? (
+            <motion.div
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-8 flex items-center justify-center bg-white hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-150"
+                onClick={onAddSlide}
+                title="Add new slide"
+              >
+                <Plus size={16} className="text-gray-500" />
+              </Button>
+            </motion.div>
+          ) : (
+            <motion.div
+              whileHover={{ scale: 1.01, y: -1 }}
+              whileTap={{ scale: 0.99 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <Button
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-gray-50 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm active:scale-99 transition-all duration-150 shadow-sm"
+                onClick={onAddSlide}
+              >
+                <Plus size={18} className="text-gray-500" />
+                <span className="text-sm font-medium text-gray-600">New Slide</span>
+              </Button>
+            </motion.div>
+          )}
         </motion.div>
       </ScrollArea>
 
       {/* Context Menu */}
       <AnimatePresence>
         {contextMenu && (
-          <SlideContextMenu
-            slide={contextMenu.slide}
-            index={contextMenu.index}
-            position={{ x: contextMenu.x, y: contextMenu.y }}
-            totalSlides={slides.length}
-            onAction={handleContextAction}
-            onClose={handleCloseContextMenu}
-          />
+          <>
+            {console.log('🎯 RENDERING CONTEXT MENU:', { slideId: contextMenu.slide.id, index: contextMenu.index })}
+            <SlideContextMenu
+              slide={contextMenu.slide}
+              index={contextMenu.index}
+              position={{ x: contextMenu.x, y: contextMenu.y }}
+              totalSlides={slides.length}
+              onAction={handleContextAction}
+              onClose={handleCloseContextMenu}
+            />
+          </>
         )}
       </AnimatePresence>
     </div>

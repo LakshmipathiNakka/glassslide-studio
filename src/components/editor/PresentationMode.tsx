@@ -1,30 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
-
-interface Element {
-  id: string;
-  type: 'text' | 'image' | 'shape' | 'chart';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  content?: string;
-  shapeType?: 'rectangle' | 'circle';
-  fill?: string;
-  chartType?: 'bar' | 'line' | 'pie';
-  chartData?: any;
-  fontSize?: number;
-  fontWeight?: 'normal' | 'bold';
-  fontStyle?: 'normal' | 'italic';
-  textAlign?: 'left' | 'center' | 'right';
-  color?: string;
-}
-
-interface Slide {
-  id: string;
-  elements: Element[];
-}
+import { Slide } from '@/types/slide-thumbnails';
+import { Element } from '@/hooks/use-action-manager';
 
 interface PresentationModeProps {
   slides: Slide[];
