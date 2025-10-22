@@ -8,7 +8,6 @@ import {
   Palette,
   Image,
   Type,
-  FileText,
   Edit3
 } from 'lucide-react';
 import { SlideContextMenuProps, SlideAction } from '@/types/slide-thumbnails';
@@ -283,12 +282,6 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
       label: 'Rename Slide',
       action: 'rename' as SlideAction,
       description: `Rename "${slide.title || `Slide ${index + 1}`}"`
-    },
-    {
-      icon: <FileText size={16} strokeWidth={1.5} />,
-      label: 'Add Notes',
-      action: 'add-notes' as SlideAction,
-      description: 'Add speaker notes for presentation'
     }
   ];
 

@@ -42,8 +42,7 @@ export type SlideAction =
   | 'delete'
   | 'change-background'
   | 'add-cover'
-  | 'rename'
-  | 'add-notes';
+  | 'rename';
 
 export interface EnhancedSlideThumbnailsProps {
   slides: Slide[];
@@ -57,7 +56,6 @@ export interface EnhancedSlideThumbnailsProps {
   onUpdateSlide: (index: number, updates: Partial<Slide>) => void;
   onRenameSlide: (index: number, title: string) => void;
   onSetSlideCategory: (index: number, category: Slide['category']) => void;
-  onAddSlideNotes: (index: number, notes: string) => void;
   onChangeSlideBackground: (index: number, background: string) => void;
   onAddSlideCover: (index: number, coverImage: string) => void;
   onContextMenuAction: (action: SlideAction, slide: Slide, index: number) => void;

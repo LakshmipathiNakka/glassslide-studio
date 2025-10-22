@@ -115,7 +115,6 @@ interface UseSlideThumbnailsProps {
   onDuplicateSlide?: (index: number) => void;
   onDeleteSlide?: (index: number) => void;
   onRenameSlide?: (index: number, title: string) => void;
-  onAddSlideNotes?: (index: number, notes: string) => void;
   onChangeSlideBackground?: (index: number, background: string) => void;
   onAddSlideCover?: (index: number, coverImage: string) => void;
 }
@@ -165,7 +164,6 @@ export const useSlideThumbnails = ({
   onDuplicateSlide,
   onDeleteSlide,
   onRenameSlide,
-  onAddSlideNotes,
   onChangeSlideBackground,
   onAddSlideCover
 }: UseSlideThumbnailsProps): UseSlideThumbnailsReturn => {
@@ -748,19 +746,12 @@ export const useSlideThumbnails = ({
           onRenameSlide?.(index, newTitle);
         }
         break;
-      case 'add-notes':
-        const notes = prompt('Enter slide notes:', slide.notes || '');
-        if (notes !== null) {
-          onAddSlideNotes?.(index, notes);
-        }
-        break;
     }
   }, [
     onAddSlideAtIndex,
     onDuplicateSlide,
     onDeleteSlide,
     onRenameSlide,
-    onAddSlideNotes,
     onAddSlideCover
   ]);
 

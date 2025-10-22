@@ -407,11 +407,6 @@ const Editor = () => {
     pushSlides(newSlides);
   };
 
-  const handleAddSlideNotes = (index: number, notes: string) => {
-    const newSlides = [...slides];
-    newSlides[index] = { ...newSlides[index], notes, lastUpdated: Date.now() };
-    pushSlides(newSlides);
-  };
 
   const handleChangeSlideBackground = (index: number, background: string) => {
     console.log('🎨 EDITOR - handleChangeSlideBackground called:', { index, background, currentSlidesCount: slides.length });
@@ -546,7 +541,6 @@ const Editor = () => {
             onDuplicateSlide={handleDuplicateSlide}
             onDeleteSlide={handleDeleteSlide}
             onRenameSlide={handleRenameSlide}
-            onAddSlideNotes={handleAddSlideNotes}
             onChangeSlideBackground={handleChangeSlideBackground}
             onAddSlideCover={handleAddSlideCover}
           />
@@ -571,7 +565,6 @@ const Editor = () => {
             onDuplicateSlide={handleDuplicateSlide}
             onDeleteSlide={handleDeleteSlide}
             onRenameSlide={handleRenameSlide}
-            onAddSlideNotes={handleAddSlideNotes}
             onChangeSlideBackground={handleChangeSlideBackground}
             onAddSlideCover={handleAddSlideCover}
           />
@@ -579,11 +572,6 @@ const Editor = () => {
 
         {/* Canvas Area */}
         <section className="flex-1 flex flex-col min-w-0" aria-label="Presentation canvas">
-          {console.log('🎨 EDITOR - Rendering canvas with background:', { 
-            background: slides[currentSlide]?.background, 
-            slideId: slides[currentSlide]?.id,
-            currentSlideIndex: currentSlide 
-          })}
           <SimplePowerPointCanvas
             elements={currentElements}
             background={slides[currentSlide]?.background || '#ffffff'}

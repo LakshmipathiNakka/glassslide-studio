@@ -17,7 +17,6 @@ interface SlideThumbnailsProps {
   onDuplicateSlide?: (index: number) => void;
   onDeleteSlide?: (index: number) => void;
   onRenameSlide?: (index: number, title: string) => void;
-  onAddSlideNotes?: (index: number, notes: string) => void;
   onChangeSlideBackground?: (index: number, background: string) => void;
   onAddSlideCover?: (index: number, coverImage: string) => void;
 }
@@ -33,7 +32,6 @@ export const SlideThumbnails = ({
   onDuplicateSlide,
   onDeleteSlide,
   onRenameSlide,
-  onAddSlideNotes,
   onChangeSlideBackground,
   onAddSlideCover
 }: SlideThumbnailsProps) => {
@@ -67,7 +65,6 @@ export const SlideThumbnails = ({
     onDuplicateSlide,
     onDeleteSlide,
     onRenameSlide,
-    onAddSlideNotes,
     onChangeSlideBackground,
     onAddSlideCover
   });
@@ -94,7 +91,6 @@ export const SlideThumbnails = ({
         onUpdateSlide={onUpdateSlide}
         onRenameSlide={handleRenameSlide}
         onSetSlideCategory={handleSetSlideCategory}
-        onAddSlideNotes={handleAddSlideNotes}
         onChangeSlideBackground={handleChangeSlideBackground}
         onAddSlideCover={handleAddSlideCover}
         onContextMenuAction={handleContextMenuAction}
