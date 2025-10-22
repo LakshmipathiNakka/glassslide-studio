@@ -414,6 +414,25 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
         ctx.fillStyle = fallbackGradient;
         console.log('🎨 THUMBNAIL CANVAS - USING FALLBACK GRADIENT (red to teal to blue)');
       }
+    } else if (backgroundValue && backgroundValue.startsWith('url(')) {
+      // Handle background images
+      console.log('🖼️ THUMBNAIL CANVAS - PROCESSING BACKGROUND IMAGE');
+      try {
+        // Extract image URL from url() syntax
+        const imageUrl = backgroundValue.match(/url\(['"]?([^'"]*)['"]?\)/)?.[1];
+        if (imageUrl) {
+          console.log('🖼️ THUMBNAIL CANVAS - LOADING BACKGROUND IMAGE:', imageUrl.substring(0, 50) + '...');
+          const img = await loadImage(imageUrl);
+          console.log('✅ THUMBNAIL CANVAS - BACKGROUND IMAGE LOADED SUCCESSFULLY');
+          ctx.drawImage(img, 0, 0, width, height);
+        } else {
+          console.log('❌ THUMBNAIL CANVAS - FAILED TO EXTRACT IMAGE URL FROM:', backgroundValue);
+          ctx.fillStyle = '#ffffff';
+        }
+      } catch (error) {
+        console.error('❌ THUMBNAIL CANVAS - ERROR LOADING BACKGROUND IMAGE:', error);
+        ctx.fillStyle = '#ffffff';
+      }
     } else {
       // Handle solid color backgrounds
       console.log('🎨 THUMBNAIL CANVAS - USING SOLID COLOR:', backgroundValue);
