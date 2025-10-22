@@ -53,7 +53,7 @@ const DraggableThumbnailItem: React.FC<{
           duration: 0.2,
           ease: "easeOut"
         }}
-        className={`group relative slide-thumbnail ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isCollapsed ? 'collapsed' : ''}`}
+        className={`group relative slide-thumbnail ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isCollapsed ? 'collapsed' : ''} hover:bg-gray-50/50 transition-colors duration-150`}
       >
       {isCollapsed ? (
         // Collapsed view - square thumbnail
@@ -67,51 +67,48 @@ const DraggableThumbnailItem: React.FC<{
           )}
         </div>
       ) : (
-        // Expanded view - normal thumbnail
+        // Expanded view - simple thumbnail structure
         <>
-          <SlideThumbnail
-            slide={slide}
-            index={index}
-            isActive={isActive}
-            isDragging={isDragging}
-            isHovered={false}
-            onSelect={onSelect}
-            onContextMenu={onContextMenu}
-            onDragStart={() => {}}
-            onDragEnd={() => {}}
-          />
-
-          {/* Slide Number Badge - Keynote style */}
-          <motion.div 
-            className="absolute top-2 left-2 w-6 h-6 bg-black/70 text-white text-xs rounded-full flex items-center justify-center font-medium opacity-0 group-hover:opacity-100 z-10"
-            initial={{ scale: 0.9, opacity: 0 }}
-            whileHover={{ scale: 1.05 }}
-            transition={{ 
-              duration: 0.15,
-              ease: "easeOut"
-            }}
-          >
+          {/* Slide Number Badge - Simple style */}
+          <div className="absolute -left-1 -top-1 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-medium z-10">
             {index + 1}
-          </motion.div>
+          </div>
 
-          {/* Three Dots Menu Button - Apple Keynote style */}
-          <motion.button
+          {/* Thumbnail Content */}
+          <div className="p-3 h-full flex flex-col">
+            {/* Slide Title */}
+            <div className="text-xs font-medium text-foreground truncate mb-2">
+              {slide.title || `Slide ${index + 1}`}
+            </div>
+            
+            {/* Thumbnail Canvas */}
+            <div className="flex-1 rounded-sm border border-slide-border overflow-hidden">
+              <SlideThumbnail
+                slide={slide}
+                index={index}
+                isActive={isActive}
+                isDragging={isDragging}
+                isHovered={false}
+                onSelect={onSelect}
+                onContextMenu={onContextMenu}
+                onDragStart={() => {}}
+                onDragEnd={() => {}}
+              />
+            </div>
+          </div>
+
+          {/* Three Dots Menu Button - Simple hover */}
+          <button
             onClick={(e) => {
               e.stopPropagation();
               const mouseEvent = e as unknown as React.MouseEvent;
               onContextMenu(mouseEvent, slide, index);
             }}
-            className="absolute top-2 right-2 w-6 h-6 bg-white/90 hover:bg-white text-gray-500 hover:text-gray-700 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 ease-out shadow-sm hover:shadow-md border border-gray-200/50 hover:scale-105 z-10 transform-gpu will-change-transform"
+            className="absolute top-2 right-2 w-6 h-6 bg-white/90 hover:bg-white text-gray-500 hover:text-gray-700 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 ease-out shadow-sm border border-gray-200/50 z-10"
             title="Slide options"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{
-              duration: 0.15,
-              ease: "easeOut"
-            }}
           >
             <MoreVertical className="w-3 h-3" />
-          </motion.button>
+          </button>
         </>
       )}
     </motion.div>

@@ -2665,59 +2665,59 @@ div.canvas-element.placeholder {
   ring: 2px solid #3b82f6;
 }
 
-/* Apple Keynote-style slide thumbnail styles */
+/* Simple slide thumbnail styles */
 .slide-thumbnail {
   @apply relative rounded-lg overflow-hidden;
   @apply bg-white border border-gray-200;
-  @apply transition-all duration-200 ease-out;
-  @apply transform-gpu will-change-transform;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-  border: 1px solid #e5e7eb !important;
-  background-color: white !important;
-  border-radius: 8px !important;
+  @apply transition-colors duration-150 ease-out;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  background-color: white;
+  border-radius: 8px;
 }
 
-/* Keynote-style hover effect - subtle lift and shadow */
+/* Simple hover effect */
 .slide-thumbnail:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  border-color: rgba(59, 130, 246, 0.3) !important;
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
-/* Keynote-style active state - clean blue border */
+/* Simple active state */
 .slide-thumbnail.active {
-  border: 2px solid #007AFF !important;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2) !important;
-  background-color: rgba(0, 122, 255, 0.05) !important;
+  border: 2px solid #007AFF;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
+  background-color: rgba(0, 122, 255, 0.05);
 }
 
-/* Keynote-style dragging state - subtle scale and shadow */
+/* Simple dragging state */
 .slide-thumbnail.dragging {
-  transform: scale(1.02) translateY(-4px) !important;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
-  border-color: #007AFF !important;
-  background-color: rgba(0, 122, 255, 0.05) !important;
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  border-color: #007AFF;
+  background-color: rgba(0, 122, 255, 0.05);
 }
 
-/* Collapsed thumbnail styles - Keynote-style */
+/* Border slide border utility */
+.border-slide-border {
+  border-color: #e5e7eb;
+}
+
+/* Collapsed thumbnail styles - Simple */
 .slide-thumbnail.collapsed {
   @apply aspect-square;
 }
 
 .slide-thumbnail.collapsed:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  border-color: rgba(59, 130, 246, 0.3);
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .slide-thumbnail.collapsed.active {
   border: 2px solid #007AFF;
-  box-shadow: 0 1px 4px rgba(0, 122, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
   background-color: rgba(0, 122, 255, 0.05);
 }
 
 .slide-thumbnail.collapsed.dragging {
-  transform: scale(1.02) translateY(-2px);
+  transform: scale(1.02);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
   border-color: #007AFF;
   background-color: rgba(0, 122, 255, 0.05);
