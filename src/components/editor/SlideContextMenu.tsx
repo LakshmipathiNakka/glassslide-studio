@@ -6,7 +6,6 @@ import {
   Copy,
   Trash2,
   Palette,
-  Image,
   Type,
   Edit3
 } from 'lucide-react';
@@ -269,12 +268,6 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
       label: 'Change Background',
       action: 'change-background' as SlideAction,
       description: 'Customize slide background color and style'
-    },
-    {
-      icon: <Image size={16} strokeWidth={1.5} />,
-      label: 'Add Cover Image',
-      action: 'add-cover' as SlideAction,
-      description: 'Set a custom thumbnail cover image'
     },
     { separator: true },
     {

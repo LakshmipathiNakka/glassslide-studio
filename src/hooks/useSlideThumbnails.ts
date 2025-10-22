@@ -116,7 +116,6 @@ interface UseSlideThumbnailsProps {
   onDeleteSlide?: (index: number) => void;
   onRenameSlide?: (index: number, title: string) => void;
   onChangeSlideBackground?: (index: number, background: string) => void;
-  onAddSlideCover?: (index: number, coverImage: string) => void;
 }
 
 interface UseSlideThumbnailsReturn {
@@ -165,7 +164,6 @@ export const useSlideThumbnails = ({
   onDeleteSlide,
   onRenameSlide,
   onChangeSlideBackground,
-  onAddSlideCover
 }: UseSlideThumbnailsProps): UseSlideThumbnailsReturn => {
   const [slides, setSlides] = useState<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(initialCurrentSlide);
@@ -267,25 +265,6 @@ export const useSlideThumbnails = ({
           fallbackGradient.addColorStop(1, '#45b7d1');
           ctx.fillStyle = fallbackGradient;
           console.log('🎨 USING FALLBACK GRADIENT (red to teal to blue)');
-        }
-      } else if (backgroundValue && backgroundValue.startsWith('url(')) {
-        // Handle background images
-        console.log('🖼️ PROCESSING BACKGROUND IMAGE');
-        try {
-          // Extract image URL from url() syntax
-          const imageUrl = backgroundValue.match(/url\(['"]?([^'"]*)['"]?\)/)?.[1];
-          if (imageUrl) {
-            console.log('🖼️ LOADING BACKGROUND IMAGE:', imageUrl.substring(0, 50) + '...');
-            const img = await loadImage(imageUrl);
-            console.log('✅ BACKGROUND IMAGE LOADED SUCCESSFULLY');
-            ctx.drawImage(img, 0, 0, width, height);
-          } else {
-            console.log('❌ FAILED TO EXTRACT IMAGE URL FROM:', backgroundValue);
-            ctx.fillStyle = '#ffffff';
-          }
-        } catch (error) {
-          console.error('❌ ERROR LOADING BACKGROUND IMAGE:', error);
-          ctx.fillStyle = '#ffffff';
         }
       } else {
         // Handle solid color backgrounds
@@ -752,34 +731,6 @@ export const useSlideThumbnails = ({
         setCurrentSlideForSettings({ slide, index });
         setShowColorPicker(true);
         break;
-      case 'add-cover':
-        // Create a file input for image selection
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.style.display = 'none';
-        
-        input.onchange = (e) => {
-          const file = (e.target as HTMLInputElement).files?.[0];
-          if (file) {
-            // Create a FileReader to convert file to data URL
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              const imageUrl = event.target?.result as string;
-              if (imageUrl) {
-                console.log('🖼️ ADD COVER IMAGE - Selected image:', { fileName: file.name, fileSize: file.size, imageUrl: imageUrl.substring(0, 50) + '...' });
-                onAddSlideCover?.(index, imageUrl);
-              }
-            };
-            reader.readAsDataURL(file);
-          }
-        };
-        
-        // Trigger the file picker
-        document.body.appendChild(input);
-        input.click();
-        document.body.removeChild(input);
-        break;
       case 'rename':
         const newTitle = prompt('Enter slide title:', slide.title || `Slide ${index + 1}`);
         if (newTitle) {
@@ -792,7 +743,6 @@ export const useSlideThumbnails = ({
     onDuplicateSlide,
     onDeleteSlide,
     onRenameSlide,
-    onAddSlideCover
   ]);
 
   // Modal handlers

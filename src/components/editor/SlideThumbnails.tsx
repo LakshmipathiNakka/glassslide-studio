@@ -18,7 +18,6 @@ interface SlideThumbnailsProps {
   onDeleteSlide?: (index: number) => void;
   onRenameSlide?: (index: number, title: string) => void;
   onChangeSlideBackground?: (index: number, background: string) => void;
-  onAddSlideCover?: (index: number, coverImage: string) => void;
 }
 
 export const SlideThumbnails = ({ 
@@ -33,7 +32,6 @@ export const SlideThumbnails = ({
   onDeleteSlide,
   onRenameSlide,
   onChangeSlideBackground,
-  onAddSlideCover
 }: SlideThumbnailsProps) => {
   const {
     slides: enhancedSlides,
@@ -66,7 +64,6 @@ export const SlideThumbnails = ({
     onDeleteSlide,
     onRenameSlide,
     onChangeSlideBackground,
-    onAddSlideCover
   });
 
   console.log('🔧 SLIDE THUMBNAILS - Props received:', { 
@@ -92,7 +89,6 @@ export const SlideThumbnails = ({
         onRenameSlide={handleRenameSlide}
         onSetSlideCategory={handleSetSlideCategory}
         onChangeSlideBackground={handleChangeSlideBackground}
-        onAddSlideCover={handleAddSlideCover}
         onContextMenuAction={handleContextMenuAction}
       />
       

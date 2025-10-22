@@ -417,20 +417,6 @@ const Editor = () => {
     console.log('🎨 EDITOR - Background change completed');
   };
 
-  const handleAddSlideCover = (index: number, coverImage: string) => {
-    console.log('🖼️ EDITOR - handleAddSlideCover called:', { index, coverImage: coverImage.substring(0, 50) + '...', currentSlidesCount: slides.length });
-    const newSlides = [...slides];
-    // Set both thumbnail and background image
-    newSlides[index] = { 
-      ...newSlides[index], 
-      thumbnail: coverImage, 
-      background: `url(${coverImage})`, // Set as background image
-      lastUpdated: Date.now() 
-    };
-    console.log('🖼️ EDITOR - Updated slide with cover image:', { slideId: newSlides[index].id, hasThumbnail: !!newSlides[index].thumbnail, background: newSlides[index].background });
-    pushSlides(newSlides);
-    console.log('🖼️ EDITOR - Cover image change completed');
-  };
 
   const handleReorderSlides = (reorderedSlides: Slide[]) => {
     console.log('🔄 EDITOR - Reordering slides:', {
@@ -551,7 +537,6 @@ const Editor = () => {
             onDeleteSlide={handleDeleteSlide}
             onRenameSlide={handleRenameSlide}
             onChangeSlideBackground={handleChangeSlideBackground}
-            onAddSlideCover={handleAddSlideCover}
           />
         </aside>
 
@@ -575,7 +560,6 @@ const Editor = () => {
             onDeleteSlide={handleDeleteSlide}
             onRenameSlide={handleRenameSlide}
             onChangeSlideBackground={handleChangeSlideBackground}
-            onAddSlideCover={handleAddSlideCover}
           />
         </aside>
 

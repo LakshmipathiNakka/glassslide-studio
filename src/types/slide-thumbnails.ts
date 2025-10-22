@@ -41,7 +41,6 @@ export type SlideAction =
   | 'duplicate'
   | 'delete'
   | 'change-background'
-  | 'add-cover'
   | 'rename';
 
 export interface EnhancedSlideThumbnailsProps {
@@ -57,7 +56,6 @@ export interface EnhancedSlideThumbnailsProps {
   onRenameSlide: (index: number, title: string) => void;
   onSetSlideCategory: (index: number, category: Slide['category']) => void;
   onChangeSlideBackground: (index: number, background: string) => void;
-  onAddSlideCover: (index: number, coverImage: string) => void;
   onContextMenuAction: (action: SlideAction, slide: Slide, index: number) => void;
 }
 

@@ -365,99 +365,76 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
 
   // Generate thumbnail when slide changes
   useEffect(() => {
-    const generateThumbnail = async () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-      // Clear canvas
-      ctx.clearRect(0, 0, width, height);
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
 
-      // Draw background with gradient support
-      const backgroundValue = typeof slide.background === 'string' ? slide.background : (slide.background as any)?.background || '#ffffff';
-      console.log('🎨 THUMBNAIL CANVAS - DRAWING BACKGROUND:', { 
-        background: slide.background, 
-        backgroundValue,
-        backgroundType: typeof slide.background,
-        isGradient: backgroundValue?.startsWith?.('linear-gradient'),
-        slideKeys: Object.keys(slide),
-        backgroundValueLength: backgroundValue?.length,
-        backgroundValueChars: backgroundValue?.substring(0, 50) + '...'
-      });
+    // Draw background with gradient support
+    const backgroundValue = typeof slide.background === 'string' ? slide.background : (slide.background as any)?.background || '#ffffff';
+    console.log('🎨 THUMBNAIL CANVAS - DRAWING BACKGROUND:', { 
+      background: slide.background, 
+      backgroundValue,
+      backgroundType: typeof slide.background,
+      isGradient: backgroundValue?.startsWith?.('linear-gradient'),
+      slideKeys: Object.keys(slide),
+      backgroundValueLength: backgroundValue?.length,
+      backgroundValueChars: backgroundValue?.substring(0, 50) + '...'
+    });
+    
+    if (backgroundValue && backgroundValue.startsWith('linear-gradient')) {
+      // Handle gradient backgrounds
+      console.log('🎨 THUMBNAIL CANVAS - PROCESSING GRADIENT BACKGROUND');
       
-      if (backgroundValue && backgroundValue.startsWith('linear-gradient')) {
-        // Handle gradient backgrounds
-        console.log('🎨 THUMBNAIL CANVAS - PROCESSING GRADIENT BACKGROUND');
-        
-        // Test with a known good gradient first
-        const testGradientString = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        console.log('🧪 THUMBNAIL CANVAS - TESTING WITH KNOWN GRADIENT:', testGradientString);
-        const testGradient = parseGradient(testGradientString, width, height, ctx);
-        if (testGradient) {
-          console.log('✅ THUMBNAIL CANVAS - TEST GRADIENT PARSING WORKS');
-        } else {
-          console.log('❌ THUMBNAIL CANVAS - TEST GRADIENT PARSING FAILED');
-        }
-        
-        const gradient = parseGradient(backgroundValue, width, height, ctx);
-        if (gradient) {
-          console.log('✅ THUMBNAIL CANVAS - USING PARSED GRADIENT');
-          ctx.fillStyle = gradient;
-        } else {
-          console.log('❌ THUMBNAIL CANVAS - GRADIENT PARSING FAILED, CREATING FALLBACK GRADIENT');
-          // Create a simple fallback gradient to verify gradient rendering works
-          const fallbackGradient = ctx.createLinearGradient(0, 0, width, height);
-          fallbackGradient.addColorStop(0, '#ff6b6b');
-          fallbackGradient.addColorStop(0.5, '#4ecdc4');
-          fallbackGradient.addColorStop(1, '#45b7d1');
-          ctx.fillStyle = fallbackGradient;
-          console.log('🎨 THUMBNAIL CANVAS - USING FALLBACK GRADIENT (red to teal to blue)');
-        }
-      } else if (backgroundValue && backgroundValue.startsWith('url(')) {
-        // Handle background images
-        console.log('🖼️ THUMBNAIL CANVAS - PROCESSING BACKGROUND IMAGE');
-        try {
-          // Extract image URL from url() syntax
-          const imageUrl = backgroundValue.match(/url\(['"]?([^'"]*)['"]?\)/)?.[1];
-          if (imageUrl) {
-            console.log('🖼️ THUMBNAIL CANVAS - LOADING BACKGROUND IMAGE:', imageUrl.substring(0, 50) + '...');
-            const img = await loadImage(imageUrl);
-            console.log('✅ THUMBNAIL CANVAS - BACKGROUND IMAGE LOADED SUCCESSFULLY');
-            ctx.drawImage(img, 0, 0, width, height);
-          } else {
-            console.log('❌ THUMBNAIL CANVAS - FAILED TO EXTRACT IMAGE URL FROM:', backgroundValue);
-            ctx.fillStyle = '#ffffff';
-          }
-        } catch (error) {
-          console.error('❌ THUMBNAIL CANVAS - ERROR LOADING BACKGROUND IMAGE:', error);
-          ctx.fillStyle = '#ffffff';
-        }
+      // Test with a known good gradient first
+      const testGradientString = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+      console.log('🧪 THUMBNAIL CANVAS - TESTING WITH KNOWN GRADIENT:', testGradientString);
+      const testGradient = parseGradient(testGradientString, width, height, ctx);
+      if (testGradient) {
+        console.log('✅ THUMBNAIL CANVAS - TEST GRADIENT PARSING WORKS');
       } else {
-        // Handle solid color backgrounds
-        console.log('🎨 THUMBNAIL CANVAS - USING SOLID COLOR:', backgroundValue);
-        ctx.fillStyle = backgroundValue;
+        console.log('❌ THUMBNAIL CANVAS - TEST GRADIENT PARSING FAILED');
       }
-      ctx.fillRect(0, 0, width, height);
-      console.log('🎨 THUMBNAIL CANVAS - BACKGROUND DRAWN');
-
-      // Draw elements
-      slide.elements.forEach(element => {
-        renderElement(ctx, element);
-      });
-
-      // Generate data URL for caching
-      const dataURL = canvas.toDataURL('image/png', 0.8);
       
-      // Update slide thumbnail if it has changed
-      if (slide.thumbnail !== dataURL) {
-        // This would typically be handled by the parent component
-        // For now, we just render the preview
+      const gradient = parseGradient(backgroundValue, width, height, ctx);
+      if (gradient) {
+        console.log('✅ THUMBNAIL CANVAS - USING PARSED GRADIENT');
+        ctx.fillStyle = gradient;
+      } else {
+        console.log('❌ THUMBNAIL CANVAS - GRADIENT PARSING FAILED, CREATING FALLBACK GRADIENT');
+        // Create a simple fallback gradient to verify gradient rendering works
+        const fallbackGradient = ctx.createLinearGradient(0, 0, width, height);
+        fallbackGradient.addColorStop(0, '#ff6b6b');
+        fallbackGradient.addColorStop(0.5, '#4ecdc4');
+        fallbackGradient.addColorStop(1, '#45b7d1');
+        ctx.fillStyle = fallbackGradient;
+        console.log('🎨 THUMBNAIL CANVAS - USING FALLBACK GRADIENT (red to teal to blue)');
       }
-    };
+    } else {
+      // Handle solid color backgrounds
+      console.log('🎨 THUMBNAIL CANVAS - USING SOLID COLOR:', backgroundValue);
+      ctx.fillStyle = backgroundValue;
+    }
+    ctx.fillRect(0, 0, width, height);
+    console.log('🎨 THUMBNAIL CANVAS - BACKGROUND DRAWN');
 
-    generateThumbnail();
+    // Draw elements
+    slide.elements.forEach(element => {
+      renderElement(ctx, element);
+    });
+
+    // Generate data URL for caching
+    const dataURL = canvas.toDataURL('image/png', 0.8);
+    
+    // Update slide thumbnail if it has changed
+    if (slide.thumbnail !== dataURL) {
+      // This would typically be handled by the parent component
+      // For now, we just render the preview
+    }
   }, [slide.elements, slide.background, slide.lastUpdated, width, height, scale]);
 
   return (
