@@ -7,7 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Trash2, Type, Palette, AlignLeft, AlignCenter, AlignRight, AlertTriangle, Plus, X, BarChart3, PieChart, TrendingUp, Settings, Tag, Database, Bold, Italic, Underline, Strikethrough, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Eye, EyeOff } from "lucide-react";
+import { Trash2, Type, Palette, AlignLeft, AlignCenter, AlignRight, AlertTriangle, Plus, X, BarChart3, PieChart, TrendingUp, Settings, Tag, Database, Bold, Italic, Underline, Strikethrough, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Eye, EyeOff, Shapes } from "lucide-react";
 import { SlideElement } from "@/types/canvas";
 import { Element } from "@/hooks/use-action-manager";
 import { motion, AnimatePresence } from "framer-motion";
@@ -263,6 +263,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
           <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-gray-100 text-gray-800 text-sm font-semibold">
             {selectedElement.type === 'chart' && getChartIcon(selectedElement.chartType || 'bar')}
             {selectedElement.type === 'text' && <Type className="w-4 h-4" />}
+            {selectedElement.type === 'shape' && <Shapes className="w-4 h-4" />}
             <span className="capitalize">{selectedElement.type}</span>
           </div>
         </motion.section>
@@ -1258,6 +1259,108 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
             </Accordion>
           </motion.div>
         )}
+
+        {/* Shape Properties */}
+        {selectedElement.type === 'shape' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Accordion type="single" collapsible className="space-y-2">
+              <AccordionItem value="shape-fill" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
+                <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Palette className="w-4 h-4" />
+                    Fill & Stroke
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-4">
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1 block">Fill Color</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="color"
+                        value={selectedElement.fill || '#ffffff'}
+                        onChange={(e) => handlePropertyChange('fill', e.target.value)}
+                        className="w-12 h-8 p-1 border border-gray-300 rounded cursor-pointer"
+                      />
+                      <Input
+                        value={selectedElement.fill || '#ffffff'}
+                        onChange={(e) => handlePropertyChange('fill', e.target.value)}
+                        className="flex-1 h-8 text-sm"
+                        placeholder="#ffffff"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1 block">Stroke Color</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="color"
+                        value={selectedElement.stroke || '#000000'}
+                        onChange={(e) => handlePropertyChange('stroke', e.target.value)}
+                        className="w-12 h-8 p-1 border border-gray-300 rounded cursor-pointer"
+                      />
+                      <Input
+                        value={selectedElement.stroke || '#000000'}
+                        onChange={(e) => handlePropertyChange('stroke', e.target.value)}
+                        className="flex-1 h-8 text-sm"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1 block">Stroke Width</Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        value={[selectedElement.strokeWidth || 0.5]}
+                        onValueChange={([value]) => handlePropertyChange('strokeWidth', value)}
+                        min={0}
+                        max={10}
+                        step={0.5}
+                        className="flex-1"
+                      />
+                      <span className="text-xs text-gray-500 w-8 text-right">
+                        {selectedElement.strokeWidth || 0.5}px
+                      </span>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="shape-opacity" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
+                <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    Opacity
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-4">
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1 block">Opacity</Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        value={[selectedElement.opacity || 1]}
+                        onValueChange={([value]) => handlePropertyChange('opacity', value)}
+                        min={0}
+                        max={1}
+                        step={0.1}
+                        className="flex-1"
+                      />
+                      <span className="text-xs text-gray-500 w-8 text-right">
+                        {Math.round((selectedElement.opacity || 1) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </motion.div>
+        )}
+
       </div>
     </aside>
     </TooltipProvider>

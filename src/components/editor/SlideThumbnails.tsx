@@ -5,6 +5,7 @@ import { Slide } from '@/types/slide-thumbnails';
 import EnhancedSlideThumbnails from './EnhancedSlideThumbnails';
 import { useSlideThumbnails } from '@/hooks/useSlideThumbnails';
 import { ColorPicker } from '@/components/ui/color-picker';
+import SlideTitleDialog from './SlideTitleDialog';
 
 interface SlideThumbnailsProps {
   slides: Slide[];
@@ -52,6 +53,10 @@ export const SlideThumbnails = ({
     colorPickerPosition,
     currentSlideForSettings,
     handleColorChange,
+    showTitleDialog,
+    currentSlideForRename,
+    handleTitleConfirm,
+    handleTitleCancel,
   } = useSlideThumbnails({
     slides,
     currentSlide,
@@ -104,6 +109,16 @@ export const SlideThumbnails = ({
           currentColor={currentSlideForSettings.slide.background || '#ffffff'}
           onColorChange={handleColorChange}
           position={colorPickerPosition}
+        />
+      )}
+
+      {/* Slide Title Dialog */}
+      {showTitleDialog && currentSlideForRename && (
+        <SlideTitleDialog
+          isOpen={showTitleDialog}
+          currentTitle={currentSlideForRename.slide.title || `Slide ${currentSlideForRename.index + 1}`}
+          onClose={handleTitleCancel}
+          onConfirm={handleTitleConfirm}
         />
       )}
       

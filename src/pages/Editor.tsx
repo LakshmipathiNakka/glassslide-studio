@@ -6,6 +6,7 @@ import { ChartPanel } from "@/components/editor/ChartPanel";
 import { PropertiesPanel } from "@/components/editor/PropertiesPanel";
 import { PresentationMode } from "@/components/editor/PresentationMode";
 import { ExportDialog } from "@/components/editor/ExportDialog";
+import ShapeModal, { ShapeType } from "@/components/editor/ShapeModal";
 import { useToast } from "@/hooks/use-toast";
 import { useHistory } from "@/hooks/use-history";
 import { usePersistence } from "@/hooks/use-persistence";
@@ -32,6 +33,7 @@ const Editor = () => {
   const [selectedElement, setSelectedElement] = useState<Element | null>(null);
   const [editingChart, setEditingChart] = useState<{ type: 'bar' | 'line' | 'pie'; data: any } | null>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [shapeModalOpen, setShapeModalOpen] = useState(false);
 
   // Auto-save to localStorage
   usePersistence(slides, (loadedSlides) => {
@@ -146,17 +148,32 @@ const Editor = () => {
     input.click();
   };
 
-  const handleAddShape = (shapeType: 'rectangle' | 'circle') => {
+  const handleAddShape = () => {
+    setShapeModalOpen(true);
+  };
+
+  const handleSelectShape = (shapeType: ShapeType) => {
     const newElement: Element = {
       id: Date.now().toString(),
       type: 'shape',
       x: 150,
       y: 150,
-      width: shapeType === 'circle' ? 150 : 200,
-      height: shapeType === 'circle' ? 150 : 120,
+      width: 200,
+      height: 120,
       shapeType,
+      fill: 'transparent',
+      stroke: '#000000',
+      strokeWidth: 0.5,
+      rotation: 0,
+      opacity: 1,
     };
     updateCurrentSlide([...currentElements, newElement]);
+    setSelectedElement(newElement);
+    
+    toast({
+      title: "Shape Added",
+      description: `${shapeType.charAt(0).toUpperCase() + shapeType.slice(1)} shape has been added to the slide.`,
+    });
   };
 
   const handleAddChart = (chartType: 'bar' | 'line' | 'pie', chartData: any) => {
@@ -626,6 +643,12 @@ const Editor = () => {
         open={exportDialogOpen}
         onClose={() => setExportDialogOpen(false)}
         onExport={handleExportFormat}
+      />
+      
+      <ShapeModal
+        isOpen={shapeModalOpen}
+        onClose={() => setShapeModalOpen(false)}
+        onSelectShape={handleSelectShape}
       />
     </div>
   );

@@ -1,11 +1,11 @@
-import { Type, Image, Square, Circle, BarChart3, Table, Download, Save, Undo, Redo, Layout, Play, Palette } from "lucide-react";
+import { Type, Image, Shapes, BarChart3, Table, Download, Save, Undo, Redo, Layout, Play, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 interface ToolbarProps {
   onAddText: () => void;
   onAddImage: () => void;
-  onAddShape: (shape: 'rectangle' | 'circle') => void;
+  onAddShape: () => void;
   onAddChart: () => void;
   onSave: () => void;
   onExport: () => void;
@@ -80,23 +80,12 @@ export const Toolbar = ({ onAddText, onAddImage, onAddShape, onAddChart, onSave,
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onAddShape('rectangle')}
+            onClick={onAddShape}
             className="keynote-button"
-            title="Add Rectangle"
-            aria-label="Add rectangle shape"
+            title="Add Shape"
+            aria-label="Add shape element"
           >
-            <Square className="w-4 h-4" aria-hidden="true" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onAddShape('circle')}
-            className="keynote-button"
-            title="Add Circle"
-            aria-label="Add circle shape"
-          >
-            <Circle className="w-4 h-4" aria-hidden="true" />
+            <Shapes className="w-4 h-4" aria-hidden="true" />
           </Button>
         </div>
 

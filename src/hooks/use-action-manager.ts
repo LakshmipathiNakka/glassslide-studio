@@ -11,7 +11,7 @@ export interface Element {
   content?: string;
   text?: string;
   placeholder?: string;
-  shapeType?: 'rectangle' | 'circle' | 'triangle';
+  shapeType?: 'rectangle' | 'rounded-rectangle' | 'circle' | 'triangle' | 'star' | 'arrow-right' | 'arrow-double' | 'diamond' | 'pentagon' | 'hexagon' | 'cloud' | 'heart' | 'lightning' | 'line' | 'text-box';
   fill?: string;
   stroke?: string;
   strokeWidth?: number;

@@ -187,7 +187,7 @@ const SimpleEnhancedEditor = () => {
     });
     setCurrentSlideId(newSlideId);
   }, [slides, currentSlideId]);
-
+  
   // Function to handle element selection
   const handleElementSelect = useCallback((element: Element | null) => {
     setSelectedElement(element);
@@ -418,7 +418,7 @@ const SimpleEnhancedEditor = () => {
     } else {
       // Just update the slides directly for placeholder changes
       const newElements = currentSlide?.elements.map(el => 
-        el.id === updatedElement.id ? updatedElement : el
+          el.id === updatedElement.id ? updatedElement : el
       ) || [];
       updateCurrentSlide(newElements);
     }
@@ -729,7 +729,7 @@ const SimpleEnhancedEditor = () => {
                   // Apply updates directly to the current element
                   const updatedElement = { ...currentElement, ...updates };
                   const newElements = currentSlide?.elements.map(el => 
-                    el.id === elementId ? updatedElement : el
+                      el.id === elementId ? updatedElement : el
                   ) || [];
                   updateCurrentSlide(newElements);
                   setSelectedElement(updatedElement);

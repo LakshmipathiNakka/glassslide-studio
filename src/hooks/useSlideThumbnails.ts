@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Slide, SlideAction } from '@/types/slide-thumbnails';
 import { Element } from '@/hooks/use-action-manager';
+import SlideTitleDialog from '@/components/editor/SlideTitleDialog';
 import { getDefaultSlideTemplate, createSlideFromTemplate } from '@/data/slideTemplates';
 
 // Helper function to parse CSS gradients and create canvas gradients
@@ -150,6 +151,10 @@ interface UseSlideThumbnailsReturn {
   colorPickerPosition: { x: number; y: number };
   currentSlideForSettings: { slide: Slide; index: number } | null;
   handleColorChange: (color: string) => void;
+  showTitleDialog: boolean;
+  currentSlideForRename: { slide: Slide; index: number } | null;
+  handleTitleConfirm: (newTitle: string) => void;
+  handleTitleCancel: () => void;
 }
 
 export const useSlideThumbnails = ({
@@ -171,6 +176,8 @@ export const useSlideThumbnails = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
   const [currentSlideForSettings, setCurrentSlideForSettings] = useState<{ slide: Slide; index: number } | null>(null);
+  const [showTitleDialog, setShowTitleDialog] = useState(false);
+  const [currentSlideForRename, setCurrentSlideForRename] = useState<{ slide: Slide; index: number } | null>(null);
   const thumbnailCache = useRef<Map<string, string>>(new Map());
 
   // Update slides when initial slides change
@@ -342,55 +349,203 @@ export const useSlideThumbnails = ({
 
           case 'shape':
             // Draw shape with proper scaling and styling
-            if (element.shapeType === 'circle') {
-              ctx.beginPath();
-              ctx.arc(w / 2, h / 2, Math.min(w, h) / 2, 0, 2 * Math.PI);
-              ctx.fillStyle = element.backgroundColor || element.fill || '#0078d4';
-              ctx.fill();
-              
-              if (element.borderColor && element.borderWidth) {
-                ctx.strokeStyle = element.borderColor;
-                ctx.lineWidth = (element.borderWidth || 0) * scale;
-                ctx.stroke();
-              }
-            } else if (element.shapeType === 'triangle') {
-              ctx.beginPath();
-              ctx.moveTo(w / 2, 0);
-              ctx.lineTo(w, h);
-              ctx.lineTo(0, h);
-              ctx.closePath();
-              ctx.fillStyle = element.backgroundColor || element.fill || '#0078d4';
-              ctx.fill();
-              
-              if (element.borderColor && element.borderWidth) {
-                ctx.strokeStyle = element.borderColor;
-                ctx.lineWidth = (element.borderWidth || 0) * scale;
-                ctx.stroke();
-              }
-            } else {
-              // Rectangle or other shapes
-              const borderRadius = (element.borderRadius || 0) * scale;
-              if (borderRadius > 0) {
+            const fill = element.fill || 'transparent';
+            const stroke = element.stroke || '#000000';
+            const strokeWidth = (element.strokeWidth || 0.5) * scale;
+            
+            ctx.fillStyle = fill;
+            ctx.strokeStyle = stroke;
+            ctx.lineWidth = strokeWidth;
+            
+            switch (element.shapeType) {
+              case 'rectangle':
+                ctx.fillRect(0, 0, w, h);
+                ctx.strokeRect(0, 0, w, h);
+                break;
+                
+              case 'rounded-rectangle':
+                const borderRadius = 8 * scale;
                 ctx.beginPath();
                 ctx.roundRect(0, 0, w, h, borderRadius);
-                ctx.fillStyle = element.backgroundColor || element.fill || '#0078d4';
                 ctx.fill();
+                ctx.stroke();
+                break;
                 
-                if (element.borderColor && element.borderWidth) {
-                  ctx.strokeStyle = element.borderColor;
-                  ctx.lineWidth = (element.borderWidth || 0) * scale;
-                  ctx.stroke();
+              case 'circle':
+              ctx.beginPath();
+              ctx.arc(w / 2, h / 2, Math.min(w, h) / 2, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                break;
+                
+              case 'triangle':
+                ctx.beginPath();
+                ctx.moveTo(w / 2, 0);
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                break;
+                
+              case 'star':
+                ctx.beginPath();
+                const centerX = w / 2;
+                const centerY = h / 2;
+                const outerRadius = Math.min(w, h) / 2;
+                const innerRadius = outerRadius * 0.4;
+                const spikes = 5;
+                const step = Math.PI / spikes;
+                
+                for (let i = 0; i < 2 * spikes; i++) {
+                  const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                  const angle = i * step - Math.PI / 2;
+                  const x = centerX + Math.cos(angle) * radius;
+                  const y = centerY + Math.sin(angle) * radius;
+                  if (i === 0) ctx.moveTo(x, y);
+                  else ctx.lineTo(x, y);
                 }
-              } else {
-                ctx.fillStyle = element.backgroundColor || element.fill || '#0078d4';
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                break;
+                
+              case 'arrow-right':
+                ctx.beginPath();
+                ctx.moveTo(0, h / 2);
+                ctx.lineTo(w * 0.7, h / 2);
+                ctx.lineTo(w * 0.7, 0);
+                ctx.lineTo(w, h / 2);
+                ctx.lineTo(w * 0.7, h);
+                ctx.lineTo(w * 0.7, h / 2);
+                ctx.stroke();
+                break;
+                
+              case 'arrow-double':
+                ctx.beginPath();
+                // Horizontal arrows
+                ctx.moveTo(0, h * 0.3);
+                ctx.lineTo(w, h * 0.3);
+                ctx.moveTo(0, h * 0.7);
+                ctx.lineTo(w, h * 0.7);
+                // Vertical arrows
+                ctx.moveTo(w * 0.3, 0);
+                ctx.lineTo(w * 0.3, h);
+                ctx.moveTo(w * 0.7, 0);
+                ctx.lineTo(w * 0.7, h);
+                ctx.stroke();
+                break;
+                
+              case 'diamond':
+                ctx.beginPath();
+                ctx.moveTo(w / 2, 0);
+                ctx.lineTo(w, h / 2);
+                ctx.lineTo(w / 2, h);
+                ctx.lineTo(0, h / 2);
+                ctx.closePath();
+              ctx.fill();
+                ctx.stroke();
+                break;
+                
+              case 'pentagon':
+                ctx.beginPath();
+                const pentCenterX = w / 2;
+                const pentCenterY = h / 2;
+                const pentRadius = Math.min(w, h) / 2;
+                for (let i = 0; i < 5; i++) {
+                  const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+                  const x = pentCenterX + Math.cos(angle) * pentRadius;
+                  const y = pentCenterY + Math.sin(angle) * pentRadius;
+                  if (i === 0) ctx.moveTo(x, y);
+                  else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                break;
+                
+              case 'hexagon':
+                ctx.beginPath();
+                const hexCenterX = w / 2;
+                const hexCenterY = h / 2;
+                const hexRadius = Math.min(w, h) / 2;
+                for (let i = 0; i < 6; i++) {
+                  const angle = (i * Math.PI) / 3;
+                  const x = hexCenterX + Math.cos(angle) * hexRadius;
+                  const y = hexCenterY + Math.sin(angle) * hexRadius;
+                  if (i === 0) ctx.moveTo(x, y);
+                  else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                break;
+                
+              case 'cloud':
+                ctx.beginPath();
+                const cloudX = w * 0.1;
+                const cloudY = h * 0.4;
+                const cloudW = w * 0.8;
+                const cloudH = h * 0.4;
+                ctx.arc(cloudX + cloudW * 0.2, cloudY + cloudH * 0.5, cloudH * 0.5, Math.PI, 0, false);
+                ctx.arc(cloudX + cloudW * 0.5, cloudY, cloudH * 0.6, 0, Math.PI, false);
+                ctx.arc(cloudX + cloudW * 0.8, cloudY + cloudH * 0.5, cloudH * 0.4, Math.PI, 0, false);
+                ctx.arc(cloudX + cloudW * 0.5, cloudY + cloudH, cloudH * 0.5, 0, Math.PI, false);
+                ctx.fill();
+                ctx.stroke();
+                break;
+                
+              case 'heart':
+                ctx.beginPath();
+                const heartX = w / 2;
+                const heartY = h * 0.3;
+                const heartSize = Math.min(w, h) * 0.3;
+                ctx.moveTo(heartX, heartY + heartSize * 0.3);
+                ctx.bezierCurveTo(heartX, heartY, heartX - heartSize * 0.5, heartY, heartX - heartSize * 0.5, heartY + heartSize * 0.3);
+                ctx.bezierCurveTo(heartX - heartSize * 0.5, heartY + heartSize * 0.7, heartX, heartY + heartSize * 0.7, heartX, heartY + heartSize);
+                ctx.bezierCurveTo(heartX, heartY + heartSize * 0.7, heartX + heartSize * 0.5, heartY + heartSize * 0.7, heartX + heartSize * 0.5, heartY + heartSize * 0.3);
+                ctx.bezierCurveTo(heartX + heartSize * 0.5, heartY, heartX, heartY, heartX, heartY + heartSize * 0.3);
+                ctx.fill();
+                ctx.stroke();
+                break;
+                
+              case 'lightning':
+                ctx.beginPath();
+                ctx.moveTo(w * 0.3, 0);
+                ctx.lineTo(w * 0.7, h * 0.4);
+                ctx.lineTo(w * 0.5, h * 0.4);
+                ctx.lineTo(w * 0.9, h);
+                ctx.lineTo(w * 0.1, h * 0.6);
+                ctx.lineTo(w * 0.3, h * 0.6);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                break;
+                
+              case 'line':
+                ctx.beginPath();
+                ctx.moveTo(0, h / 2);
+                ctx.lineTo(w, h / 2);
+                ctx.stroke();
+                break;
+                
+              case 'text-box':
+                ctx.fillStyle = 'transparent';
+              ctx.fillRect(0, 0, w, h);
+                ctx.strokeRect(0, 0, w, h);
+                // Draw "T" in the center
+                ctx.fillStyle = stroke;
+                ctx.font = `${Math.min(w, h) * 0.3}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('T', w / 2, h / 2);
+                break;
+                
+              default:
+                // Fallback to rectangle
                 ctx.fillRect(0, 0, w, h);
-                
-                if (element.borderColor && element.borderWidth) {
-                  ctx.strokeStyle = element.borderColor;
-                  ctx.lineWidth = (element.borderWidth || 0) * scale;
-                  ctx.strokeRect(0, 0, w, h);
-                }
-              }
+                ctx.strokeRect(0, 0, w, h);
+                break;
             }
             break;
 
@@ -414,13 +569,13 @@ export const useSlideThumbnails = ({
               }
             } else {
               // Draw placeholder
-              ctx.fillStyle = '#f0f0f0';
-              ctx.fillRect(0, 0, w, h);
-              ctx.strokeStyle = '#d0d0d0';
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, w, h);
+            ctx.strokeStyle = '#d0d0d0';
               ctx.lineWidth = Math.max(1, scale);
-              ctx.setLineDash([5, 5]);
-              ctx.strokeRect(0, 0, w, h);
-              ctx.setLineDash([]);
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(0, 0, w, h);
+            ctx.setLineDash([]);
             }
             break;
 
@@ -732,10 +887,8 @@ export const useSlideThumbnails = ({
         setShowColorPicker(true);
         break;
       case 'rename':
-        const newTitle = prompt('Enter slide title:', slide.title || `Slide ${index + 1}`);
-        if (newTitle) {
-          onRenameSlide?.(index, newTitle);
-        }
+        setCurrentSlideForRename({ slide, index });
+        setShowTitleDialog(true);
         break;
     }
   }, [
@@ -756,6 +909,19 @@ export const useSlideThumbnails = ({
     }
     setShowColorPicker(false);
   }, [currentSlideForSettings, onChangeSlideBackground]);
+
+  const handleTitleConfirm = useCallback((newTitle: string) => {
+    if (currentSlideForRename) {
+      onRenameSlide?.(currentSlideForRename.index, newTitle);
+    }
+    setShowTitleDialog(false);
+    setCurrentSlideForRename(null);
+  }, [currentSlideForRename, onRenameSlide]);
+
+  const handleTitleCancel = useCallback(() => {
+    setShowTitleDialog(false);
+    setCurrentSlideForRename(null);
+  }, []);
 
   return {
     slides,
@@ -783,6 +949,10 @@ export const useSlideThumbnails = ({
     colorPickerPosition,
     currentSlideForSettings,
     handleColorChange,
+    showTitleDialog,
+    currentSlideForRename,
+    handleTitleConfirm,
+    handleTitleCancel,
   };
 };
 

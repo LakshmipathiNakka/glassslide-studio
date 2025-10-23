@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, ChevronDown, Trash2, MoreVertical, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { EnhancedSlideThumbnailsProps, Slide, SlideAction } from '@/types/slide-thumbnails';
-import SlideThumbnail from './SlideThumbnail';
+import ThumbnailCanvas from './ThumbnailCanvas';
 import SlideContextMenu from './SlideContextMenu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,11 +56,22 @@ const DraggableThumbnailItem: React.FC<{
         className={`group relative slide-thumbnail ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isCollapsed ? 'collapsed' : ''} hover:bg-gray-50/50 transition-colors duration-150`}
       >
       {isCollapsed ? (
-        // Collapsed view - square thumbnail
-        <div className="w-full aspect-square bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center relative overflow-hidden">
-          <div className="text-xs font-medium text-gray-500">
+        // Collapsed view - square thumbnail with live content
+        <div className="w-full aspect-square rounded-lg border border-gray-200 relative overflow-hidden">
+          {/* Live slide content */}
+          <ThumbnailCanvas
+            slide={slide}
+            width={64}
+            height={64}
+            scale={0.08}
+            className="w-full h-full"
+          />
+          
+          {/* Slide number overlay */}
+          <div className="absolute top-1 left-1 w-4 h-4 bg-black/70 text-white text-xs rounded-full flex items-center justify-center font-medium">
             {index + 1}
           </div>
+          
           {/* Active indicator */}
           {isActive && (
             <div className="absolute inset-0 border-2 border-blue-500 rounded-lg bg-blue-50/50"></div>
@@ -83,18 +94,14 @@ const DraggableThumbnailItem: React.FC<{
             
             {/* Thumbnail Canvas */}
             <div className="flex-1 rounded-sm border border-slide-border overflow-hidden">
-              <SlideThumbnail
-                slide={slide}
-                index={index}
-                isActive={isActive}
-                isDragging={isDragging}
-                isHovered={false}
-                onSelect={onSelect}
-                onContextMenu={onContextMenu}
-                onDragStart={() => {}}
-                onDragEnd={() => {}}
-              />
-            </div>
+              <ThumbnailCanvas
+        slide={slide}
+                width={200}
+                height={112}
+                scale={0.15}
+                className="w-full h-full"
+      />
+    </div>
           </div>
 
           {/* Three Dots Menu Button - Simple hover */}
@@ -183,8 +190,8 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
   const handleContextAction = useCallback(
     (action: SlideAction, slide: Slide, index: number) => {
       console.log('🎯 ENHANCED THUMBNAILS - Context action triggered:', { action, slideId: slide.id, index, hasOnContextMenuAction: !!onContextMenuAction });
-      onContextMenuAction(action, slide, index);
-      setContextMenu(null);
+    onContextMenuAction(action, slide, index);
+    setContextMenu(null);
     },
     [onContextMenuAction]
   );
@@ -213,9 +220,9 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
               </Badge>
             </div>
           )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
             onClick={() => setIsCollapsed(!isCollapsed)} 
             className="keynote-button p-1 h-8 w-8"
             title={isCollapsed ? "Expand thumbnails" : "Collapse thumbnails"}
@@ -225,7 +232,7 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
             ) : (
               <PanelLeftClose className="h-4 w-4" />
             )}
-          </Button>
+            </Button>
         </div>
       </div>
 
@@ -235,25 +242,25 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
           {slides.map((slide, index) => (
             <DraggableThumbnailItem
               key={`${slide.id}-${slide.lastUpdated || 0}-${slide.elements?.length || 0}`}
-              slide={slide}
+                    slide={slide}
               index={index}
               isActive={currentSlide === index}
               isDragging={draggedIndex === index}
               isCollapsed={isCollapsed}
-              onSelect={onSlideChange}
-              onContextMenu={handleContextMenu}
+                    onSelect={onSlideChange}
+                    onContextMenu={handleContextMenu}
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onDelete={(slideId) => onDeleteSlide(slides.findIndex((s) => s.id === slideId))}
             />
           ))}
-        </div>
+            </div>
 
         {/* Add Slide Button - Keynote style */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }} 
-          animate={{ opacity: 1, y: 0 }} 
+          animate={{ opacity: 1, y: 0 }}
           className={`${isCollapsed ? 'mt-2 mb-1' : 'mt-4 mb-2'}`}
         >
           {isCollapsed ? (
@@ -277,15 +284,15 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
               whileHover={{ scale: 1.01, y: -1 }}
               whileTap={{ scale: 0.99 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-            >
-              <Button
-                variant="outline"
+        >
+          <Button
+            variant="outline"
                 className="w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-gray-50 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm active:scale-99 transition-all duration-150 shadow-sm"
-                onClick={onAddSlide}
-              >
+            onClick={onAddSlide}
+          >
                 <Plus size={18} className="text-gray-500" />
                 <span className="text-sm font-medium text-gray-600">New Slide</span>
-              </Button>
+          </Button>
             </motion.div>
           )}
         </motion.div>
@@ -296,14 +303,14 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
         {contextMenu && (
           <>
             {console.log('🎯 RENDERING CONTEXT MENU:', { slideId: contextMenu.slide.id, index: contextMenu.index })}
-            <SlideContextMenu
-              slide={contextMenu.slide}
-              index={contextMenu.index}
+          <SlideContextMenu
+            slide={contextMenu.slide}
+            index={contextMenu.index}
               position={{ x: contextMenu.x, y: contextMenu.y }}
-              totalSlides={slides.length}
+            totalSlides={slides.length}
               onAction={handleContextAction}
-              onClose={handleCloseContextMenu}
-            />
+            onClose={handleCloseContextMenu}
+          />
           </>
         )}
       </AnimatePresence>

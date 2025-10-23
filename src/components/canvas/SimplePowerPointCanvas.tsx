@@ -695,6 +695,199 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
 
   // Removed applySelectiveTextStyling function - using only entire text mode
 
+  // Shape rendering function for all shape types
+  const renderShape = useCallback((el: SlideElement) => {
+    const fill = el.fill || 'transparent';
+    const stroke = el.stroke || '#000000';
+    const strokeWidth = el.strokeWidth || 0.5;
+    const opacity = el.opacity || 1;
+
+    // Common style properties
+    const baseStyle = {
+      width: "100%",
+      height: "100%",
+      opacity,
+      border: `${strokeWidth}px solid ${stroke}`,
+      background: fill,
+    };
+
+    switch (el.shapeType) {
+      case 'rectangle':
+        return <div style={{ ...baseStyle, borderRadius: 0 }} />;
+      
+      case 'rounded-rectangle':
+        return <div style={{ ...baseStyle, borderRadius: 8 }} />;
+      
+      case 'circle':
+        return <div style={{ ...baseStyle, borderRadius: '50%' }} />;
+      
+      case 'triangle':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+              backgroundColor: fill
+            }} 
+          />
+        );
+      
+      case 'star':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+              backgroundColor: fill
+            }} 
+          />
+        );
+      
+      case 'arrow-right':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              clipPath: 'polygon(0% 20%, 60% 20%, 60% 0%, 100% 50%, 60% 100%, 60% 80%, 0% 80%)',
+              backgroundColor: fill
+            }} 
+          />
+        );
+      
+      case 'arrow-double':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              clipPath: 'polygon(0% 20%, 30% 20%, 30% 0%, 70% 0%, 70% 20%, 100% 20%, 100% 40%, 70% 40%, 70% 60%, 100% 60%, 100% 80%, 70% 80%, 70% 100%, 30% 100%, 30% 80%, 0% 80%, 0% 60%, 30% 60%, 30% 40%, 0% 40%)',
+              backgroundColor: fill
+            }} 
+          />
+        );
+      
+      case 'diamond':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+              backgroundColor: fill
+            }} 
+          />
+        );
+      
+      case 'pentagon':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)',
+              backgroundColor: fill
+            }} 
+          />
+        );
+      
+      case 'hexagon':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+              backgroundColor: fill
+            }} 
+          />
+        );
+      
+      case 'cloud':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              clipPath: 'ellipse(40% 30% at 50% 50%)',
+              backgroundColor: fill
+            }} 
+          />
+        );
+      
+      case 'heart':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              clipPath: 'path("M12,21.35l-1.45-1.32C5.4,15.36,2,12.28,2,8.5 C2,5.42,4.42,3,7.5,3c1.74,0,3.41,0.81,4.5,2.09C13.09,3.81,14.76,3,16.5,3 C19.58,3,22,5.42,22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z")',
+              backgroundColor: fill
+            }} 
+          />
+        );
+      
+      case 'lightning':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              clipPath: 'polygon(30% 0%, 70% 40%, 50% 40%, 90% 100%, 10% 60%, 30% 60%)',
+              backgroundColor: fill
+            }} 
+          />
+        );
+      
+      case 'line':
+        return (
+          <div 
+            style={{ 
+              ...baseStyle, 
+              background: 'transparent', 
+              border: 'none',
+              height: `${strokeWidth}px`,
+              backgroundColor: stroke,
+              marginTop: `calc(50% - ${strokeWidth/2}px)`
+            }} 
+          />
+        );
+      
+      case 'text-box':
+        return (
+          <div style={{ 
+            ...baseStyle, 
+            background: 'transparent', 
+            border: `${strokeWidth}px solid ${stroke}`, 
+            borderRadius: 4,
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            fontSize: '12px',
+            color: stroke,
+            fontWeight: 'bold'
+          }}>
+            T
+          </div>
+        );
+      
+      default:
+        return <div style={baseStyle} />;
+    }
+  }, []);
+
   // render helpers: use your existing renderers for children content
   const renderElementContent = useCallback((el: SlideElement) => {
     if (el.type === "text") {
@@ -866,15 +1059,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     }
 
     if (el.type === "shape") {
-      return (
-        <div style={{
-          width: "100%", height: "100%",
-          background: el.fill ?? "#0078d4", 
-          borderRadius: el.shapeType === 'circle' ? '50%' : el.shapeType === 'triangle' ? '0' : (el.borderRadius ?? 4),
-          border: `${el.strokeWidth || 2}px solid ${el.stroke || '#ffffff'}`,
-          opacity: (el as any).opacity || 1,
-        }} />
-      );
+      return renderShape(el);
     }
 
     if (el.type === "chart") {
