@@ -4,7 +4,7 @@ import { Element } from '@/hooks/use-action-manager';
 import ThumbnailCanvasHTML from './ThumbnailCanvasHTML';
 
 // Try to import React Konva, fallback to HTML5 Canvas if not available
-let Stage: any, Layer: any, Text: any, Rect: any, Circle: any, KonvaImage: any, Group: any;
+let Stage: any, Layer: any, Text: any, Rect: any, Circle: any, KonvaImage: any, Group: any, Line: any, RegularPolygon: any, StarShape: any, Ellipse: any, PathShape: any;
 let useKonva = false;
 
 try {
@@ -16,6 +16,11 @@ try {
   Circle = konva.Circle;
   KonvaImage = konva.Image;
   Group = konva.Group;
+  Line = konva.Line;
+  RegularPolygon = konva.RegularPolygon;
+  StarShape = konva.Star;
+  Ellipse = konva.Ellipse;
+  PathShape = konva.Path;
   useKonva = true;
 } catch (error) {
   console.warn('React Konva not available, using HTML5 Canvas fallback');
@@ -110,31 +115,199 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
           </Group>
         );
 
-      case 'shape':
-        if (element.shapeType === 'circle') {
-          return (
-            <Circle
-              key={element.id}
-              x={scaledX + scaledWidth / 2}
-              y={scaledY + scaledHeight / 2}
-              radius={Math.min(scaledWidth, scaledHeight) / 2}
-              fill={element.backgroundColor || '#0078d4'}
-              stroke={element.borderColor || 'transparent'}
-              strokeWidth={(element.borderWidth || 0) * scale}
-            />
-          );
-        } else {
-          return (
-            <Rect
-              key={element.id}
-              {...commonProps}
-              fill={element.backgroundColor || '#0078d4'}
-              stroke={element.borderColor || 'transparent'}
-              strokeWidth={(element.borderWidth || 0) * scale}
-              cornerRadius={(element.borderRadius || 0) * scale}
-            />
-          );
+      case 'shape': {
+        // unified styling props (prefer new fill/stroke/strokeWidth, fallback to old)
+        const fill = (element as any).fill ?? element.backgroundColor ?? 'transparent';
+        const stroke = (element as any).stroke ?? element.borderColor ?? '#000000';
+        const strokeWidth = ((element as any).strokeWidth ?? element.borderWidth ?? 0.5) * scale;
+
+        switch ((element as any).shapeType) {
+          case 'circle':
+            return (
+              <Circle
+                key={element.id}
+                x={scaledX + scaledWidth / 2}
+                y={scaledY + scaledHeight / 2}
+                radius={Math.min(scaledWidth, scaledHeight) / 2}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                rotation={element.rotation || 0}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          case 'rectangle':
+            return (
+              <Rect
+                key={element.id}
+                {...commonProps}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                cornerRadius={0}
+                rotation={element.rotation || 0}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          case 'rounded-rectangle':
+            return (
+              <Rect
+                key={element.id}
+                {...commonProps}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                cornerRadius={(element.borderRadius || 8) * scale}
+                rotation={element.rotation || 0}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          case 'triangle':
+            return (
+              <Line
+                key={element.id}
+                x={scaledX}
+                y={scaledY}
+                points={[scaledWidth / 2, 0, scaledWidth, scaledHeight, 0, scaledHeight]}
+                closed
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                rotation={element.rotation || 0}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          case 'diamond':
+            return (
+              <RegularPolygon
+                key={element.id}
+                x={scaledX + scaledWidth / 2}
+                y={scaledY + scaledHeight / 2}
+                sides={4}
+                radius={Math.min(scaledWidth, scaledHeight) / 2}
+                rotation={45 + (element.rotation || 0)}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          case 'pentagon':
+            return (
+              <RegularPolygon
+                key={element.id}
+                x={scaledX + scaledWidth / 2}
+                y={scaledY + scaledHeight / 2}
+                sides={5}
+                radius={Math.min(scaledWidth, scaledHeight) / 2}
+                rotation={element.rotation || 0}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          case 'hexagon':
+            return (
+              <RegularPolygon
+                key={element.id}
+                x={scaledX + scaledWidth / 2}
+                y={scaledY + scaledHeight / 2}
+                sides={6}
+                radius={Math.min(scaledWidth, scaledHeight) / 2}
+                rotation={element.rotation || 0}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          case 'star':
+            return (
+              <StarShape
+                key={element.id}
+                x={scaledX + scaledWidth / 2}
+                y={scaledY + scaledHeight / 2}
+                numPoints={5}
+                innerRadius={Math.min(scaledWidth, scaledHeight) * 0.25}
+                outerRadius={Math.min(scaledWidth, scaledHeight) * 0.5}
+                rotation={element.rotation || 0}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          case 'arrow-right': {
+            const pts = [0, scaledHeight * 0.5, scaledWidth * 0.6, scaledHeight * 0.5, scaledWidth * 0.6, 0, scaledWidth, scaledHeight * 0.5, scaledWidth * 0.6, scaledHeight, scaledWidth * 0.6, scaledHeight * 0.5, 0, scaledHeight * 0.5];
+            return (
+              <Line
+                key={element.id}
+                x={scaledX}
+                y={scaledY}
+                points={pts}
+                closed
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                rotation={element.rotation || 0}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          }
+          case 'arrow-double':
+            return null;
+          case 'cloud':
+            return null;
+          case 'heart':
+            return (
+              <PathShape
+                key={element.id}
+                x={scaledX}
+                y={scaledY}
+                data={'M12,21.35l-1.45-1.32C5.4,15.36,2,12.28,2,8.5 C2,5.42,4.42,3,7.5,3c1.74,0,3.41,0.81,4.5,2.09C13.09,3.81,14.76,3,16.5,3 C19.58,3,22,5.42,22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z'}
+                scaleX={scaledWidth / 24}
+                scaleY={scaledHeight / 24}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                rotation={element.rotation || 0}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          case 'lightning': {
+            const pts = [scaledWidth * 0.3, 0, scaledWidth * 0.7, scaledHeight * 0.4, scaledWidth * 0.5, scaledHeight * 0.4, scaledWidth * 0.9, scaledHeight, scaledWidth * 0.1, scaledHeight * 0.6, scaledWidth * 0.3, scaledHeight * 0.6];
+            return (
+              <Line
+                key={element.id}
+                x={scaledX}
+                y={scaledY}
+                points={pts}
+                closed
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                rotation={element.rotation || 0}
+                opacity={(element as any).opacity || 1}
+              />
+            );
+          }
+          case 'line':
+            return null;
+          case 'text-box':
+            return null;
+          default:
+            return (
+              <Rect
+                key={element.id}
+                {...commonProps}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+              />
+            );
         }
+      }
 
       case 'image':
         return (

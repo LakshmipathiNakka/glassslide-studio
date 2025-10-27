@@ -13,7 +13,7 @@ import {
   Undo, 
   Redo, 
   Copy, 
-  Paste, 
+  ClipboardPaste, 
   Trash2,
   Save,
   Download,
@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 
 // Import our enhanced components
-import { FabricPowerPointCanvas } from '@/components/canvas/FabricPowerPointCanvas';
+import SimplePowerPointCanvas from '@/components/canvas/SimplePowerPointCanvas';
 import { PropertiesPanel } from '@/components/editor/PropertiesPanel';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { SlideThumbnails } from '@/components/editor/SlideThumbnails';
@@ -155,10 +155,9 @@ export const EnhancedPowerPointEditor: React.FC<EnhancedPowerPointEditorProps> =
       y: 100,
       width: 150,
       height: 100,
-      backgroundColor: '#0078d4',
-      borderColor: '#0078d4',
-      borderWidth: 2,
-      borderRadius: 8,
+      fill: 'transparent',
+      stroke: '#000000',
+      strokeWidth: 0.5,
       rotation: 0,
       zIndex: elements.length + 1
     };
@@ -308,7 +307,7 @@ export const EnhancedPowerPointEditor: React.FC<EnhancedPowerPointEditorProps> =
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 <SlideThumbnails
-                  slides={[{ id: '1', elements, thumbnail: '' }]}
+                  slides={elements}
                   currentSlide={0}
                   onSlideChange={() => {}}
                   onAddSlide={() => {}}
@@ -436,15 +435,13 @@ export const EnhancedPowerPointEditor: React.FC<EnhancedPowerPointEditorProps> =
                   transformOrigin: 'center'
                 }}
               >
-                <FabricPowerPointCanvas
+                <SimplePowerPointCanvas
                   elements={elements}
-                  onElementSelect={handleElementSelect}
-                  onElementUpdate={handleElementUpdate}
-                  onElementAdd={addElement}
+                  onElementSelect={(el) => handleElementSelect(el ? el.id : null)}
+                  onElementUpdate={(el) => updateElement(el.id, el)}
                   onElementDelete={handleElementDelete}
-                  selectedElementId={selectedElementId}
-                  width={canvasDimensions.width}
-                  height={canvasDimensions.height}
+                  slideWidth={canvasDimensions.width}
+                  slideHeight={canvasDimensions.height}
                   className="shadow-2xl"
                 />
               </div>

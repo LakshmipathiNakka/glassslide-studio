@@ -2,16 +2,17 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Trash2, Type, Palette, AlignLeft, AlignCenter, AlignRight, AlertTriangle, Plus, X, BarChart3, PieChart, TrendingUp, Settings, Tag, Database, Bold, Italic, Underline, Strikethrough, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Eye, EyeOff, Shapes, Table, Minus, Droplet } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Trash2, Type, Palette, AlignLeft, AlignCenter, AlignRight, AlertTriangle, Plus, X, BarChart3, PieChart, TrendingUp, Settings, Tag, Database, Bold, Italic, Underline, Strikethrough, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Eye, EyeOff, Shapes } from "lucide-react";
-import { SlideElement } from "@/types/canvas";
-import { Element } from "@/hooks/use-action-manager";
-import { motion, AnimatePresence } from "framer-motion";
-// Removed TextScopeToggle import - using only entire text mode
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TABLE_THEMES, applyTableTheme, TableTheme } from "../../constants/tableThemes";
+import { SlideElement } from "../../types/canvas";
+import { motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 
 // Predefined color palette for chart datasets
 const CHART_COLOR_PALETTE = [
@@ -52,8 +53,8 @@ const TEXT_CASE_OPTIONS = [
 ];
 
 interface PropertiesPanelProps {
-  selectedElement: Element | null;
-  onElementUpdate: (elementId: string, updates: Partial<Element>) => void;
+  selectedElement: SlideElement | null;
+  onElementUpdate: (elementId: string, updates: Partial<SlideElement>) => void;
   onElementDelete: (elementId: string) => void;
 }
 
@@ -96,7 +97,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
   // State for tracking label and data counts
   const [labelCount, setLabelCount] = useState(0);
   const [dataCounts, setDataCounts] = useState<number[]>([]);
-  // Removed textScope functionality - using only entire text mode
+  // Removed showTableProperties state - no longer needed with accordion approach
 
   // Removed handleTextScopeChange - no longer needed
 
@@ -164,6 +165,42 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
     updateProperty(key, value);
   };
 
+  // Table helper functions
+  const handleAddRow = () => {
+    if (!selectedElement || selectedElement.type !== 'table') return;
+    const newRows = (selectedElement.rows || 1) + 1;
+    const newTableData = [...(selectedElement.tableData || [])];
+    const numCols = selectedElement.cols || 1;
+    newTableData.push(Array(numCols).fill(''));
+    onElementUpdate(selectedElement.id, { rows: newRows, tableData: newTableData });
+  };
+
+  const handleRemoveRow = () => {
+    if (!selectedElement || selectedElement.type !== 'table') return;
+    if ((selectedElement.rows || 1) > 1) {
+      const newRows = (selectedElement.rows || 1) - 1;
+      const newTableData = [...(selectedElement.tableData || [])];
+      newTableData.pop();
+      onElementUpdate(selectedElement.id, { rows: newRows, tableData: newTableData });
+    }
+  };
+
+  const handleAddColumn = () => {
+    if (!selectedElement || selectedElement.type !== 'table') return;
+    const newCols = (selectedElement.cols || 1) + 1;
+    const newTableData = (selectedElement.tableData || []).map(row => [...row, '']);
+    onElementUpdate(selectedElement.id, { cols: newCols, tableData: newTableData });
+  };
+
+  const handleRemoveColumn = () => {
+    if (!selectedElement || selectedElement.type !== 'table') return;
+    if ((selectedElement.cols || 1) > 1) {
+      const newCols = (selectedElement.cols || 1) - 1;
+      const newTableData = (selectedElement.tableData || []).map(row => row.slice(0, newCols));
+      onElementUpdate(selectedElement.id, { cols: newCols, tableData: newTableData });
+    }
+  };
+
   const getChartIcon = (chartType: string) => {
     switch (chartType) {
       case 'bar': return <BarChart3 className="w-4 h-4" />;
@@ -171,6 +208,43 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
       case 'pie': return <PieChart className="w-4 h-4" />;
       default: return <BarChart3 className="w-4 h-4" />;
     }
+  };
+
+  const renderThemePreview = (theme: TableTheme) => {
+    const isSelected = selectedElement?.themeId === theme.id;
+    return (
+      <div
+        key={theme.id}
+        className={`relative rounded-lg p-2 border-2 ${isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'} cursor-pointer transition-colors`}
+        onClick={() => handleThemeSelect(theme)}
+      >
+        <div className="flex flex-col w-full h-24 overflow-hidden rounded-md border border-gray-200">
+          {/* Header */}
+          <div
+            className="h-4 w-full flex items-center justify-center text-xs font-medium"
+            style={{ backgroundColor: theme.headerBg, color: theme.headerTextColor }}
+          >
+            Header
+          </div>
+          {/* Rows */}
+          <div className="flex-1 flex flex-col">
+            {[0, 1].map((row) => (
+              <div
+                key={row}
+                className={`h-3 w-full ${row % 2 === 0 ? 'opacity-80' : 'opacity-60'}`}
+                style={{
+                  backgroundColor: row % 2 === 0 ? theme.rowEvenBg : theme.rowOddBg,
+                  color: theme.textColor
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="mt-2 text-xs font-medium text-center text-gray-700">
+          {theme.name}
+        </div>
+      </div>
+    );
   };
 
   if (!selectedElement) {
@@ -276,8 +350,6 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
             transition={{ delay: 0.1 }}
             className="space-y-4"
           >
-            {/* Removed TextScopeToggle - using only entire text mode */}
-
             <Accordion type="single" collapsible className="space-y-2" defaultValue="text-formatting">
               {/* Text Formatting */}
               <AccordionItem value="text-formatting" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
@@ -695,6 +767,213 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                 </AccordionContent>
               </AccordionItem>
 
+            </Accordion>
+          </motion.div>
+        )}
+
+        {/* Table Properties */}
+        {selectedElement.type === 'table' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-4"
+          >
+            <Accordion type="single" collapsible className="space-y-2">
+              {/* Table Themes */}
+              <AccordionItem value="table-themes" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
+                <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div title="Table Themes">
+                      <Palette className="w-4 h-4" />
+                    </div>
+                    Table Themes
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="grid grid-cols-4 gap-4">
+                    {TABLE_THEMES.map(theme => renderThemePreview(theme))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Table Structure */}
+              <AccordionItem value="table-structure" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
+                <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div title="Table Structure">
+                      <Table className="w-4 h-4" />
+                    </div>
+                    Table Structure
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label>Rows: {selectedElement.rows || 1}</Label>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="icon" onClick={handleRemoveRow} disabled={(selectedElement.rows || 1) <= 1}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={handleAddRow}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>Columns: {selectedElement.cols || 1}</Label>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="icon" onClick={handleRemoveColumn} disabled={(selectedElement.cols || 1) <= 1}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={handleAddColumn}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Table Styling */}
+              <AccordionItem value="table-styling" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
+                <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div title="Table Styling">
+                      <Palette className="w-4 h-4" />
+                    </div>
+                    Table Styling
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-4">
+                  {/* Header Row Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="header-toggle">Header Row</Label>
+                    <Switch
+                      id="header-toggle"
+                      checked={selectedElement.header || false}
+                      onCheckedChange={(checked) => onElementUpdate(selectedElement.id, { header: checked })}
+                    />
+                  </div>
+
+                  {/* Alternating Row Background */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="row-alt-bg-toggle">Alternating Row Background</Label>
+                    <Switch
+                      id="row-alt-bg-toggle"
+                      checked={!!selectedElement.rowAltBg}
+                      onCheckedChange={(checked) => onElementUpdate(selectedElement.id, { rowAltBg: checked ? '#f5f5f5' : null })}
+                    />
+                  </div>
+
+                  {/* Cell Padding */}
+                  <div>
+                    <Label className="text-sm font-medium">Cell Padding: {selectedElement.cellPadding || 0}px</Label>
+                    <Slider
+                      value={[selectedElement.cellPadding || 0]}
+                      onValueChange={([value]) => onElementUpdate(selectedElement.id, { cellPadding: value })}
+                      min={0} max={20} step={1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Border Width */}
+                  <div>
+                    <Label className="text-sm font-medium">Border Width: {selectedElement.borderWidth || 0}px</Label>
+                    <Slider
+                      value={[selectedElement.borderWidth || 0]}
+                      onValueChange={([value]) => onElementUpdate(selectedElement.id, { borderWidth: value })}
+                      min={0} max={5} step={0.5}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Border Color */}
+                  <div>
+                    <Label className="text-sm font-medium">Border Color</Label>
+                    <Input
+                      type="color"
+                      value={selectedElement.borderColor || '#D9D9D9'}
+                      onChange={(e) => onElementUpdate(selectedElement.id, { borderColor: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Table Background Color */}
+                  <div>
+                    <Label className="text-sm font-medium">Table Background Color</Label>
+                    <Input
+                      type="color"
+                      value={selectedElement.tableBackground || '#FFFFFF'}
+                      onChange={(e) => onElementUpdate(selectedElement.id, { tableBackground: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Header Background Color */}
+                  <div>
+                    <Label className="text-sm font-medium">Header Background Color</Label>
+                    <Input
+                      type="color"
+                      value={selectedElement.headerBg || '#E7E6E6'}
+                      onChange={(e) => onElementUpdate(selectedElement.id, { headerBg: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Header Text Color */}
+                  <div>
+                    <Label className="text-sm font-medium">Header Text Color</Label>
+                    <Input
+                      type="color"
+                      value={selectedElement.headerTextColor || '#000000'}
+                      onChange={(e) => onElementUpdate(selectedElement.id, { headerTextColor: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Text Color */}
+                  <div>
+                    <Label className="text-sm font-medium">Text Color</Label>
+                    <Input
+                      type="color"
+                      value={selectedElement.color || '#000000'}
+                      onChange={(e) => onElementUpdate(selectedElement.id, { color: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Corner Radius */}
+                  <div>
+                    <Label className="text-sm font-medium">Corner Radius: {selectedElement.borderRadius || 0}px</Label>
+                    <Slider
+                      value={[selectedElement.borderRadius || 0]}
+                      onValueChange={([value]) => onElementUpdate(selectedElement.id, { borderRadius: value })}
+                      min={0} max={20} step={1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Shadow */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="shadow-toggle">Shadow</Label>
+                    <Switch
+                      id="shadow-toggle"
+                      checked={!!selectedElement.shadow}
+                      onCheckedChange={(checked) => onElementUpdate(selectedElement.id, { shadow: checked })}
+                    />
+                  </div>
+                  {selectedElement.shadow && (
+                    <div>
+                      <Label className="text-sm font-medium">Shadow Blur: {selectedElement.shadowBlur || 0}px</Label>
+                      <Slider
+                        value={[selectedElement.shadowBlur || 0]}
+                        onValueChange={([value]) => onElementUpdate(selectedElement.id, { shadowBlur: value })}
+                        min={0} max={50} step={1}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           </motion.div>
         )}

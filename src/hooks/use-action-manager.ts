@@ -3,7 +3,7 @@ import { usePowerPointHistory } from './use-powerpoint-history';
 
 export interface Element {
   id: string;
-  type: 'text' | 'image' | 'shape' | 'chart';
+  type: 'text' | 'image' | 'shape' | 'chart' | 'table';
   x: number;
   y: number;
   width: number;
@@ -42,6 +42,22 @@ export interface Element {
   imageUrl?: string;
   selected?: boolean;
   rotation?: number;
+
+  // Table-specific
+  rows?: number;
+  cols?: number;
+  tableData?: string[][]; // per-cell HTML/text content
+  cellPadding?: number;
+  cellTextAlign?: 'left' | 'center' | 'right';
+  tableBackground?: string; // if not provided, use backgroundColor
+  header?: boolean;
+  headerBg?: string;
+  headerTextColor?: string;
+  rowAltBg?: string | null;
+  columnWidths?: number[];
+  shadow?: boolean;
+  shadowBlur?: number;
+  animateIn?: boolean;
 }
 
 interface Slide {

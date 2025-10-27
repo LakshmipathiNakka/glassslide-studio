@@ -14,9 +14,10 @@ interface ToolbarProps {
   onPresent: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  onAddTable: () => void;
 }
 
-export const Toolbar = ({ onAddText, onAddImage, onAddShape, onAddChart, onSave, onExport, onUndo, onRedo, onPresent, canUndo, canRedo }: ToolbarProps) => {
+export const Toolbar = ({ onAddText, onAddImage, onAddShape, onAddChart, onSave, onExport, onUndo, onRedo, onPresent, canUndo, canRedo, onAddTable }: ToolbarProps) => {
   return (
     <div className="keynote-toolbar overflow-x-auto smooth-scroll" role="toolbar" aria-label="Editor tools">
       <div className="container-fluid py-3">
@@ -107,6 +108,7 @@ export const Toolbar = ({ onAddText, onAddImage, onAddShape, onAddChart, onSave,
           <Button
             variant="ghost"
             size="sm"
+            onClick={onAddTable}
             className="keynote-button"
             title="Add Table"
             aria-label="Add table element"

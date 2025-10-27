@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { X, Square, Circle, Triangle, Star, ArrowRight, ArrowUpDown, Diamond, Pentagon, Hexagon, Cloud, Heart, Zap, Minus, Type } from 'lucide-react';
+import { X, Square, Circle, Triangle, Star, ArrowRight, Diamond, Pentagon, Hexagon, Heart, Zap } from 'lucide-react';
 
 export type ShapeType = 
   | 'rectangle' 
@@ -10,15 +10,11 @@ export type ShapeType =
   | 'triangle' 
   | 'star' 
   | 'arrow-right' 
-  | 'arrow-double' 
   | 'diamond' 
   | 'pentagon' 
   | 'hexagon' 
-  | 'cloud' 
   | 'heart' 
-  | 'lightning' 
-  | 'line' 
-  | 'text-box';
+  | 'lightning';
 
 interface ShapeModalProps {
   isOpen: boolean;
@@ -69,12 +65,6 @@ const shapeDefinitions: Array<{
     svg: '<path d="M5 12h14m-7-7l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>'
   },
   {
-    type: 'arrow-double',
-    name: 'Double Arrow',
-    icon: ArrowUpDown,
-    svg: '<path d="M8 3v18m8-18v18M3 8h18M3 16h18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>'
-  },
-  {
     type: 'diamond',
     name: 'Diamond',
     icon: Diamond,
@@ -93,12 +83,6 @@ const shapeDefinitions: Array<{
     svg: '<polygon points="7,3 17,3 21,12 17,21 7,21 3,12" fill="none" stroke="currentColor" strokeWidth="2"/>'
   },
   {
-    type: 'cloud',
-    name: 'Cloud',
-    icon: Cloud,
-    svg: '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" fill="none" stroke="currentColor" strokeWidth="2"/>'
-  },
-  {
     type: 'heart',
     name: 'Heart',
     icon: Heart,
@@ -110,18 +94,6 @@ const shapeDefinitions: Array<{
     icon: Zap,
     svg: '<polygon points="13,2 3,14 12,14 11,22 21,10 12,10" fill="none" stroke="currentColor" strokeWidth="2"/>'
   },
-  {
-    type: 'line',
-    name: 'Line',
-    icon: Minus,
-    svg: '<line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>'
-  },
-  {
-    type: 'text-box',
-    name: 'Text Box',
-    icon: Type,
-    svg: '<rect x="2" y="2" width="20" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="2"/><text x="12" y="10" textAnchor="middle" fontSize="8" fill="currentColor">T</text>'
-  }
 ];
 
 const ShapeModal: React.FC<ShapeModalProps> = ({ isOpen, onClose, onSelectShape }) => {

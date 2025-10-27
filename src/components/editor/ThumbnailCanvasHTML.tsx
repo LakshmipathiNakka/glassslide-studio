@@ -260,18 +260,7 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             break;
             
           case 'arrow-double':
-            ctx.beginPath();
-            // Horizontal arrows
-            ctx.moveTo(0, h * 0.3);
-            ctx.lineTo(w, h * 0.3);
-            ctx.moveTo(0, h * 0.7);
-            ctx.lineTo(w, h * 0.7);
-            // Vertical arrows
-            ctx.moveTo(w * 0.3, 0);
-            ctx.lineTo(w * 0.3, h);
-            ctx.moveTo(w * 0.7, 0);
-            ctx.lineTo(w * 0.7, h);
-            ctx.stroke();
+            // Skip rendering for double arrow in thumbnail
             break;
             
           case 'diamond':
@@ -320,17 +309,7 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             break;
             
           case 'cloud':
-            ctx.beginPath();
-            const cloudX = w * 0.1;
-            const cloudY = h * 0.4;
-            const cloudW = w * 0.8;
-            const cloudH = h * 0.4;
-            ctx.arc(cloudX + cloudW * 0.2, cloudY + cloudH * 0.5, cloudH * 0.5, Math.PI, 0, false);
-            ctx.arc(cloudX + cloudW * 0.5, cloudY, cloudH * 0.6, 0, Math.PI, false);
-            ctx.arc(cloudX + cloudW * 0.8, cloudY + cloudH * 0.5, cloudH * 0.4, Math.PI, 0, false);
-            ctx.arc(cloudX + cloudW * 0.5, cloudY + cloudH, cloudH * 0.5, 0, Math.PI, false);
-            ctx.fill();
-            ctx.stroke();
+            // Skip rendering for cloud in thumbnail
             break;
             
           case 'heart':
@@ -361,22 +340,11 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             break;
             
           case 'line':
-            ctx.beginPath();
-            ctx.moveTo(0, h / 2);
-            ctx.lineTo(w, h / 2);
-            ctx.stroke();
+            // Skip rendering for line in thumbnail
             break;
             
           case 'text-box':
-            ctx.fillStyle = 'transparent';
-            ctx.fillRect(0, 0, w, h);
-            ctx.strokeRect(0, 0, w, h);
-            // Draw "T" in the center
-            ctx.fillStyle = stroke;
-            ctx.font = `${Math.min(w, h) * 0.3}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('T', w / 2, h / 2);
+            // Skip rendering for text-box in thumbnail
             break;
             
           default:

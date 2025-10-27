@@ -7,6 +7,7 @@ import { PropertiesPanel } from "@/components/editor/PropertiesPanel";
 import { PresentationMode } from "@/components/editor/PresentationMode";
 import { ExportDialog } from "@/components/editor/ExportDialog";
 import ShapeModal, { ShapeType } from "@/components/editor/ShapeModal";
+import TableModal from "@/components/editor/TableModal";
 import { useToast } from "@/hooks/use-toast";
 import { useHistory } from "@/hooks/use-history";
 import { usePersistence } from "@/hooks/use-persistence";
@@ -34,6 +35,7 @@ const Editor = () => {
   const [editingChart, setEditingChart] = useState<{ type: 'bar' | 'line' | 'pie'; data: any } | null>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [shapeModalOpen, setShapeModalOpen] = useState(false);
+  const [tableModalOpen, setTableModalOpen] = useState(false);
 
   // Auto-save to localStorage
   usePersistence(slides, (loadedSlides) => {
@@ -188,6 +190,42 @@ const Editor = () => {
       chartData,
     };
     updateCurrentSlide([...currentElements, newElement]);
+  };
+
+  const handleAddTable = () => {
+    setTableModalOpen(true);
+  };
+
+  const handleConfirmTable = (rows: number, cols: number) => {
+    const safeRows = Math.max(1, Math.min(20, rows || 1));
+    const safeCols = Math.max(1, Math.min(20, cols || 1));
+    const tableData = Array.from({ length: safeRows }, () => Array.from({ length: safeCols }, () => ''));
+    const newElement: Element = {
+      id: Date.now().toString(),
+      type: 'table',
+      x: 120,
+      y: 120,
+      width: 600,
+      height: 300,
+      rows: safeRows,
+      cols: safeCols,
+      tableData,
+      // PPT-like defaults
+      borderWidth: 1,
+      borderColor: '#D9D9D9',
+      backgroundColor: '#FFFFFF',
+      color: '#000000',
+      borderStyle: 'solid' as any,
+      header: true,
+      headerBg: '#E7E6E6',
+      headerTextColor: '#000000',
+      cellPadding: 8,
+      cellTextAlign: 'left',
+      rotation: 0,
+    } as any;
+    updateCurrentSlide([...currentElements, newElement]);
+    setSelectedElement(newElement);
+    setTableModalOpen(false);
   };
 
   const handleSave = () => {
@@ -524,6 +562,7 @@ const Editor = () => {
         onAddImage={handleAddImage}
         onAddShape={handleAddShape}
         onAddChart={() => setChartPanelOpen(true)}
+        onAddTable={handleAddTable}
         onSave={handleSave}
         onExport={() => setExportDialogOpen(true)}
         onUndo={undo}
@@ -649,6 +688,12 @@ const Editor = () => {
         isOpen={shapeModalOpen}
         onClose={() => setShapeModalOpen(false)}
         onSelectShape={handleSelectShape}
+      />
+
+      <TableModal
+        isOpen={tableModalOpen}
+        onClose={() => setTableModalOpen(false)}
+        onConfirm={handleConfirmTable}
       />
     </div>
   );

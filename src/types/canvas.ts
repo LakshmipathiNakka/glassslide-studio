@@ -1,7 +1,7 @@
 // Core types for PowerPoint-style slide canvas
 export interface SlideElement {
   id: string;
-  type: 'text' | 'image' | 'shape' | 'placeholder' | 'chart';
+  type: 'text' | 'image' | 'shape' | 'chart' | 'table';
   x: number;
   y: number;
   width: number;
@@ -18,13 +18,14 @@ export interface SlideElement {
   placeholder?: string;
   fontSize?: number;
   fontFamily?: string;
-  fontWeight?: 'normal' | 'bold';
+  fontWeight?: 'normal' | 'medium' | 'bold';
   fontStyle?: 'normal' | 'italic';
   color?: string;
   backgroundColor?: string;
   borderColor?: string;
   borderWidth?: number;
   borderRadius?: number;
+  borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'none';
   textAlign?: 'left' | 'center' | 'right';
   lineHeight?: number;
   
@@ -40,6 +41,22 @@ export interface SlideElement {
   // Selection and interaction
   selected?: boolean;
   locked?: boolean;
+
+  // Table specific
+  rows?: number;
+  cols?: number;
+  tableData?: string[][];
+  cellPadding?: number;
+  cellTextAlign?: 'left' | 'center' | 'right';
+  tableBackground?: string;
+  header?: boolean;
+  headerBg?: string;
+  headerTextColor?: string;
+  rowAltBg?: string | null;
+  columnWidths?: number[];
+  themeId?: string;
+  shadow?: boolean;
+  shadowBlur?: number;
 }
 
 export interface SlideLayout {
