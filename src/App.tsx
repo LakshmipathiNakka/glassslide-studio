@@ -10,7 +10,9 @@ import ProfessionalEditor from "./pages/ProfessionalEditor";
 import SimpleProfessionalEditor from "./pages/SimpleProfessionalEditor";
 import TestProfessional from "./pages/TestProfessional";
 import { TestPage } from "./pages/TestPage";
-import EnhancedPowerPointEditor from "./pages/EnhancedPowerPointEditor";
+import PresentationMode from "./pages/PresentationMode";
+import LayoutSectionDemo from "./pages/LayoutSectionDemo";
+import SmartSidebarDemo from "./pages/SmartSidebarDemo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,7 +31,9 @@ const App = () => (
           <Route path="/simple-professional" element={<SimpleProfessionalEditor />} />
           <Route path="/test-professional" element={<TestProfessional />} />
           <Route path="/test" element={<TestPage />} />
-          <Route path="/powerpoint" element={<EnhancedPowerPointEditor />} />
+          <Route path="/present/:deckId" element={<PresentationMode />} />
+          <Route path="/layout-demo" element={<LayoutSectionDemo />} />
+          <Route path="/smart-sidebar" element={<SmartSidebarDemo />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

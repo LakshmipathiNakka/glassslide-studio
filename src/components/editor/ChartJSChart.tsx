@@ -398,41 +398,21 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
       case 'bar':
         return (
           <div className="w-full h-full flex flex-col">
-            {/* Editable Chart Title */}
+            {/* Title (read-only; editable in Properties Panel) */}
             {chart.chartData?.title && (
               <div className="mb-4 px-2">
-                {isEditingTitle ? (
-                  <input
-                    type="text"
-                    value={editTitle}
-                    onChange={handleTitleChange}
-                    onBlur={handleTitleSubmit}
-                    onKeyDown={handleTitleKeyDown}
-                    className="w-full bg-transparent border-none outline-none"
-                    style={{
-                      fontSize: `${chart.chartData?.titleFontSize || 18}px`,
-                      fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
-                      fontWeight: chart.chartData?.titleFontWeight || 'bold',
-                      color: chart.chartData?.titleColor || '#000000',
-                      textAlign: chart.chartData?.titleAlign || 'center'
-                    }}
-                    autoFocus
-                  />
-                ) : (
-                  <div
-                    className="cursor-text hover:bg-gray-100 rounded px-2 py-1"
-                    style={{
-                      fontSize: `${chart.chartData?.titleFontSize || 18}px`,
-                      fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
-                      fontWeight: chart.chartData?.titleFontWeight || 'bold',
-                      color: chart.chartData?.titleColor || '#000000',
-                      textAlign: chart.chartData?.titleAlign || 'center'
-                    }}
-                    onClick={handleTitleClick}
-                  >
-                    {chart.chartData.title}
-                  </div>
-                )}
+                <div
+                  className="rounded px-2 py-1"
+                  style={{
+                    fontSize: `${chart.chartData?.titleFontSize || 18}px`,
+                    fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
+                    fontWeight: chart.chartData?.titleFontWeight || 'bold',
+                    color: chart.chartData?.titleColor || '#000000',
+                    textAlign: chart.chartData?.titleAlign || 'center'
+                  }}
+                >
+                  {chart.chartData.title}
+                </div>
               </div>
             )}
             <div className="flex-1 min-h-0">
@@ -475,41 +455,21 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
       case 'line':
         return (
           <div className="w-full h-full flex flex-col">
-            {/* Editable Chart Title */}
+            {/* Title (read-only; editable in Properties Panel) */}
             {chart.chartData?.title && (
               <div className="mb-4 px-2">
-                {isEditingTitle ? (
-                  <input
-                    type="text"
-                    value={editTitle}
-                    onChange={handleTitleChange}
-                    onBlur={handleTitleSubmit}
-                    onKeyDown={handleTitleKeyDown}
-                    className="w-full bg-transparent border-none outline-none"
-                    style={{
-                      fontSize: `${chart.chartData?.titleFontSize || 18}px`,
-                      fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
-                      fontWeight: chart.chartData?.titleFontWeight || 'bold',
-                      color: chart.chartData?.titleColor || '#000000',
-                      textAlign: chart.chartData?.titleAlign || 'center'
-                    }}
-                    autoFocus
-                  />
-                ) : (
-                  <div
-                    className="cursor-text hover:bg-gray-100 rounded px-2 py-1"
-                    style={{
-                      fontSize: `${chart.chartData?.titleFontSize || 18}px`,
-                      fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
-                      fontWeight: chart.chartData?.titleFontWeight || 'bold',
-                      color: chart.chartData?.titleColor || '#000000',
-                      textAlign: chart.chartData?.titleAlign || 'center'
-                    }}
-                    onClick={handleTitleClick}
-                  >
-                    {chart.chartData.title}
-                  </div>
-                )}
+                <div
+                  className="rounded px-2 py-1"
+                  style={{
+                    fontSize: `${chart.chartData?.titleFontSize || 18}px`,
+                    fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
+                    fontWeight: chart.chartData?.titleFontWeight || 'bold',
+                    color: chart.chartData?.titleColor || '#000000',
+                    textAlign: chart.chartData?.titleAlign || 'center'
+                  }}
+                >
+                  {chart.chartData.title}
+                </div>
               </div>
             )}
             <div className="flex-1 min-h-0">
@@ -560,24 +520,26 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
         );
       
       case 'pie':
-        // For pie charts, we'll render each dataset as a separate pie chart
-        const datasets = chart.chartData?.datasets || [];
+        // Enforce single dataset for pies
+        const datasets = (chart.chartData?.datasets || []).slice(0, 1);
         
         if (datasets.length === 1) {
           // Single dataset - regular pie chart with intelligent color shades
           const dataset = chartData.datasets[0];
-          const baseColor = dataset.colorIdentity?.solid || dataset.backgroundColor;
-          const shades = createShades(baseColor, chartData.labels.length);
+          // Prefer per-slice colors if provided; otherwise use distinct palette colors
+          const sliceColors: string[] = Array.isArray(dataset.backgroundColor)
+            ? (dataset.backgroundColor as string[])
+            : chartData.labels.map((_, i) => colorPalette[i % colorPalette.length]);
           
           const pieData = {
             labels: chartData.labels,
             datasets: [{
               ...dataset,
               data: dataset.data,
-              backgroundColor: shades,
-              borderColor: shades.map(shade => shade),
+              backgroundColor: sliceColors,
+              borderColor: sliceColors,
               borderWidth: 2,
-              hoverBackgroundColor: shades.map(shade => shade),
+              hoverBackgroundColor: sliceColors,
               hoverBorderColor: '#ffffff',
               hoverBorderWidth: 3
             }]
@@ -585,29 +547,15 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
           
           return (
             <div className="w-full h-full flex flex-col">
-              {/* Editable Chart Title */}
+              {/* Title (read-only; editable in Properties Panel) */}
               {chart.chartData?.title && (
                 <div className="mb-4 px-2">
-                  {isEditingTitle ? (
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={handleTitleChange}
-                      onBlur={handleTitleSubmit}
-                      onKeyDown={handleTitleKeyDown}
-                      className="w-full text-center font-bold text-lg text-black bg-transparent border-none outline-none"
-                      style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                      autoFocus
-                    />
-                  ) : (
-                    <div
-                      className="text-center font-bold text-lg text-black cursor-text hover:bg-gray-100 rounded px-2 py-1"
-                      style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                      onClick={handleTitleClick}
-                    >
-                      {chart.chartData.title}
-                    </div>
-                  )}
+                  <div
+                    className="text-center font-bold text-lg text-black rounded px-2 py-1"
+                    style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                  >
+                    {chart.chartData.title}
+                  </div>
                 </div>
               )}
               <div className="flex-1 min-h-0">
@@ -702,29 +650,15 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
           
           return (
             <div className="w-full h-full flex flex-col">
-              {/* Editable Chart Title */}
+              {/* Title (read-only; editable in Properties Panel) */}
               {chart.chartData?.title && (
                 <div className="mb-4 px-2">
-                  {isEditingTitle ? (
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={handleTitleChange}
-                      onBlur={handleTitleSubmit}
-                      onKeyDown={handleTitleKeyDown}
-                      className="w-full text-center font-bold text-lg text-black bg-transparent border-none outline-none"
-                      style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                      autoFocus
-                    />
-                  ) : (
-                    <div
-                      className="text-center font-bold text-lg text-black cursor-text hover:bg-gray-100 rounded px-2 py-1"
-                      style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                      onClick={handleTitleClick}
-                    >
-                      {chart.chartData.title}
-                    </div>
-                  )}
+                  <div
+                    className="text-center font-bold text-lg text-black rounded px-2 py-1"
+                    style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                  >
+                    {chart.chartData.title}
+                  </div>
                 </div>
               )}
               <div className="flex-1 min-h-0">

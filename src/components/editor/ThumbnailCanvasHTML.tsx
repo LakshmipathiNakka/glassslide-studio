@@ -2,6 +2,9 @@ import React, { useRef, useEffect } from 'react';
 import { ThumbnailCanvasProps } from '@/types/slide-thumbnails';
 import { Element } from '@/hooks/use-action-manager';
 
+// Simple image cache to avoid reload flicker during live updates
+const IMAGE_CACHE = new Map<string, HTMLImageElement>();
+
 const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
   slide,
   width,
@@ -86,6 +89,73 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
     }
   };
 
+  // Simple HTML stripper for table cell text
+  const stripHtml = (html: string) => {
+    const div = document.createElement('div');
+    div.innerHTML = html || '';
+    return (div.textContent || div.innerText || '').trim();
+  };
+
+  // Render helpers
+  const drawImageCover = (
+    ctx: CanvasRenderingContext2D,
+    img: HTMLImageElement,
+    dx: number,
+    dy: number,
+    dWidth: number,
+    dHeight: number
+  ) => {
+    const sRatio = img.width / img.height;
+    const dRatio = dWidth / dHeight;
+    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+    if (sRatio > dRatio) {
+      // source is wider -> crop left/right
+      sh = img.height;
+      sw = sh * dRatio;
+      sx = (img.width - sw) / 2;
+    } else {
+      // source is taller -> crop top/bottom
+      sw = img.width;
+      sh = sw / dRatio;
+      sy = (img.height - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dWidth, dHeight);
+  };
+
+  const drawWrappedText = (
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    maxWidth: number,
+    lineHeight: number,
+    align: CanvasTextAlign
+  ) => {
+    const words = text.split(/\s+/);
+    let line = '';
+    let ty = y;
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line ? line + ' ' + words[n] : words[n];
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        // draw current line
+        if (align === 'center') ctx.fillText(line, x + maxWidth / 2, ty);
+        else if (align === 'right') ctx.fillText(line, x + maxWidth, ty);
+        else ctx.fillText(line, x, ty);
+        line = words[n];
+        ty += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) {
+      if (align === 'center') ctx.fillText(line, x + maxWidth / 2, ty);
+      else if (align === 'right') ctx.fillText(line, x + maxWidth, ty);
+      else ctx.fillText(line, x, ty);
+    }
+  };
+
   // Render element based on type
   const renderElement = (ctx: CanvasRenderingContext2D, element: Element) => {
     const x = element.x * scale;
@@ -110,34 +180,32 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
     }
 
     switch (element.type) {
-      case 'text':
-        // Background color for text
+      case 'text': {
+        // Background
         if (element.backgroundColor) {
           ctx.fillStyle = element.backgroundColor;
           ctx.fillRect(0, 0, w, h);
         }
-        
-        // Text styling
-        ctx.fillStyle = element.color || '#000000';
-        ctx.font = `${element.fontWeight || 'normal'} ${(element.fontSize || 16) * scale}px ${element.fontFamily || 'Arial'}`;
-        ctx.textAlign = (element.textAlign as CanvasTextAlign) || 'left';
-        ctx.textBaseline = 'top';
-        
-        const text = element.text || element.content || element.placeholder || 'Text';
-        const lines = text.split('\n');
-        const lineHeight = (element.fontSize || 16) * scale * 1.2;
-        
-        lines.forEach((line, index) => {
-          ctx.fillText(line, 0, index * lineHeight);
-        });
-        
-        // Border for text
+        // Border
         if (element.borderColor && element.borderWidth) {
           ctx.strokeStyle = element.borderColor;
           ctx.lineWidth = (element.borderWidth || 0) * scale;
           ctx.strokeRect(0, 0, w, h);
         }
+        // Text styling
+        const padding = (element as any).padding ?? 8;
+        const content = (element.text || element.content || element.placeholder || '').toString();
+        ctx.fillStyle = element.color || '#000000';
+        ctx.font = `${element.fontWeight || 'normal'} ${(element.fontSize || 16) * scale}px ${element.fontFamily || 'Arial'}`;
+        const align = ((element.textAlign as CanvasTextAlign) || 'left');
+        ctx.textAlign = align;
+        ctx.textBaseline = 'top';
+        const maxWidth = Math.max(0, w - 2 * padding * scale);
+        const startX = padding * scale;
+        const startY = padding * scale;
+        drawWrappedText(ctx, content.replace(/\n/g, ' '), startX, startY, maxWidth, (element.fontSize || 16) * scale * 1.2, align);
         break;
+      }
 
       case 'shape':
         // Draw shape with proper scaling and styling
@@ -309,39 +377,83 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
         }
         break;
 
-      case 'image':
-        // Render actual images for thumbnails
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, w, h);
-
-          // Apply border styling
+      case 'image': {
+        const borderRadius = (element as any).borderRadius || 0;
+        const hasRadius = borderRadius > 0;
+        const src = element.imageUrl || '';
+        const drawLoaded = (img: HTMLImageElement) => {
+          // Re-apply transform here because onload is async and previous ctx state was restored
+          ctx.save();
+          const angle = ((element.rotation || 0) * Math.PI) / 180;
+          if (element.rotation) {
+            ctx.translate(x + w / 2, y + h / 2);
+            ctx.rotate(angle);
+            ctx.translate(-w / 2, -h / 2);
+          } else {
+            ctx.translate(x, y);
+          }
+          // Clip to rounded rect if needed
+          if (hasRadius) {
+            const r = borderRadius * scale;
+            ctx.beginPath();
+            const rradius = Math.min(r, w / 2, h / 2);
+            ctx.moveTo(rradius, 0);
+            ctx.arcTo(w, 0, w, h, rradius);
+            ctx.arcTo(w, h, 0, h, rradius);
+            ctx.arcTo(0, h, 0, 0, rradius);
+            ctx.arcTo(0, 0, w, 0, rradius);
+            ctx.closePath();
+            ctx.clip();
+          }
+          drawImageCover(ctx, img, 0, 0, w, h);
+          // Border
           if (element.borderColor && element.borderWidth) {
             ctx.strokeStyle = element.borderColor;
             ctx.lineWidth = (element.borderWidth || 1) * scale;
             ctx.strokeRect(0, 0, w, h);
           }
+          ctx.restore();
         };
-        img.onerror = () => {
-          // Show placeholder if image fails to load
-          ctx.fillStyle = '#f0f0f0';
-          ctx.fillRect(0, 0, w, h);
-          ctx.strokeStyle = '#d0d0d0';
-          ctx.lineWidth = 1;
-          ctx.setLineDash([5, 5]);
-          ctx.strokeRect(0, 0, w, h);
-          ctx.setLineDash([]);
 
-          // Add image icon
-          ctx.fillStyle = '#999';
-          ctx.font = `${12 * scale}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('📷', w / 2, h / 2);
-        };
-        img.src = element.imageUrl || '';
+        const cached = IMAGE_CACHE.get(src);
+        if (cached && cached.complete) {
+          drawLoaded(cached);
+        } else if (src) {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            IMAGE_CACHE.set(src, img);
+            drawLoaded(img);
+          };
+          img.onerror = () => {
+            // Draw placeholder at transformed position to avoid top-left pinning
+            ctx.save();
+            const angle = ((element.rotation || 0) * Math.PI) / 180;
+            if (element.rotation) {
+              ctx.translate(x + w / 2, y + h / 2);
+              ctx.rotate(angle);
+              ctx.translate(-w / 2, -h / 2);
+            } else {
+              ctx.translate(x, y);
+            }
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, w, h);
+            ctx.strokeStyle = '#d0d0d0';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(0, 0, w, h);
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#999';
+            ctx.font = `${12 * scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('📷', w / 2, h / 2);
+            ctx.restore();
+          };
+          img.src = src;
+        }
         break;
+      }
 
       case 'chart':
         // Background
@@ -368,25 +480,90 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
         }
         break;
 
-      case 'table':
-        // Background
-        ctx.fillStyle = element.backgroundColor || '#ffffff';
+      case 'table': {
+        const rows = Math.max(1, (element as any).rows || 3);
+        const cols = Math.max(1, (element as any).cols || 3);
+        const cellPadding = (element as any).cellPadding ?? 6;
+        const borderColor = (element as any).borderColor || '#D9D9D9';
+        const borderWidth = ((element as any).borderWidth ?? 1) * scale;
+        const header = !!(element as any).header;
+        const headerBg = (element as any).headerBg || '#E7E6E6';
+        const headerTextColor = (element as any).headerTextColor || '#111827';
+        const rowAltBg = (element as any).rowAltBg || null;
+        const rowEvenBg = (element as any).backgroundColor || '#FFFFFF';
+        const rowOddBg = rowAltBg || 'transparent';
+        const textColor = (element as any).color || '#000000';
+        const textAlign = (element as any).cellTextAlign || 'left';
+        const fontFamily = (element as any).fontFamily || 'Arial';
+        const fontSize = ((element as any).fontSize || 16) * scale;
+
+        // Outer border/background
+        ctx.fillStyle = '#00000000';
         ctx.fillRect(0, 0, w, h);
-        
-        // Border
-        if (element.borderColor && element.borderWidth) {
-          ctx.strokeStyle = element.borderColor;
-          ctx.lineWidth = (element.borderWidth || 1) * scale;
+        if (borderWidth > 0) {
+          ctx.strokeStyle = borderColor;
+          ctx.lineWidth = borderWidth;
           ctx.strokeRect(0, 0, w, h);
         }
-        
-        // Table representation
-        ctx.fillStyle = '#666';
-        ctx.font = `${10 * scale}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('📋 Table', w / 2, h / 2);
+
+        const cellW = w / cols;
+        const cellH = h / rows;
+
+        // Draw cells
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const cx = c * cellW;
+            const cy = r * cellH;
+
+            // Background per row/header
+            const isHeader = header && r === 0;
+            const isEvenRow = ((header ? r - 1 : r) % 2 === 0);
+            const bg = isHeader ? headerBg : (isEvenRow ? rowEvenBg : rowOddBg);
+            if (bg && bg !== 'transparent') {
+              ctx.fillStyle = bg as string;
+              ctx.fillRect(cx, cy, cellW, cellH);
+            }
+
+            // Cell border (inner grid)
+            if (borderWidth > 0) {
+              ctx.strokeStyle = borderColor;
+              ctx.lineWidth = borderWidth;
+              ctx.strokeRect(cx, cy, cellW, cellH);
+            }
+
+            // Text
+            const tableData = (element as any).tableData as string[][] | undefined;
+            const raw = tableData?.[r]?.[c] ?? '';
+            const text = stripHtml(raw);
+
+            ctx.fillStyle = isHeader ? headerTextColor : textColor;
+            ctx.font = `${isHeader ? '600 ' : ''}${Math.max(10 * scale, fontSize)}px ${fontFamily}`;
+            ctx.textBaseline = 'top';
+            // Horizontal alignment
+            let tx = cx + cellPadding * scale;
+            if (textAlign === 'center') tx = cx + cellW / 2;
+            if (textAlign === 'right') tx = cx + cellW - cellPadding * scale;
+
+            const ty = cy + cellPadding * scale;
+            ctx.textAlign = (textAlign as CanvasTextAlign) || 'left';
+
+            // Simple single-line with clipping
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(cx + cellPadding * scale, cy + cellPadding * scale, cellW - 2 * cellPadding * scale, cellH - 2 * cellPadding * scale);
+            ctx.clip();
+            if (textAlign === 'center') {
+              ctx.fillText(text, cx + cellW / 2, ty);
+            } else if (textAlign === 'right') {
+              ctx.fillText(text, cx + cellW - cellPadding * scale, ty);
+            } else {
+              ctx.fillText(text, cx + cellPadding * scale, ty);
+            }
+            ctx.restore();
+          }
+        }
         break;
+      }
     }
 
     ctx.restore();
@@ -401,7 +578,61 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
     const chartWidth = w - (padding * 2);
     const chartHeight = h - (padding * 2);
     const chartX = padding;
-    const chartY = padding;
+    const chartY = padding + (chartData.title ? 14 * scale : 0);
+    const usableHeight = chartHeight - (chartData.title ? 14 * scale : 0) - (10 * scale);
+
+    // Axes (for bar/line charts) + grid + tick labels
+    if (element.chartType === 'bar' || element.chartType === 'line') {
+      ctx.strokeStyle = '#9ca3af';
+      ctx.lineWidth = Math.max(1, 1 * scale);
+      // X axis
+      ctx.beginPath();
+      ctx.moveTo(chartX, chartY + usableHeight);
+      ctx.lineTo(chartX + chartWidth, chartY + usableHeight);
+      ctx.stroke();
+      // Y axis
+      ctx.beginPath();
+      ctx.moveTo(chartX, chartY);
+      ctx.lineTo(chartX, chartY + usableHeight);
+      ctx.stroke();
+
+      // Grid and Y tick labels
+      const tickCount = 4;
+      const datasets = chartData.datasets || [];
+      const maxValue = Math.max(1, ...datasets.flatMap((ds: any) => ds.data || [0]));
+      const labelFont = Math.max(5, Math.min(7, usableHeight * 0.07));
+      ctx.font = `${labelFont}px Arial`;
+      ctx.fillStyle = '#6b7280';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i <= tickCount; i++) {
+        const ratio = i / tickCount;
+        const ty = chartY + usableHeight - ratio * usableHeight;
+        // grid line
+        ctx.strokeStyle = i === 0 ? '#9ca3af' : 'rgba(156,163,175,0.35)';
+        ctx.lineWidth = Math.max(1, 1 * scale);
+        ctx.beginPath();
+        ctx.moveTo(chartX, ty);
+        ctx.lineTo(chartX + chartWidth, ty);
+        ctx.stroke();
+        // label (draw just inside chart area for visibility)
+        const val = Math.round((ratio * maxValue));
+        ctx.textAlign = 'left';
+        ctx.fillText(String(val), chartX + 2 * scale, ty);
+      }
+
+      // X labels (sample if too many)
+      const labels: string[] = chartData.labels || [];
+      const groupW = chartWidth / Math.max(1, labels.length);
+      const showEvery = labels.length > 6 ? Math.ceil(labels.length / 6) : 1;
+      const xLabelFont = Math.max(5, Math.min(7, usableHeight * 0.07));
+      ctx.font = `${xLabelFont}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i < labels.length; i += showEvery) {
+        const lx = chartX + i * groupW + groupW / 2;
+        ctx.fillText(labels[i], lx, chartY + usableHeight + 2 * scale);
+      }
+    }
 
     // Chart title
     if (chartData.title) {
@@ -417,18 +648,19 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
     const maxValue = Math.max(...datasets.flatMap(ds => ds.data));
 
     if (element.chartType === 'bar') {
-      // Bar chart
-      const barWidth = chartWidth / labels.length * 0.6;
-      const barSpacing = chartWidth / labels.length * 0.4;
-      
+      // Grouped Bar chart
+      const groupWidth = chartWidth / labels.length;
+      const innerPad = groupWidth * 0.2;
+      const seriesCount = Math.max(1, datasets.length);
+      const barWidth = (groupWidth - innerPad * 2) / seriesCount;
+
       labels.forEach((label: string, i: number) => {
-        const x = chartX + i * (barWidth + barSpacing) + barSpacing / 2;
-        
+        const gx = chartX + i * groupWidth + innerPad;
         datasets.forEach((dataset: any, dsIndex: number) => {
-          const value = dataset.data[i] || 0;
-          const barHeight = (value / maxValue) * chartHeight;
-          const y = chartY + chartHeight - barHeight;
-          
+          const value = Number(dataset.data?.[i] || 0);
+          const barHeight = (value / maxValue) * usableHeight;
+          const y = chartY + usableHeight - barHeight;
+          const x = gx + dsIndex * barWidth;
           ctx.fillStyle = dataset.backgroundColor || `hsl(${dsIndex * 60}, 70%, 50%)`;
           ctx.fillRect(x, y, barWidth, barHeight);
         });
@@ -441,16 +673,21 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
         ctx.beginPath();
         
         dataset.data.forEach((value: number, i: number) => {
-          const x = chartX + (i / (labels.length - 1)) * chartWidth;
-          const y = chartY + chartHeight - (value / maxValue) * chartHeight;
-          
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
+          const x = chartX + (i / Math.max(1, labels.length - 1)) * chartWidth;
+          const y = chartY + usableHeight - (value / maxValue) * usableHeight;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
         });
         ctx.stroke();
+        // points
+        dataset.data.forEach((value: number, i: number) => {
+          const x = chartX + (i / Math.max(1, labels.length - 1)) * chartWidth;
+          const y = chartY + usableHeight - (value / maxValue) * usableHeight;
+          ctx.beginPath();
+          ctx.arc(x, y, 1.5 * scale, 0, Math.PI * 2);
+          ctx.fillStyle = ctx.strokeStyle as string;
+          ctx.fill();
+        });
       });
     } else if (element.chartType === 'pie') {
       // Pie chart
@@ -460,11 +697,14 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
       
       let currentAngle = 0;
       const total = datasets[0]?.data.reduce((sum: number, val: number) => sum + val, 0) || 1;
+      const bg = (datasets[0]?.backgroundColor as (string[] | string)) || [];
+      const FALLBACK_PIE_COLORS = ['#007AFF','#FF3B30','#34C759','#FF9500','#AF52DE','#5AC8FA','#FFCC00','#8E8E93','#FF2D92','#30D158'];
       
       datasets[0]?.data.forEach((value: number, i: number) => {
         const sliceAngle = (value / total) * 2 * Math.PI;
         
-        ctx.fillStyle = datasets[0].backgroundColor || `hsl(${i * 60}, 70%, 50%)`;
+        const fill = Array.isArray(bg) ? (bg[i] || FALLBACK_PIE_COLORS[i % FALLBACK_PIE_COLORS.length]) : FALLBACK_PIE_COLORS[i % FALLBACK_PIE_COLORS.length];
+        ctx.fillStyle = fill;
         ctx.beginPath();
         ctx.moveTo(centerX, centerY);
         ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);

@@ -3,7 +3,7 @@ import { Toolbar } from "@/components/editor/Toolbar";
 import SimplePowerPointCanvas from "@/components/canvas/SimplePowerPointCanvas";
 import { SlideThumbnails } from "@/components/editor/SlideThumbnails";
 import { ChartPanel } from "@/components/editor/ChartPanel";
-import { PropertiesPanel } from "@/components/editor/PropertiesPanel";
+import { SmartSidebar } from "@/components/editor/SmartSidebar";
 import { PresentationMode } from "@/components/editor/PresentationMode";
 import { ExportDialog } from "@/components/editor/ExportDialog";
 import ShapeModal, { ShapeType } from "@/components/editor/ShapeModal";
@@ -13,6 +13,7 @@ import { useHistory } from "@/hooks/use-history";
 import { usePersistence } from "@/hooks/use-persistence";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Logo } from "@/components/landing/Logo";
 import { Slide } from "@/types/slide-thumbnails";
 import { Element } from "@/hooks/use-action-manager";
@@ -32,6 +33,7 @@ const Editor = () => {
   const [chartPanelOpen, setChartPanelOpen] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
   const [selectedElement, setSelectedElement] = useState<Element | null>(null);
+  const [currentLayoutId, setCurrentLayoutId] = useState('title-slide');
   const [editingChart, setEditingChart] = useState<{ type: 'bar' | 'line' | 'pie'; data: any } | null>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [shapeModalOpen, setShapeModalOpen] = useState(false);
@@ -70,6 +72,12 @@ const Editor = () => {
     const newElements = currentElements.filter(el => el.id !== elementId);
     updateCurrentSlide(newElements);
     setSelectedElement(null);
+  };
+
+  const handleLayoutSelect = (layoutId: string) => {
+    setCurrentLayoutId(layoutId);
+    console.log('Layout selected:', layoutId);
+    // TODO: Implement layout application logic
   };
 
 
@@ -272,6 +280,9 @@ const Editor = () => {
     });
   };
 
+  const navigate = useNavigate();
+
+
   const handleExportFormat = (format: 'pptx' | 'pdf' | 'png' | 'json') => {
     switch (format) {
       case 'pptx':
@@ -289,99 +300,13 @@ const Editor = () => {
     }
   };
 
-  const handleExportPPTX = () => {
+  const handleExportPPTX = async () => {
     try {
-      const pptx = new pptxgen();
-      
-      slides.forEach((slide, index) => {
-        const pptxSlide = pptx.addSlide();
-        
-        slide.elements.forEach((element) => {
-          // Convert canvas coordinates to PowerPoint inches
-          const x = (element.x / 960) * 10;
-          const y = (element.y / 540) * 5.625;
-          const w = (element.width / 960) * 10;
-          const h = (element.height / 540) * 5.625;
-          
-          if (element.type === 'text') {
-            const textOptions: any = {
-              x, y, w, h,
-              fontSize: element.fontSize || 18,
-              color: element.color ? element.color.replace('#', '') : '0B0B0B',
-              valign: 'middle',
-              align: element.textAlign || 'center',
-              bold: element.fontWeight === 'bold',
-              italic: element.fontStyle === 'italic'
-            };
-            
-            pptxSlide.addText(element.content || 'Text', textOptions);
-          } else if (element.type === 'image' && element.imageUrl) {
-            // Handle image export
-            pptxSlide.addImage({
-              data: element.imageUrl,
-              x, y, w, h
-            });
-          } else if (element.type === 'shape' && element.shapeType === 'rectangle') {
-            pptxSlide.addShape(pptx.ShapeType.rect, {
-              x, y, w, h,
-              fill: { color: element.fill ? element.fill.replace('#', '') : '4096FF' },
-              line: { color: element.fill ? element.fill.replace('#', '') : '4096FF', width: 2 }
-            });
-          } else if (element.type === 'shape' && element.shapeType === 'circle') {
-            pptxSlide.addShape(pptx.ShapeType.ellipse, {
-              x, y, w, h,
-              fill: { color: element.fill ? element.fill.replace('#', '') : '4096FF' },
-              line: { color: element.fill ? element.fill.replace('#', '') : '4096FF', width: 2 }
-            });
-          } else if (element.type === 'chart' && element.chartData) {
-            // Enhanced chart export
-            try {
-              const chartData = element.chartData.datasets.map((ds: any) => ({
-                name: ds.label,
-                labels: element.chartData.labels,
-                values: ds.data
-              }));
-              
-              pptxSlide.addChart(
-                element.chartType === 'bar' ? pptx.ChartType.bar :
-                element.chartType === 'line' ? pptx.ChartType.line :
-                pptx.ChartType.pie,
-                chartData,
-                { 
-                  x, y, w, h,
-                  showTitle: true,
-                  title: `${element.chartType?.toUpperCase()} Chart`
-                }
-              );
-            } catch (chartError) {
-              // Fallback to text representation if chart fails
-              pptxSlide.addText(
-                `${element.chartType?.toUpperCase()} Chart\n\nData: ${element.chartData.labels?.join(', ')}`,
-                { x, y, w, h, fontSize: 12, align: 'center', valign: 'middle' }
-              );
-            }
-          }
-        });
-      });
-      
-      // Set presentation properties
-      pptx.author = 'GlassSlide Studio';
-      pptx.company = 'GlassSlide';
-      pptx.title = 'Presentation';
-      pptx.subject = 'Created with GlassSlide Studio';
-      
-      pptx.writeFile({ fileName: 'GlassSlide-Presentation.pptx' });
-      
-      toast({
-        title: "Exported!",
-        description: "Your presentation has been exported to PowerPoint with enhanced formatting.",
-      });
+      const { exportSlidesToPPTX } = await import('@/utils/exporter');
+      await exportSlidesToPPTX(slides, 'GlassSlide-Presentation.pptx');
+      toast({ title: 'Exported!', description: 'Your presentation has been exported to PowerPoint.' });
     } catch (error) {
-      toast({
-        title: "Export Error",
-        description: "Failed to export presentation. Please try again.",
-        variant: "destructive"
-      });
+      toast({ title: 'Export Error', description: 'Failed to export presentation. Please try again.', variant: 'destructive' });
     }
   };
 
@@ -582,7 +507,23 @@ const Editor = () => {
         onExport={() => setExportDialogOpen(true)}
         onUndo={undo}
         onRedo={redo}
-        onPresent={() => setPresentationMode(true)}
+        onPresent={() => {
+          try {
+            const deckId = `deck-${Date.now()}`;
+            const deckPayload = {
+              id: deckId,
+              title: 'Untitled Presentation',
+              slides,
+              createdAt: Date.now(),
+              lastUpdated: Date.now(),
+            };
+            localStorage.setItem(`glassslide-deck-${deckId}`, JSON.stringify(deckPayload));
+            navigate(`/present/${deckId}`);
+          } catch (e) {
+            console.error('Failed to start presentation:', e);
+            setPresentationMode(true); // fallback to legacy in-editor presentation
+          }
+        }}
         canUndo={canUndo}
         canRedo={canRedo}
       />
@@ -635,7 +576,7 @@ const Editor = () => {
         </aside>
 
         {/* Canvas Area */}
-        <section className="flex-1 flex flex-col min-w-0" aria-label="Presentation canvas">
+<section className="flex-1 flex flex-col min-w-0" aria-label="Presentation canvas">
           <SimplePowerPointCanvas
             elements={currentElements}
             background={slides[currentSlide]?.background || '#ffffff'}
@@ -653,24 +594,24 @@ const Editor = () => {
           />
         </section>
 
-        {/* Properties Panel - Mobile: Bottom, Desktop: Right */}
-        <aside className="lg:flex-shrink-0" role="complementary" aria-label="Element properties">
-          <PropertiesPanel
-            selectedElement={selectedElement}
-            onElementUpdate={(elementId: string, updates: Partial<Element>) => {
-              const currentElement = slides[currentSlide]?.elements.find(el => el.id === elementId);
-              if (currentElement) {
-                const updatedElement = { ...currentElement, ...updates };
-                const newElements = currentElements.map(el => 
-                  el.id === elementId ? updatedElement : el
-                );
-                updateCurrentSlide(newElements);
-                setSelectedElement(updatedElement);
-              }
-            }}
-            onElementDelete={handleElementDelete}
-          />
-        </aside>
+        {/* Smart Sidebar - Context-aware Properties & Layouts */}
+        <SmartSidebar
+          selectedElement={selectedElement}
+          onElementUpdate={(elementId: string, updates: Partial<Element>) => {
+            const currentElement = slides[currentSlide]?.elements.find(el => el.id === elementId);
+            if (currentElement) {
+              const updatedElement = { ...currentElement, ...updates };
+              const newElements = currentElements.map(el => 
+                el.id === elementId ? updatedElement : el
+              );
+              updateCurrentSlide(newElements);
+              setSelectedElement(updatedElement);
+            }
+          }}
+          onElementDelete={handleElementDelete}
+          onLayoutSelect={handleLayoutSelect}
+          currentLayoutId={currentLayoutId}
+        />
       </main>
       
       <ChartPanel

@@ -12,7 +12,7 @@ import {
   Unlock
 } from 'lucide-react';
 import { SlideThumbnailProps, SlideCategory } from '@/types/slide-thumbnails';
-import ThumbnailCanvas from './ThumbnailCanvas';
+import SlideRenderer from '@/components/shared/SlideRenderer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -104,16 +104,9 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
           style={{ backgroundColor: slide.background || '#ffffff' }}
         />
 
-        {/* Thumbnail Canvas */}
+        {/* Unified Thumbnail Renderer */}
         <div className="absolute inset-0">
-          <ThumbnailCanvas
-            key={`${slide.id}-${slide.lastUpdated || 0}-${slide.elements?.length || 0}`}
-            slide={slide}
-            width={200}
-            height={112}
-            scale={0.15}
-            className="w-full h-full"
-          />
+          <SlideRenderer slide={slide as any} mode="thumbnail" scale={200/1024} className="w-full h-full" />
         </div>
 
         {/* Overlay Effects */}

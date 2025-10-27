@@ -1,6 +1,6 @@
 import { BarChart3, LineChart, PieChart, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import KeynoteModal from "@/components/ui/keynote-modal";
 import { useState } from "react";
 import { ChartEditor } from "./ChartEditor";
 
@@ -185,48 +185,45 @@ export const ChartPanel = ({ open, onClose, onAddChart, onEditChart, editingChar
   }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {editingChart ? 'Edit Chart' : 'Insert Chart'}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            {chartTypes.map(({ type, icon: Icon, label }) => (
-              <button
-                key={type}
-                onClick={() => setSelectedType(type)}
-                className={`p-6 rounded-lg border-2 transition-all hover:border-accent ${
-                  selectedType === type 
-                    ? 'border-accent bg-accent/5' 
-                    : 'border-border'
-                }`}
-              >
-                <Icon className="w-8 h-8 mx-auto mb-2 text-foreground" />
-                <p className="text-xs text-center text-muted-foreground">{label}</p>
-              </button>
-            ))}
-          </div>
-          
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={onClose} className="bg-transparent text-gray-600 hover:bg-gray-200 hover:text-black transition-all duration-300 btn-click btn-shimmer">
-              Cancel
+    <KeynoteModal
+      isOpen={open}
+      title={editingChart ? 'Edit Chart' : 'Insert Chart'}
+      onClose={onClose}
+      footer={(
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onClose} className="bg-white/50 hover:bg-white/70 text-gray-700 border-white/30">
+            Cancel
+          </Button>
+          {editingChart && (
+            <Button variant="outline" onClick={handleEdit} className="bg-white/50 hover:bg-white/70 text-gray-700 border-white/30">
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Data
             </Button>
-            {editingChart && (
-              <Button variant="outline" onClick={handleEdit} className="bg-transparent text-gray-600 hover:bg-gray-200 hover:text-black transition-all duration-300 btn-click btn-shimmer">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Data
-              </Button>
-            )}
-            <Button onClick={handleCreate} className="bg-black text-white hover:bg-gray-800 transition-all duration-300 btn-click btn-ripple btn-magnetic">
-              {editingChart ? 'Update Chart' : 'Insert Chart'}
-            </Button>
-          </div>
+          )}
+          <Button onClick={handleCreate} className="bg-black text-white hover:bg-gray-800">
+            {editingChart ? 'Update Chart' : 'Insert Chart'}
+          </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          {chartTypes.map(({ type, icon: Icon, label }) => (
+            <button
+              key={type}
+              onClick={() => setSelectedType(type)}
+              className={`p-6 rounded-xl border transition-all hover:border-gray-400/60 hover:bg-white/50 ${
+                selectedType === type
+                  ? 'border-gray-700 bg-white/60'
+                  : 'border-white/30 bg-white/30'
+              }`}
+            >
+              <Icon className="w-8 h-8 mx-auto mb-2 text-gray-800" />
+              <p className="text-xs text-center text-gray-600">{label}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    </KeynoteModal>
   );
 };

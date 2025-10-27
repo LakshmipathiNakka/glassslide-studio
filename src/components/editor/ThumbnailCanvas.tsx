@@ -4,7 +4,7 @@ import { Element } from '@/hooks/use-action-manager';
 import ThumbnailCanvasHTML from './ThumbnailCanvasHTML';
 
 // Try to import React Konva, fallback to HTML5 Canvas if not available
-let Stage: any, Layer: any, Text: any, Rect: any, Circle: any, KonvaImage: any, Group: any, Line: any, RegularPolygon: any, StarShape: any, Ellipse: any, PathShape: any;
+let Stage: any, Layer: any, Text: any, Rect: any, Circle: any, KonvaImage: any, Group: any, Line: any, RegularPolygon: any, StarShape: any, Ellipse: any, PathShape: any, WedgeShape: any;
 let useKonva = false;
 
 try {
@@ -21,6 +21,7 @@ try {
   StarShape = konva.Star;
   Ellipse = konva.Ellipse;
   PathShape = konva.Path;
+  WedgeShape = konva.Wedge;
   useKonva = true;
 } catch (error) {
   useKonva = false;
@@ -65,6 +66,12 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
       img.onerror = reject;
       img.src = src;
     });
+  };
+
+  const stripHtml = (html: string) => {
+    const div = document.createElement('div');
+    div.innerHTML = html || '';
+    return (div.textContent || div.innerText || '').trim();
   };
 
   // Render element based on type
@@ -328,28 +335,83 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
           />
         );
 
-      case 'table':
-        return (
-          <Group key={element.id}>
-            <Rect
-              {...commonProps}
-              fill={element.backgroundColor || '#ffffff'}
-              stroke={element.borderColor || '#cccccc'}
-              strokeWidth={(element.borderWidth || 1) * scale}
-              cornerRadius={(element.borderRadius || 0) * scale}
-            />
-            <Text
-              x={scaledX + scaledWidth / 2}
-              y={scaledY + scaledHeight / 2}
-              text="📋 Table"
-              fontSize={10 * scale}
-              fontFamily="Arial"
-              fill="#666666"
-              align="center"
-              verticalAlign="middle"
-            />
-          </Group>
-        );
+      case 'table': {
+        const rows = Math.max(1, (element as any).rows || 3);
+        const cols = Math.max(1, (element as any).cols || 3);
+        const cellPadding = (element as any).cellPadding ?? 6;
+        const borderColor = (element as any).borderColor || '#D9D9D9';
+        const borderWidth = ((element as any).borderWidth ?? 1) * scale;
+        const header = !!(element as any).header;
+        const headerBg = (element as any).headerBg || '#E7E6E6';
+        const headerTextColor = (element as any).headerTextColor || '#111827';
+        const rowAltBg = (element as any).rowAltBg || null;
+        const rowEvenBg = (element as any).backgroundColor || '#FFFFFF';
+        const rowOddBg = rowAltBg || 'transparent';
+        const textColor = (element as any).color || '#000000';
+        const textAlign = (element as any).cellTextAlign || 'left';
+        const fontFamily = (element as any).fontFamily || 'Arial';
+        const fontSize = ((element as any).fontSize || 16) * scale;
+
+        const cellW = scaledWidth / cols;
+        const cellH = scaledHeight / rows;
+
+        const cells: any[] = [];
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const cx = scaledX + c * cellW;
+            const cy = scaledY + r * cellH;
+            const isHeader = header && r === 0;
+            const isEvenRow = ((header ? r - 1 : r) % 2 === 0);
+            const bg = isHeader ? headerBg : (isEvenRow ? rowEvenBg : rowOddBg);
+
+            // Background cell
+            cells.push(
+              <Rect
+                key={`bg-${r}-${c}`}
+                x={cx}
+                y={cy}
+                width={cellW}
+                height={cellH}
+                fill={bg}
+                stroke={borderColor}
+                strokeWidth={borderWidth}
+              />
+            );
+
+            // Text
+            const tableData = (element as any).tableData as string[][] | undefined;
+            const raw = tableData?.[r]?.[c] ?? '';
+            const text = stripHtml(raw);
+
+            // Align mapping
+            const align = (textAlign as any) || 'left';
+            let tx = cx + cellPadding * scale;
+            if (align === 'center') tx = cx + cellW / 2;
+            if (align === 'right') tx = cx + cellW - cellPadding * scale;
+
+            cells.push(
+              <Text
+                key={`txt-${r}-${c}`}
+                x={align === 'center' ? cx : cx + cellPadding * scale}
+                y={cy + cellPadding * scale}
+                width={cellW - 2 * cellPadding * scale}
+                height={cellH - 2 * cellPadding * scale}
+                text={text}
+                fontSize={Math.max(10 * scale, fontSize)}
+                fontFamily={fontFamily}
+                fontStyle={isHeader ? 'bold' : 'normal'}
+                fill={isHeader ? headerTextColor : textColor}
+                align={align}
+                verticalAlign="top"
+                wrap="char"
+                ellipsis
+              />
+            );
+          }
+        }
+
+        return <Group key={element.id}>{cells}</Group>;
+      }
 
       default:
         return null;
@@ -444,12 +506,15 @@ const ChartElement: React.FC<{
 
   const labels = chartData.labels;
   const datasets = chartData.datasets;
-  const maxValue = Math.max(...datasets.flatMap((ds: any) => ds.data));
+  const maxValue = Math.max(1, ...datasets.flatMap((ds: any) => ds.data));
   const padding = 10 * scale;
+  const titleOffset = chartData.title ? 14 * scale : 0;
+  const bottomOffset = 10 * scale; // for x labels
   const chartWidth = width - (padding * 2);
   const chartHeight = height - (padding * 2);
   const chartX = x + padding;
-  const chartY = y + padding;
+  const chartY = y + padding + titleOffset;
+  const usableHeight = chartHeight - titleOffset - bottomOffset;
 
   return (
     <Group>
@@ -464,6 +529,33 @@ const ChartElement: React.FC<{
         strokeWidth={(element.borderWidth || 2) * scale}
         cornerRadius={(element.borderRadius || 8) * scale}
       />
+
+      {/* Axes for bar/line charts */}
+      {(element.chartType === 'bar' || element.chartType === 'line') && (
+        <Group>
+          {/* X axis */}
+          <Line
+            points={[chartX, chartY + chartHeight, chartX + chartWidth, chartY + chartHeight]}
+            stroke="#9ca3af"
+            strokeWidth={Math.max(1, 1 * scale)}
+          />
+          {/* Y axis */}
+          <Line
+            points={[chartX, chartY, chartX, chartY + chartHeight]}
+            stroke="#9ca3af"
+            strokeWidth={Math.max(1, 1 * scale)}
+          />
+          {/* Ticks (optional) */}
+          {[1, 2, 3, 4].map(i => (
+            <Line
+              key={i}
+              points={[chartX - 3 * scale, chartY + (i / 4) * chartHeight, chartX, chartY + (i / 4) * chartHeight]}
+              stroke="#9ca3af"
+              strokeWidth={Math.max(1, 1 * scale)}
+            />
+          ))}
+        </Group>
+      )}
       
       {/* Chart title */}
       {chartData.title && (
@@ -479,13 +571,71 @@ const ChartElement: React.FC<{
         />
       )}
 
+      {/* Grid + Y tick labels */}
+      {(element.chartType === 'bar' || element.chartType === 'line') && (
+        <Group>
+          {[0, 1, 2, 3, 4].map((i) => {
+            const ratio = i / 4;
+            const ty = chartY + usableHeight - ratio * usableHeight;
+            // Choose very small pixel size and convert to stage units
+            const labelFontPx = Math.max(4, Math.min(6, 12 * scale));
+            const fs = labelFontPx / Math.max(0.001, scale);
+            return (
+              <Group key={i}>
+                <Line
+                  points={[chartX, ty, chartX + chartWidth, ty]}
+                  stroke={i === 0 ? '#9ca3af' : 'rgba(156,163,175,0.35)'}
+                  strokeWidth={Math.max(1, 1 * scale)}
+                />
+                <Text
+                  x={chartX + 2 * scale}
+                  y={ty - fs * 0.6}
+                  width={(labelFontPx * 6) / Math.max(0.001, scale)}
+                  height={fs * 1.2}
+                  text={`${Math.round(ratio * maxValue)}`}
+                  fontSize={fs}
+                  fontFamily="Arial"
+                  fill="#6b7280"
+                  align="left"
+                  verticalAlign="middle"
+                />
+              </Group>
+            );
+          })}
+          {/* X labels (sample) */}
+          {labels.map((label: string, i: number) => {
+            const showEvery = labels.length > 6 ? Math.ceil(labels.length / 6) : 1;
+            if (i % showEvery !== 0) return null;
+            const groupW = chartWidth / Math.max(1, labels.length);
+            const lx = chartX + i * groupW + groupW / 2;
+            const labelFontPx = Math.max(4, Math.min(6, 12 * scale));
+            const fs = labelFontPx / Math.max(0.001, scale);
+            return (
+              <Text
+                key={`xlab-${i}`}
+                x={lx - groupW / 2}
+                y={chartY + usableHeight + 2 * scale}
+                width={groupW}
+                height={fs * 1.4}
+                text={label}
+                fontSize={fs}
+                fontFamily="Arial"
+                fill="#6b7280"
+                align="center"
+                verticalAlign="top"
+              />
+            );
+          })}
+        </Group>
+      )}
+
       {/* Chart content based on type */}
       {element.chartType === 'bar' && (
         <BarChart
           chartX={chartX}
           chartY={chartY}
           chartWidth={chartWidth}
-          chartHeight={chartHeight}
+          chartHeight={usableHeight}
           labels={labels}
           datasets={datasets}
           maxValue={maxValue}
@@ -498,7 +648,7 @@ const ChartElement: React.FC<{
           chartX={chartX}
           chartY={chartY}
           chartWidth={chartWidth}
-          chartHeight={chartHeight}
+          chartHeight={usableHeight}
           labels={labels}
           datasets={datasets}
           maxValue={maxValue}
@@ -531,19 +681,20 @@ const BarChart: React.FC<{
   maxValue: number;
   scale: number;
 }> = ({ chartX, chartY, chartWidth, chartHeight, labels, datasets, maxValue, scale }) => {
-  const barWidth = chartWidth / labels.length * 0.6;
-  const barSpacing = chartWidth / labels.length * 0.4;
+  const groupWidth = chartWidth / Math.max(1, labels.length);
+  const innerPad = groupWidth * 0.2;
+  const seriesCount = Math.max(1, datasets.length);
+  const barWidth = (groupWidth - innerPad * 2) / seriesCount;
   
   return (
     <Group>
       {labels.map((label: string, i: number) => {
-        const x = chartX + i * (barWidth + barSpacing) + barSpacing / 2;
-        
+        const gx = chartX + i * groupWidth + innerPad;
         return datasets.map((dataset: any, dsIndex: number) => {
-          const value = dataset.data[i] || 0;
+          const value = Number(dataset.data?.[i] || 0);
           const barHeight = (value / maxValue) * chartHeight;
           const y = chartY + chartHeight - barHeight;
-          
+          const x = gx + dsIndex * barWidth;
           return (
             <Rect
               key={`${i}-${dsIndex}`}
@@ -574,25 +725,34 @@ const LineChart: React.FC<{
   return (
     <Group>
       {datasets.map((dataset: any, dsIndex: number) => {
-        const points = dataset.data.map((value: number, i: number) => {
-          const x = chartX + (i / (labels.length - 1)) * chartWidth;
+        const color = dataset.borderColor || dataset.backgroundColor || `hsl(${dsIndex * 60}, 70%, 50%)`;
+        const pts: number[] = [];
+        dataset.data.forEach((value: number, i: number) => {
+          const x = chartX + (i / Math.max(1, labels.length - 1)) * chartWidth;
           const y = chartY + chartHeight - (value / maxValue) * chartHeight;
-          return { x, y };
+          pts.push(x, y);
         });
-        
         return (
           <Group key={dsIndex}>
-            {points.map((point, i) => {
-              if (i === 0) return null;
-              const prevPoint = points[i - 1];
+            <Line
+              points={pts}
+              stroke={color}
+              strokeWidth={2 * scale}
+              lineCap="round"
+              lineJoin="round"
+            />
+            {dataset.data.map((value: number, i: number) => {
+              const x = chartX + (i / Math.max(1, labels.length - 1)) * chartWidth;
+              const y = chartY + chartHeight - (value / maxValue) * chartHeight;
               return (
                 <Rect
-                  key={i}
-                  x={prevPoint.x}
-                  y={prevPoint.y}
-                  width={Math.max(1, point.x - prevPoint.x)}
-                  height={2 * scale}
-                  fill={dataset.borderColor || dataset.backgroundColor || `hsl(${dsIndex * 60}, 70%, 50%)`}
+                  key={`pt-${i}`}
+                  x={x - 1.5 * scale}
+                  y={y - 1.5 * scale}
+                  width={3 * scale}
+                  height={3 * scale}
+                  fill={color}
+                  cornerRadius={1.5 * scale}
                 />
               );
             })}
@@ -614,30 +774,33 @@ const PieChart: React.FC<{
 }> = ({ chartX, chartY, chartWidth, chartHeight, datasets, scale }) => {
   const centerX = chartX + chartWidth / 2;
   const centerY = chartY + chartHeight / 2;
-  const radius = Math.min(chartWidth, chartHeight) / 2 - 10 * scale;
-  
+  const radius = Math.max(0, Math.min(chartWidth, chartHeight) / 2 - 8 * scale);
+
   let currentAngle = 0;
-  const total = datasets[0]?.data.reduce((sum: number, val: number) => sum + val, 0) || 1;
-  
+  const values: number[] = (datasets[0]?.data as number[]) || [];
+  const total = values.reduce((sum: number, val: number) => sum + (Number.isFinite(val) ? val : 0), 0) || 1;
+  const bg = (datasets[0]?.backgroundColor as (string[] | string)) || [];
+  const FALLBACK_PIE_COLORS = ['#007AFF','#FF3B30','#34C759','#FF9500','#AF52DE','#5AC8FA','#FFCC00','#8E8E93','#FF2D92','#30D158'];
+
   return (
     <Group>
-      {datasets[0]?.data.map((value: number, i: number) => {
-        const sliceAngle = (value / total) * 2 * Math.PI;
-        const startAngle = currentAngle;
-        const endAngle = currentAngle + sliceAngle;
-        
-        currentAngle += sliceAngle;
-        
+      {values.map((value: number, i: number) => {
+        const ratio = (Number.isFinite(value) ? value : 0) / total;
+        const sliceAngleDeg = Math.max(0, ratio * 360);
+        const startAngleDeg = (currentAngle * 180) / Math.PI;
+        currentAngle += (sliceAngleDeg * Math.PI) / 180;
+        const fill = Array.isArray(bg) ? (bg[i] || FALLBACK_PIE_COLORS[i % FALLBACK_PIE_COLORS.length]) : FALLBACK_PIE_COLORS[i % FALLBACK_PIE_COLORS.length];
         return (
-          <Rect
+          <WedgeShape
             key={i}
-            x={centerX - radius / 2}
-            y={centerY - radius / 2}
-            width={radius}
-            height={radius}
-            fill={datasets[0].backgroundColor || `hsl(${i * 60}, 70%, 50%)`}
-            cornerRadius={radius / 2}
-            rotation={startAngle * (180 / Math.PI)}
+            x={centerX}
+            y={centerY}
+            radius={radius}
+            angle={sliceAngleDeg}
+            rotation={startAngleDeg}
+            fill={fill}
+            stroke="#ffffff"
+            strokeWidth={1 * scale}
           />
         );
       })}
@@ -665,23 +828,30 @@ const ImageElement: React.FC<{
     }
   }, [element.imageUrl, loadImage]);
 
+  // Use scaled coordinates to match other elements (Stage is also scaled)
+  const dx = element.x * scale;
+  const dy = element.y * scale;
+  const dw = element.width * scale;
+  const dh = element.height * scale;
+  const borderRadius = (element as any).borderRadius || 0;
+
   if (!image || !element.imageUrl) {
     // Show placeholder for errors or missing images
     return (
       <Group>
         <Rect
-          x={element.x * scale}
-          y={element.y * scale}
-          width={element.width * scale}
-          height={element.height * scale}
+          x={dx}
+          y={dy}
+          width={dw}
+          height={dh}
           fill="#f0f0f0"
           stroke="#d0d0d0"
           strokeWidth={1}
           dash={[5, 5]}
         />
         <Text
-          x={element.x * scale + (element.width * scale) / 2}
-          y={element.y * scale + (element.height * scale) / 2}
+          x={dx + dw / 2}
+          y={dy + dh / 2}
           text="⚠️"
           fontSize={12 * scale}
           fontFamily="Arial"
@@ -693,16 +863,50 @@ const ImageElement: React.FC<{
     );
   }
 
+  // Compute crop for object-fit: cover
+  const sRatio = image.width / image.height;
+  const dRatio = dw / dh;
+  let sx = 0, sy = 0, sw = image.width, sh = image.height;
+  if (sRatio > dRatio) {
+    sh = image.height;
+    sw = sh * dRatio;
+    sx = (image.width - sw) / 2;
+  } else {
+    sw = image.width;
+    sh = sw / dRatio;
+    sy = (image.height - sh) / 2;
+  }
+
+  // Rounded clip using Group clipFunc (coordinates centered at 0,0)
+  const clipFunc = borderRadius > 0 ? (ctx: any) => {
+    const r = Math.min(borderRadius * scale, Math.min(dw, dh) / 2);
+    const x = -dw / 2, y = -dh / 2, w = dw, h = dh;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  } : undefined;
+
   return (
-    <KonvaImage
-      x={element.x * scale}
-      y={element.y * scale}
-      width={element.width * scale}
-      height={element.height * scale}
-      image={image}
-      rotation={element.rotation || 0}
-      opacity={(element as any).opacity || 1}
-    />
+    <Group 
+      x={dx + dw / 2} 
+      y={dy + dh / 2} 
+      rotation={(element as any).rotation || 0} 
+      opacity={(element as any).opacity || 1} 
+      clipFunc={clipFunc as any}
+    >
+      <KonvaImage
+        x={-dw / 2}
+        y={-dh / 2}
+        width={dw}
+        height={dh}
+        image={image}
+        crop={{ x: sx, y: sy, width: sw, height: sh }}
+      />
+    </Group>
   );
 };
 

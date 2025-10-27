@@ -1036,16 +1036,26 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
       }
 
       return (
-        <div style={{ width: "100%", height: "100%", position: "relative" }}>
+        <div 
+          style={{ width: "100%", height: "100%", position: "relative" }}
+          onMouseDown={(e) => {
+            // Prevent content from initiating drag; use drag handle like tables
+            e.stopPropagation();
+          }}
+        >
           <img
             src={el.imageUrl || ""}
             alt=""
+            draggable={false}
+            onDragStart={(ev) => ev.preventDefault()}
             style={{
               width: "100%",
               height: "100%",
               objectFit: "cover",
               borderRadius: el.borderRadius || 0,
               display: "block",
+              userSelect: 'none',
+              pointerEvents: 'none', // ensure handles receive events cleanly
             }}
             onError={(e) => {
               // Handle error by showing error state

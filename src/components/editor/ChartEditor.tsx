@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, BarChart3, LineChart, PieChart } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 interface ChartData {
   labels: string[];
@@ -46,7 +46,24 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
     }
   }, [initialData, initialType]);
 
+  // Enforce single dataset for pie charts and keep labels/data in sync
+  useEffect(() => {
+    if (chartType === 'pie') {
+      // keep only first dataset
+      setDatasets(prev => {
+        const first = prev[0] || { label: 'Series 1', data: labels.map(() => 0), color: '#000000' };
+        // sync data length to labels length
+        let data = first.data.slice(0, labels.length);
+        if (data.length < labels.length) {
+          data = [...data, ...new Array(labels.length - data.length).fill(0)];
+        }
+        return [{ ...first, data }];
+      });
+    }
+  }, [chartType, labels]);
+
   const addDataset = () => {
+    if (chartType === 'pie') return; // disallow multiple datasets for pie
     const newDataset = {
       label: `Series ${datasets.length + 1}`,
       data: new Array(labels.length).fill(0),
@@ -56,6 +73,7 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
   };
 
   const removeDataset = (index: number) => {
+    if (chartType === 'pie') return; // cannot remove the only dataset in pie
     if (datasets.length > 1) {
       setDatasets(datasets.filter((_, i) => i !== index));
     }
@@ -107,11 +125,6 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
     onSave(chartData, chartType);
   };
 
-  const chartTypes = [
-    { type: 'bar' as const, icon: BarChart3, label: 'Bar Chart' },
-    { type: 'line' as const, icon: LineChart, label: 'Line Chart' },
-    { type: 'pie' as const, icon: PieChart, label: 'Pie Chart' },
-  ];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -121,128 +134,158 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Chart Type Selection */}
-          <div>
-            <Label className="text-sm font-medium">Chart Type</Label>
-            <div className="grid grid-cols-3 gap-3 mt-2">
-              {chartTypes.map(({ type, icon: Icon, label }) => (
-                <button
-                  key={type}
-                  onClick={() => setChartType(type)}
-                  className={`p-4 rounded-lg border-2 transition-all hover:border-accent ${
-                    chartType === type 
-                      ? 'border-accent bg-accent/5' 
-                      : 'border-border'
-                  }`}
-                >
-                  <Icon className="w-6 h-6 mx-auto mb-2" />
-                  <p className="text-xs text-center">{label}</p>
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Labels Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Labels</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {labels.map((label, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      value={label}
-                      onChange={(e) => updateLabel(index, e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeLabel(index)}
-                      disabled={labels.length === 1}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addLabel}
-                  className="w-full"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Label
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Data Series Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Data Series</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {datasets.map((dataset, datasetIndex) => (
-                  <div key={datasetIndex} className="border rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-3">
+          {/* Pie: combined table-like editor; Others: separate labels/series */}
+          {chartType === 'pie' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Slices (Label & Value)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  <div className="text-xs font-medium text-muted-foreground">Label</div>
+                  <div className="text-xs font-medium text-muted-foreground">Value</div>
+                  <div className="hidden sm:block text-xs font-medium text-muted-foreground">Color</div>
+                  <div className="text-xs font-medium text-muted-foreground">Actions</div>
+                </div>
+                <div className="space-y-2 mt-1">
+                  {labels.map((label, index) => (
+                    <div key={index} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 items-center">
                       <Input
-                        value={dataset.label}
-                        onChange={(e) => updateDataset(datasetIndex, 'label', e.target.value)}
-                        className="flex-1"
-                        placeholder="Series name"
+                        value={label}
+                        onChange={(e) => updateLabel(index, e.target.value)}
+                        className="w-full"
+                      />
+                      <Input
+                        type="number"
+                        value={datasets[0]?.data[index] ?? 0}
+                        onChange={(e) => updateDataPoint(0, index, parseFloat(e.target.value) || 0)}
+                        className="w-full"
                       />
                       <Input
                         type="color"
-                        value={dataset.color}
-                        onChange={(e) => updateDataset(datasetIndex, 'color', e.target.value)}
-                        className="w-12 h-10 p-1"
+                        value={datasets[0]?.color || '#000000'}
+                        onChange={(e) => updateDataset(0, 'color', e.target.value)}
+                        className="w-12 h-10 p-1 hidden sm:block"
                       />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeDataset(datasetIndex)}
-                        disabled={datasets.length === 1}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => removeLabel(index)} disabled={labels.length === 1} className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                      {dataset.data.map((value, dataIndex) => (
-                        <div key={dataIndex} className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">
-                            {labels[dataIndex]}
-                          </Label>
-                          <Input
-                            type="number"
-                            value={value}
-                            onChange={(e) => updateDataPoint(datasetIndex, dataIndex, parseFloat(e.target.value) || 0)}
-                            className="h-8"
-                          />
-                        </div>
-                      ))}
-                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={addLabel} className="w-full">
+                    <Plus className="w-4 h-4 mr-2" /> Add Slice
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Labels Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Labels</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {labels.map((label, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          value={label}
+                          onChange={(e) => updateLabel(index, e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeLabel(index)}
+                          disabled={labels.length === 1}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addLabel}
+                      className="w-full"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Label
+                    </Button>
                   </div>
-                ))}
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addDataset}
-                  className="w-full"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Data Series
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+
+              {/* Data Series Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Data Series</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {datasets.map((dataset, datasetIndex) => (
+                      <div key={datasetIndex} className="border rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Input
+                            value={dataset.label}
+                            onChange={(e) => updateDataset(datasetIndex, 'label', e.target.value)}
+                            className="flex-1"
+                            placeholder="Series name"
+                          />
+                          <Input
+                            type="color"
+                            value={dataset.color}
+                            onChange={(e) => updateDataset(datasetIndex, 'color', e.target.value)}
+                            className="w-12 h-10 p-1"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeDataset(datasetIndex)}
+                            disabled={datasets.length === 1}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                          {dataset.data.map((value, dataIndex) => (
+                            <div key={dataIndex} className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">
+                                {labels[dataIndex]}
+                              </Label>
+                              <Input
+                                type="number"
+                                value={value}
+                                onChange={(e) => updateDataPoint(datasetIndex, dataIndex, parseFloat(e.target.value) || 0)}
+                                className="h-8"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addDataset}
+                      className="w-full"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Data Series
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
         
         <div className="flex justify-end gap-2 pt-4 border-t">
