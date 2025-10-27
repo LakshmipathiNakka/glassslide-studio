@@ -203,21 +203,12 @@ export const useSlideThumbnails = ({
 
   // Generate thumbnail for a slide using off-screen canvas
   const generateThumbnail = useCallback(async (slide: Slide): Promise<string> => {
-    console.log('🎨 GENERATING THUMBNAIL FOR SLIDE:', { 
-      slide, 
-      slideId: slide.id, 
-      background: slide.background,
-      backgroundType: typeof slide.background,
-      slideKeys: Object.keys(slide)
-    });
     
     // Check cache first
     if (thumbnailCache.current.has(slide.id)) {
-      console.log('🎨 USING CACHED THUMBNAIL FOR:', slide.id);
       return thumbnailCache.current.get(slide.id)!;
     }
 
-    console.log('🎨 NO CACHE FOUND, GENERATING NEW THUMBNAIL FOR:', slide.id);
     try {
       // Create off-screen canvas
       const canvas = document.createElement('canvas');
@@ -235,51 +226,33 @@ export const useSlideThumbnails = ({
 
       // Draw background
       const backgroundValue = typeof slide.background === 'string' ? slide.background : (slide.background as any)?.background || '#ffffff';
-      console.log('🎨 DRAWING BACKGROUND:', { 
-        background: slide.background, 
-        backgroundValue,
-        backgroundType: typeof slide.background,
-        isGradient: backgroundValue?.startsWith?.('linear-gradient'),
-        slideKeys: Object.keys(slide),
-        backgroundValueLength: backgroundValue?.length,
-        backgroundValueChars: backgroundValue?.substring(0, 50) + '...'
-      });
       
       if (backgroundValue && backgroundValue.startsWith('linear-gradient')) {
         // Handle gradient backgrounds
-        console.log('🎨 PROCESSING GRADIENT BACKGROUND');
         
         // Test with a known good gradient first
         const testGradientString = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        console.log('🧪 TESTING WITH KNOWN GRADIENT:', testGradientString);
         const testGradient = parseGradient(testGradientString, width, height, ctx);
         if (testGradient) {
-          console.log('✅ TEST GRADIENT PARSING WORKS');
-        } else {
-          console.log('❌ TEST GRADIENT PARSING FAILED');
+          // Test gradient parsing works
         }
         
         const gradient = parseGradient(backgroundValue, width, height, ctx);
         if (gradient) {
-          console.log('✅ USING PARSED GRADIENT');
           ctx.fillStyle = gradient;
         } else {
-          console.log('❌ GRADIENT PARSING FAILED, CREATING FALLBACK GRADIENT');
           // Create a simple fallback gradient to verify gradient rendering works
           const fallbackGradient = ctx.createLinearGradient(0, 0, width, height);
           fallbackGradient.addColorStop(0, '#ff6b6b');
           fallbackGradient.addColorStop(0.5, '#4ecdc4');
           fallbackGradient.addColorStop(1, '#45b7d1');
           ctx.fillStyle = fallbackGradient;
-          console.log('🎨 USING FALLBACK GRADIENT (red to teal to blue)');
         }
       } else {
         // Handle solid color backgrounds
-        console.log('🎨 USING SOLID COLOR:', backgroundValue);
         ctx.fillStyle = backgroundValue;
       }
       ctx.fillRect(0, 0, width, height);
-      console.log('🎨 BACKGROUND DRAWN');
 
       // Draw elements with pixel-perfect scaling
       for (const element of slide.elements) {
@@ -557,7 +530,6 @@ export const useSlideThumbnails = ({
                 const img = await loadImage(imageSrc);
                 ctx.drawImage(img, 0, 0, w, h);
               } catch (error) {
-                console.warn('Failed to load image:', imageSrc, error);
                 // Draw placeholder
                 ctx.fillStyle = '#f0f0f0';
                 ctx.fillRect(0, 0, w, h);
@@ -612,7 +584,6 @@ export const useSlideThumbnails = ({
       
       return dataURL;
     } catch (error) {
-      console.error('Error generating thumbnail:', error);
       // Return a placeholder thumbnail
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjExMiIgdmlld0JveD0iMCAwIDIwMCAxMTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTEyIiBmaWxsPSIjZjBmMGYwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNTYiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OTk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2xpZGUgUHJldmlldzwvdGV4dD4KPC9zdmc+';
     }
@@ -755,15 +726,9 @@ export const useSlideThumbnails = ({
   }, [slides, currentSlide, onSlideChange, onUpdateSlide]);
 
   const handleReorderSlides = useCallback((reorderedSlides: Slide[]) => {
-    console.log('🔧 USE SLIDE THUMBNAILS - handleReorderSlides called:', {
-      hasParentOnReorderSlides: !!parentOnReorderSlides,
-      reorderedSlidesLength: reorderedSlides.length,
-      reorderedSlidesIds: reorderedSlides.map(s => s.id)
-    });
     
     // If parent provides a reorder callback, use it directly
     if (parentOnReorderSlides) {
-      console.log('🔧 USE SLIDE THUMBNAILS - Calling parentOnReorderSlides');
       parentOnReorderSlides(reorderedSlides);
       return;
     }
@@ -812,7 +777,6 @@ export const useSlideThumbnails = ({
     const slideId = updatedSlides[index].id;
     const hadCache = thumbnailCache.current.has(slideId);
     thumbnailCache.current.delete(slideId);
-    console.log('🎨 CLEARED CACHE FOR SLIDE:', { slideId, hadCache, cacheSize: thumbnailCache.current.size });
 
     // Regenerate thumbnail
     generateThumbnail(updatedSlides[index]).then(thumbnail => {
@@ -863,14 +827,12 @@ export const useSlideThumbnails = ({
 
 
   const handleContextMenuAction = useCallback((action: SlideAction, slide: Slide, index: number) => {
-    console.log('🎯 CONTEXT MENU ACTION:', { action, slideId: slide.id, index, hasOnAddSlideAtIndex: !!onAddSlideAtIndex });
     switch (action) {
       case 'add-new':
-        console.log('➕ ADDING NEW SLIDE AT INDEX:', index);
         if (onAddSlideAtIndex) {
           onAddSlideAtIndex(index);
         } else {
-          console.error('❌ onAddSlideAtIndex is not defined!');
+          // onAddSlideAtIndex is not defined
         }
         break;
       case 'duplicate':
@@ -900,12 +862,10 @@ export const useSlideThumbnails = ({
 
   // Modal handlers
   const handleColorChange = useCallback((color: string) => {
-    console.log('🎨 COLOR CHANGE:', { color, currentSlideForSettings, hasOnChangeSlideBackground: !!onChangeSlideBackground });
     if (currentSlideForSettings) {
-      console.log('🎨 CALLING onChangeSlideBackground:', { index: currentSlideForSettings.index, color });
       onChangeSlideBackground?.(currentSlideForSettings.index, color);
     } else {
-      console.error('❌ No currentSlideForSettings found!');
+      // No currentSlideForSettings found
     }
     setShowColorPicker(false);
   }, [currentSlideForSettings, onChangeSlideBackground]);

@@ -9,7 +9,6 @@ export const TestPage = () => {
   useEffect(() => {
     if (targetRef.current) {
       setTarget(targetRef.current);
-      // console.log('Target element set:', targetRef.current);
     }
   }, []);
 
@@ -27,38 +26,32 @@ export const TestPage = () => {
         </div>
 
         {target && (
-          <>
-            {/* console.log('Rendering Moveable with target:', target) */}
-            <Moveable
-              target={target}
-              draggable={true}
-              resizable={true}
-              rotatable={true}
-              onDrag={({ target, transform }) => {
-                // console.log('Drag:', transform);
-                target.style.transform = transform;
-              }}
-              onResize={({ target, width, height, transform }) => {
-                // console.log('Resize:', width, height);
-                target.style.width = `${width}px`;
-                target.style.height = `${height}px`;
-                target.style.transform = transform;
-              }}
-              onRotate={({ target, transform }) => {
-                // console.log('Rotate:', transform);
-                target.style.transform = transform;
-              }}
-              style={{
-                zIndex: 1000,
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                pointerEvents: 'auto',
-              }}
-            />
-          </>
+          <Moveable
+            target={target}
+            draggable={true}
+            resizable={true}
+            rotatable={true}
+            onDrag={({ target, transform }) => {
+              target.style.transform = transform;
+            }}
+            onResize={({ target, width, height, transform }) => {
+              target.style.width = `${width}px`;
+              target.style.height = `${height}px`;
+              target.style.transform = transform;
+            }}
+            onRotate={({ target, transform }) => {
+              target.style.transform = transform;
+            }}
+            style={{
+              zIndex: 1000,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'auto',
+            }}
+          />
         )}
       </div>
       

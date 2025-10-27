@@ -145,7 +145,7 @@ export const Hero = () => {
               <div className="flex-responsive pt-4">
         <Button 
           size="lg" 
-          onClick={() => navigate('/simple-enhanced')}
+          onClick={() => navigate('/editor')}
           className="touch-button bg-black text-white hover:bg-gray-800 transition-all duration-300 group btn-ripple btn-click btn-magnetic w-full sm:w-auto"
           aria-label="Start creating your presentation"
         >

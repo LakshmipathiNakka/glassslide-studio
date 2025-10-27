@@ -32,7 +32,7 @@ export const CTA = () => {
           <div className="flex flex-wrap gap-6 justify-center pt-8">
         <Button 
           size="lg" 
-          onClick={() => window.location.href = '/simple-enhanced'}
+          onClick={() => window.location.href = '/editor'}
           className="bg-black text-white hover:bg-gray-800 transition-all duration-300 px-12 py-8 text-xl font-semibold rounded-2xl group btn-ripple btn-click btn-magnetic btn-particle"
         >
           Get Started Free

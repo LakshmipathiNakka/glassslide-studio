@@ -91,7 +91,6 @@ const RippleMenuItem = ({
     <>
       <motion.button
         onMouseDown={(e) => {
-          console.log('🎯 MENU ITEM MOUSE DOWN:', { label, action: onClick.name, event: e });
           e.preventDefault();
           e.stopPropagation();
           
@@ -231,10 +230,7 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
   }, [onClose]);
 
   const handleAction = useCallback((action: SlideAction) => {
-    console.log('🎯 SLIDE CONTEXT MENU - Action clicked:', { action, slideId: slide.id, index });
-    console.log('🎯 SLIDE CONTEXT MENU - Calling onAction with:', { action, slide, index });
     onAction(action, slide, index);
-    console.log('🎯 SLIDE CONTEXT MENU - Calling onClose');
     // Add a small delay to ensure the action is processed before closing
     setTimeout(() => {
       onClose();
@@ -314,7 +310,6 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
       >
             <div className="py-1">
               {menuItems.map((item, i) => {
-                console.log('🎯 RENDERING MENU ITEM:', { item: item.label, action: item.action, disabled: item.disabled });
                 return item.separator ? (
                   <div
                     key={`sep-${i}`}
@@ -331,7 +326,6 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
                     label={item.label}
                     description={item.description}
                     onClick={() => {
-                      console.log('🎯 MENU ITEM ONCLICK TRIGGERED:', { label: item.label, action: item.action, disabled: item.disabled });
                       if (!item.disabled) {
                         handleAction(item.action as SlideAction);
                       }

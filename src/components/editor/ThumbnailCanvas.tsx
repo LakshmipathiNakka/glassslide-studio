@@ -23,7 +23,6 @@ try {
   PathShape = konva.Path;
   useKonva = true;
 } catch (error) {
-  console.warn('React Konva not available, using HTML5 Canvas fallback');
   useKonva = false;
 }
 
@@ -404,61 +403,6 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
   );
 };
 
-// Helper component for image elements
-const ImageElement: React.FC<{
-  element: Element;
-  scale: number;
-  loadImage: (src: string) => Promise<HTMLImageElement>;
-}> = ({ element, scale, loadImage }) => {
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
-
-  useEffect(() => {
-    if (element.imageUrl) {
-      loadImage(element.imageUrl).then(setImage);
-    }
-  }, [element.imageUrl, loadImage]);
-
-  if (!image) {
-    // Show placeholder while loading
-    return (
-      <Group>
-        <Rect
-          x={element.x * scale}
-          y={element.y * scale}
-          width={element.width * scale}
-          height={element.height * scale}
-          fill="#f0f0f0"
-          stroke="#d0d0d0"
-          strokeWidth={1}
-          dash={[5, 5]}
-        />
-        <Text
-          x={element.x * scale + (element.width * scale) / 2}
-          y={element.y * scale + (element.height * scale) / 2}
-          text="📷"
-          fontSize={12 * scale}
-          fontFamily="Arial"
-          fill="#999999"
-          align="center"
-          verticalAlign="middle"
-        />
-      </Group>
-    );
-  }
-
-  return (
-    <KonvaImage
-      x={element.x * scale}
-      y={element.y * scale}
-      width={element.width * scale}
-      height={element.height * scale}
-      image={image}
-      rotation={element.rotation || 0}
-      opacity={(element as any).opacity || 1}
-    />
-  );
-};
-
 // Helper component for chart elements
 const ChartElement: React.FC<{
   element: Element;
@@ -698,6 +642,67 @@ const PieChart: React.FC<{
         );
       })}
     </Group>
+  );
+};
+
+// Helper component for image elements
+const ImageElement: React.FC<{
+  element: Element;
+  scale: number;
+  loadImage: (src: string) => Promise<HTMLImageElement>;
+}> = ({ element, scale, loadImage }) => {
+  const [image, setImage] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (element.imageUrl) {
+      loadImage(element.imageUrl)
+        .then(setImage)
+        .catch(() => {
+          setImage(null);
+        });
+    } else {
+      setImage(null);
+    }
+  }, [element.imageUrl, loadImage]);
+
+  if (!image || !element.imageUrl) {
+    // Show placeholder for errors or missing images
+    return (
+      <Group>
+        <Rect
+          x={element.x * scale}
+          y={element.y * scale}
+          width={element.width * scale}
+          height={element.height * scale}
+          fill="#f0f0f0"
+          stroke="#d0d0d0"
+          strokeWidth={1}
+          dash={[5, 5]}
+        />
+        <Text
+          x={element.x * scale + (element.width * scale) / 2}
+          y={element.y * scale + (element.height * scale) / 2}
+          text="⚠️"
+          fontSize={12 * scale}
+          fontFamily="Arial"
+          fill="#999999"
+          align="center"
+          verticalAlign="middle"
+        />
+      </Group>
+    );
+  }
+
+  return (
+    <KonvaImage
+      x={element.x * scale}
+      y={element.y * scale}
+      width={element.width * scale}
+      height={element.height * scale}
+      image={image}
+      rotation={element.rotation || 0}
+      opacity={(element as any).opacity || 1}
+    />
   );
 };
 

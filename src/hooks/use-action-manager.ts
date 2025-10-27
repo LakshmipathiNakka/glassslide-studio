@@ -27,7 +27,7 @@ export interface Element {
   verticalAlign?: 'top' | 'middle' | 'bottom';
   letterSpacing?: number;
   padding?: number;
-  borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double';
+  borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'none';
   opacity?: number;
   color?: string;
   backgroundColor?: string;
@@ -39,7 +39,7 @@ export interface Element {
   transform?: string;
   clipPath?: string;
   zIndex?: number;
-  imageUrl?: string;
+  imageUrl?: string; // Image specific
   selected?: boolean;
   rotation?: number;
 
@@ -49,7 +49,6 @@ export interface Element {
   tableData?: string[][]; // per-cell HTML/text content
   cellPadding?: number;
   cellTextAlign?: 'left' | 'center' | 'right';
-  tableBackground?: string; // if not provided, use backgroundColor
   header?: boolean;
   headerBg?: string;
   headerTextColor?: string;

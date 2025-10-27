@@ -29,7 +29,6 @@ const Index = () => {
                 <a href="/powerpoint" className="block text-gray-600 hover:text-black transition-colors duration-300 font-light text-sm sm:text-base">🚀 Enhanced PowerPoint Editor</a>
                 <a href="/simple-professional" className="block text-gray-600 hover:text-black transition-colors duration-300 font-light text-sm sm:text-base">Try Simple Professional</a>
                 <a href="/professional" className="block text-gray-600 hover:text-black transition-colors duration-300 font-light text-sm sm:text-base">Full Professional Editor</a>
-                <a href="/simple-enhanced" className="block text-gray-600 hover:text-black transition-colors duration-300 font-light text-sm sm:text-base">Simple Editor</a>
                 <a href="#" className="block text-gray-600 hover:text-black transition-colors duration-300 font-light text-sm sm:text-base">Pricing</a>
                 <a href="#" className="block text-gray-600 hover:text-black transition-colors duration-300 font-light text-sm sm:text-base">Examples</a>
               </div>

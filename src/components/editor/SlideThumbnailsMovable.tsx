@@ -20,7 +20,6 @@ const SlideThumbnailsMovable: React.FC<SlideThumbnailsProps> = ({
   onReorderSlides,
   onAddSlide,
 }) => {
-  console.log('🎯 SLIDE THUMBNAILS MOVABLE - Component rendered');
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -40,14 +39,12 @@ const SlideThumbnailsMovable: React.FC<SlideThumbnailsProps> = ({
         <List
           values={slides}
           onChange={({ oldIndex, newIndex }) => {
-            console.log('🔄 REACT-MOVABLE - Reordering:', { oldIndex, newIndex });
             
             const newOrder = arrayMove(slides, oldIndex, newIndex);
             onReorderSlides(newOrder);
 
             // Don't change the current slide - keep editing the same slide
             // The slide content will stay with the same slide ID
-            console.log('🔄 REACT-MOVABLE - Keeping current slide unchanged');
           }}
           renderList={({ children, props, isDragged }) => (
             <div 
@@ -65,12 +62,6 @@ const SlideThumbnailsMovable: React.FC<SlideThumbnailsProps> = ({
                 currentSlide === index ? "active" : ""
               } ${isDragged ? "dragging" : ""}`}
               onClick={() => {
-                console.log('🔄 REACT-MOVABLE - Slide clicked:', { 
-                  index, 
-                  slideId: slide.id,
-                  elementCount: slide.elements?.length || 0,
-                  lastUpdated: slide.lastUpdated
-                });
                 onSlideChange(index);
               }}
             >

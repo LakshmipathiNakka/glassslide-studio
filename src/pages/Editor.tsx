@@ -125,6 +125,26 @@ const Editor = () => {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "File Too Large",
+            description: "Please select an image smaller than 10MB.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "Invalid File Type",
+            description: "Please select a valid image file.",
+            variant: "destructive"
+          });
+          return;
+        }
+
         const reader = new FileReader();
         reader.onload = (e) => {
           const imageUrl = e.target?.result as string;
@@ -135,15 +155,24 @@ const Editor = () => {
             y: 100,
             width: 200,
             height: 150,
-            content: imageUrl,
+            imageUrl: imageUrl,
           };
           updateCurrentSlide([...currentElements, newElement]);
-          
+
           toast({
             title: "Image Added",
             description: "Image has been added to the slide.",
           });
         };
+
+        reader.onerror = () => {
+          toast({
+            title: "Upload Error",
+            description: "Failed to read the image file. Please try again.",
+            variant: "destructive"
+          });
+        };
+
         reader.readAsDataURL(file);
       }
     };
@@ -286,10 +315,10 @@ const Editor = () => {
             };
             
             pptxSlide.addText(element.content || 'Text', textOptions);
-          } else if (element.type === 'image' && element.content) {
+          } else if (element.type === 'image' && element.imageUrl) {
             // Handle image export
             pptxSlide.addImage({
-              data: element.content,
+              data: element.imageUrl,
               x, y, w, h
             });
           } else if (element.type === 'shape' && element.shapeType === 'rectangle') {
@@ -348,7 +377,6 @@ const Editor = () => {
         description: "Your presentation has been exported to PowerPoint with enhanced formatting.",
       });
     } catch (error) {
-      console.error('Export error:', error);
       toast({
         title: "Export Error",
         description: "Failed to export presentation. Please try again.",
@@ -400,7 +428,6 @@ const Editor = () => {
   };
 
   const handleAddSlideAtIndex = (index: number) => {
-    console.log('🎯 EDITOR - handleAddSlideAtIndex called:', { index, currentSlidesCount: slides.length });
     const newSlide: Slide = { 
       id: Date.now().toString(), 
       elements: [],
@@ -411,10 +438,8 @@ const Editor = () => {
     };
     const newSlides = [...slides];
     newSlides.splice(index + 1, 0, newSlide);
-    console.log('🎯 EDITOR - New slides array:', { newSlidesCount: newSlides.length, newSlideId: newSlide.id });
     pushSlides(newSlides);
     setCurrentSlide(index + 1);
-    console.log('🎯 EDITOR - Set current slide to:', index + 1);
   };
 
   const handleDuplicateSlide = (index: number) => {
@@ -464,28 +489,18 @@ const Editor = () => {
 
 
   const handleChangeSlideBackground = (index: number, background: string) => {
-    console.log('🎨 EDITOR - handleChangeSlideBackground called:', { index, background, currentSlidesCount: slides.length });
     const newSlides = [...slides];
     newSlides[index] = { ...newSlides[index], background, lastUpdated: Date.now() };
-    console.log('🎨 EDITOR - Updated slide background:', { slideId: newSlides[index].id, background: newSlides[index].background });
     pushSlides(newSlides);
-    console.log('🎨 EDITOR - Background change completed');
   };
 
 
   const handleReorderSlides = (reorderedSlides: Slide[]) => {
-    console.log('🔄 EDITOR - Reordering slides:', {
-      currentSlide,
-      reorderedCount: reorderedSlides.length,
-      reorderedIds: reorderedSlides.map(s => s.id)
-    });
-    
     // Update slides with timestamp
     const updatedSlides = reorderedSlides.map(slide => ({ ...slide, lastUpdated: Date.now() }));
     pushSlides(updatedSlides);
     
     // Keep the same current slide index - the content will stay with the same slide
-    console.log('🔄 EDITOR - Keeping current slide index:', currentSlide);
   };
 
   // Keyboard shortcuts

@@ -159,13 +159,6 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
       reordered.splice(dropIndex, 0, movedSlide);
 
       // Update parent slides array
-      console.log('🔄 ENHANCED THUMBNAILS - Calling onReorderSlides with:', {
-        reorderedLength: reordered.length,
-        reorderedIds: reordered.map(s => s.id),
-        hasOnReorderSlides: !!onReorderSlides,
-        onReorderSlidesType: typeof onReorderSlides
-      });
-      
       if (onReorderSlides) {
         onReorderSlides(reordered);
       }
@@ -179,17 +172,14 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
   );
 
   const handleContextMenu = useCallback((event: React.MouseEvent, slide: Slide, index: number) => {
-    console.log('🎯 RIGHT CLICK DETECTED:', { slideId: slide.id, index, x: event.clientX, y: event.clientY });
     event.preventDefault();
     setContextMenu({ slide, index, x: event.clientX, y: event.clientY });
-    console.log('🎯 CONTEXT MENU STATE SET:', { slideId: slide.id, index });
   }, []);
 
   const handleCloseContextMenu = useCallback(() => setContextMenu(null), []);
 
   const handleContextAction = useCallback(
     (action: SlideAction, slide: Slide, index: number) => {
-      console.log('🎯 ENHANCED THUMBNAILS - Context action triggered:', { action, slideId: slide.id, index, hasOnContextMenuAction: !!onContextMenuAction });
     onContextMenuAction(action, slide, index);
     setContextMenu(null);
     },
@@ -302,7 +292,6 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
       <AnimatePresence>
         {contextMenu && (
           <>
-            {console.log('🎯 RENDERING CONTEXT MENU:', { slideId: contextMenu.slide.id, index: contextMenu.index })}
           <SlideContextMenu
             slide={contextMenu.slide}
             index={contextMenu.index}

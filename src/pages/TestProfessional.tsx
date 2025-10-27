@@ -37,20 +37,6 @@ export default function TestProfessional() {
             </a>
           </div>
 
-          {/* Simple Enhanced Editor */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Simple Enhanced Editor</h2>
-            <p className="text-gray-600 mb-4">
-              The existing enhanced editor with canvas and element management.
-            </p>
-            <a 
-              href="/simple-enhanced"
-              className="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-            >
-              Try Simple Enhanced Editor
-            </a>
-          </div>
-
           {/* Home Page */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">Home Page</h2>
@@ -76,10 +62,6 @@ export default function TestProfessional() {
             <div className="flex items-center">
               <span className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></span>
               <span>Full Professional Editor - Dependency Issues</span>
-            </div>
-            <div className="flex items-center">
-              <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
-              <span>Simple Enhanced Editor - Working</span>
             </div>
             <div className="flex items-center">
               <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>

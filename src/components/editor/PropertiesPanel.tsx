@@ -201,6 +201,12 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
     }
   };
 
+  const handleThemeSelect = (theme: TableTheme) => {
+    if (!selectedElement || selectedElement.type !== 'table') return;
+    const updatedElement = applyTableTheme(selectedElement, theme);
+    onElementUpdate(selectedElement.id, updatedElement);
+  };
+
   const getChartIcon = (chartType: string) => {
     switch (chartType) {
       case 'bar': return <BarChart3 className="w-4 h-4" />;
@@ -213,25 +219,36 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
   const renderThemePreview = (theme: TableTheme) => {
     const isSelected = selectedElement?.themeId === theme.id;
     return (
-      <div
+      <motion.div
         key={theme.id}
-        className={`relative rounded-lg p-2 border-2 ${isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'} cursor-pointer transition-colors`}
+        className={`relative rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer group ${
+          isSelected
+            ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50/50'
+            : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white/80'
+        }`}
         onClick={() => handleThemeSelect(theme)}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
-        <div className="flex flex-col w-full h-24 overflow-hidden rounded-md border border-gray-200">
+        {/* Selection indicator */}
+        {isSelected && (
+          <div className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+        )}
+
+        <div className="flex flex-col w-full h-32 sm:h-36 overflow-hidden rounded-lg border border-gray-200 shadow-sm">
           {/* Header */}
           <div
-            className="h-4 w-full flex items-center justify-center text-xs font-medium"
+            className="h-6 sm:h-7 w-full flex items-center justify-center text-xs font-semibold px-1"
             style={{ backgroundColor: theme.headerBg, color: theme.headerTextColor }}
           >
             Header
           </div>
           {/* Rows */}
           <div className="flex-1 flex flex-col">
-            {[0, 1].map((row) => (
+            {[0, 1, 2, 3].map((row) => (
               <div
                 key={row}
-                className={`h-3 w-full ${row % 2 === 0 ? 'opacity-80' : 'opacity-60'}`}
+                className={`h-3 sm:h-4 w-full ${row % 2 === 0 ? 'opacity-90' : 'opacity-70'} transition-opacity`}
                 style={{
                   backgroundColor: row % 2 === 0 ? theme.rowEvenBg : theme.rowOddBg,
                   color: theme.textColor
@@ -240,10 +257,40 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
             ))}
           </div>
         </div>
-        <div className="mt-2 text-xs font-medium text-center text-gray-700">
-          {theme.name}
+
+        {/* Theme name */}
+        <div className="mt-4 text-center">
+          <div className={`text-sm font-semibold transition-colors ${
+            isSelected ? 'text-blue-700' : 'text-gray-700 group-hover:text-gray-900'
+          }`}>
+            {theme.name}
+          </div>
+          {/* Color indicators */}
+          <div className="flex justify-center gap-2 mt-2">
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className="w-3 h-3 rounded-full border border-gray-200 shadow-sm"
+                style={{ backgroundColor: theme.headerBg }}
+              />
+              <span className="text-xs text-gray-500">Header</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className="w-3 h-3 rounded-full border border-gray-200 shadow-sm"
+                style={{ backgroundColor: theme.rowEvenBg }}
+              />
+              <span className="text-xs text-gray-500">Row</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className="w-3 h-3 rounded-full border border-gray-200 shadow-sm"
+                style={{ backgroundColor: theme.borderColor }}
+              />
+              <span className="text-xs text-gray-500">Border</span>
+            </div>
+          </div>
         </div>
-      </div>
+      </motion.div>
     );
   };
 
@@ -787,11 +834,11 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     <div title="Table Themes">
                       <Palette className="w-4 h-4" />
                     </div>
-                    Table Themes
+                    <span className="text-sm sm:text-base">Table Themes</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-5">
                     {TABLE_THEMES.map(theme => renderThemePreview(theme))}
                   </div>
                 </AccordionContent>
@@ -804,12 +851,12 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     <div title="Table Structure">
                       <Table className="w-4 h-4" />
                     </div>
-                    Table Structure
+                    <span className="text-sm sm:text-base">Table Structure</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 space-y-4">
                   <div className="flex items-center justify-between">
-                    <Label>Rows: {selectedElement.rows || 1}</Label>
+                    <Label className="text-sm">Rows: {selectedElement.rows || 1}</Label>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={handleRemoveRow} disabled={(selectedElement.rows || 1) <= 1}>
                         <Minus className="h-4 w-4" />
@@ -820,7 +867,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label>Columns: {selectedElement.cols || 1}</Label>
+                    <Label className="text-sm">Columns: {selectedElement.cols || 1}</Label>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={handleRemoveColumn} disabled={(selectedElement.cols || 1) <= 1}>
                         <Minus className="h-4 w-4" />
@@ -840,7 +887,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     <div title="Table Styling">
                       <Palette className="w-4 h-4" />
                     </div>
-                    Table Styling
+                    <span className="text-sm sm:text-base">Table Styling</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 space-y-4">
@@ -897,17 +944,6 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     />
                   </div>
 
-                  {/* Table Background Color */}
-                  <div>
-                    <Label className="text-sm font-medium">Table Background Color</Label>
-                    <Input
-                      type="color"
-                      value={selectedElement.tableBackground || '#FFFFFF'}
-                      onChange={(e) => onElementUpdate(selectedElement.id, { tableBackground: e.target.value })}
-                      className="w-full"
-                    />
-                  </div>
-
                   {/* Header Background Color */}
                   <div>
                     <Label className="text-sm font-medium">Header Background Color</Label>
@@ -937,17 +973,6 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                       type="color"
                       value={selectedElement.color || '#000000'}
                       onChange={(e) => onElementUpdate(selectedElement.id, { color: e.target.value })}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Corner Radius */}
-                  <div>
-                    <Label className="text-sm font-medium">Corner Radius: {selectedElement.borderRadius || 0}px</Label>
-                    <Slider
-                      value={[selectedElement.borderRadius || 0]}
-                      onValueChange={([value]) => onElementUpdate(selectedElement.id, { borderRadius: value })}
-                      min={0} max={20} step={1}
                       className="w-full"
                     />
                   </div>

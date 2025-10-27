@@ -346,7 +346,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               className="w-8 h-8 p-0"
               onClick={() => {
                 // Additional formatting options would go here
-                // console.log('More options');
               }}
             >
               <MoreHorizontal className="w-4 h-4" />

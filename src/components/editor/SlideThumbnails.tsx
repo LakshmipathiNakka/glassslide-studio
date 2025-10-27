@@ -70,13 +70,6 @@ export const SlideThumbnails = ({
     onRenameSlide,
     onChangeSlideBackground,
   });
-
-  console.log('🔧 SLIDE THUMBNAILS - Props received:', { 
-    hasOnAddSlideAtIndex: !!onAddSlideAtIndex,
-    hasOnDuplicateSlide: !!onDuplicateSlide,
-    hasOnDeleteSlide: !!onDeleteSlide,
-    slidesCount: slides.length
-  });
   
 
   return (
@@ -102,7 +95,6 @@ export const SlideThumbnails = ({
         <ColorPicker
           isOpen={showColorPicker}
           onClose={() => {
-            console.log('🎨 COLOR PICKER - Closing without change');
             // Just close the picker without changing the color
             // The hook should handle closing the picker
           }}

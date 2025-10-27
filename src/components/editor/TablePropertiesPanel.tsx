@@ -229,17 +229,6 @@ export const TablePropertiesPanel: React.FC<TablePropertiesPanelProps> = ({ sele
                     />
                   </div>
 
-                  {/* Table Background Color */}
-                  <div>
-                    <Label className="text-sm font-medium">Table Background Color</Label>
-                    <Input
-                      type="color"
-                      value={localElement.tableBackground || '#FFFFFF'}
-                      onChange={(e) => handlePropertyChange('tableBackground', e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-
                   {/* Header Background Color */}
                   <div>
                     <Label className="text-sm font-medium">Header Background Color</Label>
@@ -269,17 +258,6 @@ export const TablePropertiesPanel: React.FC<TablePropertiesPanelProps> = ({ sele
                       type="color"
                       value={localElement.color || '#000000'}
                       onChange={(e) => handlePropertyChange('color', e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Corner Radius */}
-                  <div>
-                    <Label className="text-sm font-medium">Corner Radius: {localElement.borderRadius || 0}px</Label>
-                    <Slider
-                      value={[localElement.borderRadius || 0]}
-                      onValueChange={([value]) => handlePropertyChange('borderRadius', value)}
-                      min={0} max={20} step={1}
                       className="w-full"
                     />
                   </div>

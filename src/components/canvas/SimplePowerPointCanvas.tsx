@@ -37,7 +37,6 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
   onElementAdd,
   onElementDelete,
 }) => {
-  console.log('🎨 CANVAS - Received background:', { background, elementsCount: propElements.length });
   const containerRef = useRef<HTMLDivElement | null>(null);
   const slideRef = useRef<HTMLDivElement | null>(null);
   const elements = propElements; // Use propElements directly for real-time updates
@@ -1015,17 +1014,78 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     }
 
     if (el.type === "image") {
+      if (!el.imageUrl) {
+        return (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#f5f5f5",
+              border: "2px dashed #ccc",
+              borderRadius: "8px",
+            }}
+          >
+            <span style={{ color: "#999", fontSize: "14px" }}>
+              No image
+            </span>
+          </div>
+        );
+      }
+
       return (
-        <img
-          src={el.imageUrl || ""}
-          alt=""
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            borderRadius: el.borderRadius || 0,
-          }}
-        />
+        <div style={{ width: "100%", height: "100%", position: "relative" }}>
+          <img
+            src={el.imageUrl || ""}
+            alt=""
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              borderRadius: el.borderRadius || 0,
+              display: "block",
+            }}
+            onError={(e) => {
+              // Handle error by showing error state
+              const target = e.target as HTMLImageElement;
+              const parent = target.parentElement;
+              if (parent && !parent.querySelector('.image-error-placeholder')) {
+                target.style.display = 'none';
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'image-error-placeholder';
+                errorDiv.style.cssText = `
+                  width: 100%;
+                  height: 100%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  background-color: #f5f5f5;
+                  border: 2px dashed #ccc;
+                  border-radius: 8px;
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                `;
+                errorDiv.innerHTML = '<span style="color: #999; font-size: 14px;">Failed to load image</span>';
+                parent.appendChild(errorDiv);
+              }
+            }}
+            onLoad={(e) => {
+              // Hide any error placeholder when image loads successfully
+              const target = e.target as HTMLImageElement;
+              const parent = target.parentElement;
+              if (parent) {
+                const errorDiv = parent.querySelector('.image-error-placeholder');
+                if (errorDiv) {
+                  errorDiv.remove();
+                }
+                target.style.display = 'block';
+              }
+            }}
+          />
+        </div>
       );
     }
 
@@ -1040,13 +1100,17 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
       const borderColor = el.borderColor || '#D9D9D9';
       const borderWidth = (el.borderWidth ?? 1);
       const borderStyle = (el as any).borderStyle || 'solid';
-      const tableBg = (el as any).tableBackground || el.backgroundColor || '#FFFFFF';
       const textAlign = el.cellTextAlign || 'left';
       const opacity = (el as any).opacity ?? 1;
       const header = (el as any).header ?? false;
       const headerBg = (el as any).headerBg || '#E7E6E6';
       const headerTextColor = (el as any).headerTextColor || '#111827';
       const rowAltBg = (el as any).rowAltBg || null;
+
+      // Get theme-based colors
+      const rowEvenBg = el.backgroundColor || '#FFFFFF'; // From theme
+      const rowOddBg = rowAltBg || 'transparent';
+      const textColor = el.color || '#000000';
 
       const handleCellCommit = (r: number, c: number, html: string) => {
         const next = tableData.map(row => row.slice());
@@ -1068,11 +1132,10 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
             display: 'grid',
             gridTemplateColumns: `repeat(${cols}, 1fr)`,
             gridTemplateRows: `repeat(${rows}, 1fr)`,
-            background: tableBg,
+            background: 'transparent',
             boxSizing: 'border-box',
             border: borderStyle === 'none' || borderWidth === 0 ? undefined : `${borderWidth}px ${borderStyle} ${borderColor}`,
             opacity,
-            borderRadius: (el.borderRadius || 0) as any,
             boxShadow: (el as any).shadow ? `0 8px ${(el as any).shadowBlur ?? 20}px rgba(0,0,0,0.15)` : undefined,
           }}
           onMouseDown={(e) => {
@@ -1117,8 +1180,10 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
                   overflow: 'hidden',
                   textAlign: textAlign as any,
                   caretColor: '#000',
-                  background: header && r === 0 ? headerBg : (rowAltBg && ((header ? r - 1 : r) % 2 === 1) ? rowAltBg : 'transparent'),
-                  color: header && r === 0 ? headerTextColor : (el.color || '#000'),
+                  background: header && r === 0
+                    ? headerBg
+                    : ((header ? r - 1 : r) % 2 === 0 ? rowEvenBg : rowOddBg),
+                  color: header && r === 0 ? headerTextColor : textColor,
                   fontWeight: header && r === 0 ? 600 : (el.fontWeight || 'normal'),
                   fontFamily: el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
                   fontSize: (el.fontSize || 16) as any,
@@ -1132,7 +1197,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     }
 
     return null;
-  }, [onElementUpdate, selectedElement, onElementDelete]);
+  }, [onElementUpdate, selectedElement, onElementDelete, onElementSelect]);
 
   // build element styles (slide-space units) - Optimized for performance
   const buildElementStyle = (el: SlideElement) => {

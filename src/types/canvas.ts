@@ -48,7 +48,6 @@ export interface SlideElement {
   tableData?: string[][];
   cellPadding?: number;
   cellTextAlign?: 'left' | 'center' | 'right';
-  tableBackground?: string;
   header?: boolean;
   headerBg?: string;
   headerTextColor?: string;
