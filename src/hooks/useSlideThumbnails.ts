@@ -302,22 +302,29 @@ export const useSlideThumbnails = ({
               ctx.stroke();
             }
             
-            const text = element.text || element.content || element.placeholder || 'Text';
-            const lines = text.split('\n');
-            const lineHeight = (element.fontSize || 16) * scale * (element.lineHeight || 1.2);
-            
-            // Apply text transform
-            let processedText = text;
-            if (element.textTransform === 'uppercase') processedText = text.toUpperCase();
-            else if (element.textTransform === 'lowercase') processedText = text.toLowerCase();
-            else if (element.textTransform === 'capitalize') processedText = text.replace(/\b\w/g, l => l.toUpperCase());
-            
-            lines.forEach((line, index) => {
-              const processedLine = element.textTransform === 'uppercase' ? line.toUpperCase() :
-                                  element.textTransform === 'lowercase' ? line.toLowerCase() :
-                                  element.textTransform === 'capitalize' ? line.replace(/\b\w/g, l => l.toUpperCase()) : line;
-              ctx.fillText(processedLine, 0, index * lineHeight);
-            });
+            // Resolve display text without placeholders or HTML
+            const raw = (element.text || (typeof element.content === 'string' ? element.content : '') || '').toString();
+            const tmp = document.createElement('div');
+            tmp.innerHTML = raw;
+            const safeText = (tmp.textContent || tmp.innerText || '').trim();
+            const text = safeText;
+            if (text.length > 0) {
+              const lines = text.split('\n');
+              const lineHeight = (element.fontSize || 16) * scale * (element.lineHeight || 1.2);
+              
+              // Apply text transform
+              let processedText = text;
+              if (element.textTransform === 'uppercase') processedText = text.toUpperCase();
+              else if (element.textTransform === 'lowercase') processedText = text.toLowerCase();
+              else if (element.textTransform === 'capitalize') processedText = text.replace(/\b\w/g, l => l.toUpperCase());
+              
+              lines.forEach((line, index) => {
+                const processedLine = element.textTransform === 'uppercase' ? line.toUpperCase() :
+                                    element.textTransform === 'lowercase' ? line.toLowerCase() :
+                                    element.textTransform === 'capitalize' ? line.replace(/\b\w/g, l => l.toUpperCase()) : line;
+                ctx.fillText(processedLine, 0, index * lineHeight);
+              });
+            }
             break;
 
           case 'shape':

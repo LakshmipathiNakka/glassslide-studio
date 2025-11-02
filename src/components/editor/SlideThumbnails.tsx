@@ -19,6 +19,9 @@ interface SlideThumbnailsProps {
   onDeleteSlide?: (index: number) => void;
   onRenameSlide?: (index: number, title: string) => void;
   onChangeSlideBackground?: (index: number, background: string) => void;
+  // Live override for current slide elements during drag/resize
+  liveElements?: any[] | null;
+  liveSlideIndex?: number;
 }
 
 export const SlideThumbnails = ({ 
@@ -33,7 +36,21 @@ export const SlideThumbnails = ({
   onDeleteSlide,
   onRenameSlide,
   onChangeSlideBackground,
+  liveElements,
+  liveSlideIndex,
 }: SlideThumbnailsProps) => {
+  // If live elements are present for the current slide, override them for preview only
+  const slidesForPreview = (() => {
+    if (Array.isArray(liveElements) && typeof (liveSlideIndex) === 'number') {
+      const copy = slides.map(s => ({ ...s }));
+      if (copy[liveSlideIndex]) {
+        copy[liveSlideIndex] = { ...copy[liveSlideIndex], elements: liveElements as any } as any;
+      }
+      return copy;
+    }
+    return slides;
+  })();
+
   const {
     slides: enhancedSlides,
     currentSlide: enhancedCurrentSlide,
@@ -58,7 +75,7 @@ export const SlideThumbnails = ({
     handleTitleConfirm,
     handleTitleCancel,
   } = useSlideThumbnails({
-    slides,
+    slides: slidesForPreview,
     currentSlide,
     onSlideChange,
     onAddSlide,

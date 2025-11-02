@@ -18,16 +18,123 @@ import { Logo } from "@/components/landing/Logo";
 import { Slide } from "@/types/slide-thumbnails";
 import { Element } from "@/hooks/use-action-manager";
 import pptxgen from "pptxgenjs";
+import { useSmartLayoutApply } from "@/hooks/useSmartLayoutApply.tsx";
+
+// Default slide templates (Apple Keynote / PowerPoint inspired)
+function createTitleSlidePlaceholders(now: number): Element[] {
+  // Canonical slide size is 960x540 (16:9). Defaults mapped from 1280x720 at 0.75 scale
+  const slideW = 960;
+  const slideH = 540;
+  const titleW = 600; // 800 * 0.75
+  const titleH = 75;  // 100 * 0.75
+  const titleX = Math.round((slideW - titleW) / 2);
+  const titleY = 45; // 60 * 0.75
+
+  const subtitleW = 600;
+  const subtitleH = 60;
+  const subtitleX = Math.round((slideW - subtitleW) / 2);
+  const subtitleY = titleY + titleH + 20; // spacing 20px
+
+  return [
+    {
+      id: `title-${now}`,
+      type: 'text',
+      x: titleX,
+      y: titleY,
+      width: titleW,
+      height: titleH,
+      text: '',
+      placeholder: 'Click here to add Title',
+      fontSize: 36,
+      fontWeight: 'bold',
+      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
+      textAlign: 'center',
+      color: '#222',
+    } as Element,
+    {
+      id: `subtitle-${now}`,
+      type: 'text',
+      x: subtitleX,
+      y: subtitleY,
+      width: subtitleW,
+      height: subtitleH,
+      text: '',
+      placeholder: 'Click here to add Subtitle',
+      fontSize: 24,
+      fontWeight: 'normal',
+      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
+      textAlign: 'center',
+      color: '#666',
+    } as Element,
+  ];
+}
+
+function createContentSlidePlaceholders(now: number): Element[] {
+  const slideW = 960;
+  const slideH = 540;
+
+  // Heading top-center (optional content slide heading)
+  const headingW = 600;
+  const headingH = 60;
+  const headingX = Math.round((slideW - headingW) / 2);
+  const headingY = 45;
+
+  // Body centered
+  const bodyW = 525; // 700 * 0.75
+  const bodyH = 150; // 200 * 0.75
+  const bodyX = Math.round((slideW - bodyW) / 2);
+  const bodyY = Math.round((slideH - bodyH) / 2);
+
+  return [
+    {
+      id: `heading-${now}`,
+      type: 'text',
+      x: headingX,
+      y: headingY,
+      width: headingW,
+      height: headingH,
+      text: '',
+      placeholder: 'Click here to add Title',
+      fontSize: 32,
+      fontWeight: '600',
+      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
+      textAlign: 'center',
+      color: '#222',
+    } as Element,
+    {
+      id: `body-${now}`,
+      type: 'text',
+      x: bodyX,
+      y: bodyY,
+      width: bodyW,
+      height: bodyH,
+      text: '',
+      placeholder: 'Click here to add text',
+      fontSize: 22,
+      fontWeight: '400',
+      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
+      textAlign: 'left',
+      lineHeight: 1.5,
+      color: '#555',
+    } as Element,
+  ];
+}
 
 const Editor = () => {
   const { toast } = useToast();
+  const [presentationTitle, setPresentationTitle] = useState('Untitled Presentation');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState('');
+  
   const initialSlides: Slide[] = [{ 
     id: '1', 
-    elements: [],
+    elements: createTitleSlidePlaceholders(Date.now()),
     background: '#ffffff',
     createdAt: new Date(),
     lastUpdated: Date.now()
   }];
+  // Zoom state for canvas and toolbar (stored as decimal, e.g., 0.3 for 30%)
+  const [zoom, setZoom] = useState<number>(1); // Start at 100%
   const { state: slides, push: pushSlides, undo, redo, canUndo, canRedo } = useHistory<Slide[]>(initialSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [chartPanelOpen, setChartPanelOpen] = useState(false);
@@ -35,9 +142,20 @@ const Editor = () => {
   const [selectedElement, setSelectedElement] = useState<Element | null>(null);
   const [currentLayoutId, setCurrentLayoutId] = useState('title-slide');
   const [editingChart, setEditingChart] = useState<{ type: 'bar' | 'line' | 'pie'; data: any } | null>(null);
+  const [liveElements, setLiveElements] = useState<Element[] | null>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [shapeModalOpen, setShapeModalOpen] = useState(false);
   const [tableModalOpen, setTableModalOpen] = useState(false);
+
+  // Smart layout apply hook (Apple Keynote-style)
+  const { requestApplyLayout, modal: layoutModal } = useSmartLayoutApply({
+    getElements: () => slides[currentSlide]?.elements || [],
+    setElements: (els) => {
+      updateCurrentSlide(els as unknown as Element[]);
+      setSelectedElement(null);
+    },
+    onApplied: (layoutId) => setCurrentLayoutId(layoutId),
+  });
 
   // Auto-save to localStorage
   usePersistence(slides, (loadedSlides) => {
@@ -75,9 +193,7 @@ const Editor = () => {
   };
 
   const handleLayoutSelect = (layoutId: string) => {
-    setCurrentLayoutId(layoutId);
-    console.log('Layout selected:', layoutId);
-    // TODO: Implement layout application logic
+    requestApplyLayout(layoutId);
   };
 
 
@@ -109,19 +225,36 @@ const Editor = () => {
   };
 
   const handleAddText = () => {
-    const newElement: Element = {
-      id: Date.now().toString(),
-      type: 'text',
-      x: 100,
-      y: 100,
-      width: 300,
-      height: 60,
-      content: 'Click to Add text',
-      fontSize: 18,
-      fontWeight: 'normal',
-      fontStyle: 'normal',
-      textAlign: 'center',
-      color: '#000000',
+    // Default text box size and position
+    const slideW = 960, slideH = 540;
+    const width = 400, height = 60; // More compact default size
+    const x = Math.round((slideW - width) / 2); // Center horizontally
+    const y = Math.round(slideH * 0.4); // Position slightly above vertical center
+
+    const newElement = {
+      id: `text-${Date.now()}`,
+      type: 'text' as const,
+      x,
+      y,
+      width,
+      height,
+      content: '',
+      text: '',
+      placeholder: 'Click to edit',
+      fontSize: 22,
+      fontWeight: 'normal' as const,
+      fontStyle: 'normal' as const,
+      textAlign: 'center' as const,
+      color: '#000000', // Black text color
+      lineHeight: 1.4,
+      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
+      verticalAlign: 'middle' as const,
+      padding: 8,
+      borderStyle: 'solid' as const,
+      borderColor: 'transparent',
+      borderWidth: 0,
+      zIndex: 1,
+      opacity: 1
     };
     updateCurrentSlide([...currentElements, newElement]);
   };
@@ -156,15 +289,22 @@ const Editor = () => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const imageUrl = e.target?.result as string;
+          // Default Image: 480x270 @1280 -> 360x203 @960, centered
+          const slideW = 960, slideH = 540;
+          const width = 360, height = 203;
+          const x = Math.round((slideW - width) / 2);
+          const y = Math.round((slideH - height) / 2);
+
           const newElement: Element = {
             id: Date.now().toString(),
             type: 'image',
-            x: 100,
-            y: 100,
-            width: 200,
-            height: 150,
+            x,
+            y,
+            width,
+            height,
             imageUrl: imageUrl,
-          };
+            borderRadius: 6,
+          } as any;
           updateCurrentSlide([...currentElements, newElement]);
 
           toast({
@@ -192,20 +332,27 @@ const Editor = () => {
   };
 
   const handleSelectShape = (shapeType: ShapeType) => {
+    // Default Shape: 200x120 @1280 -> 150x90 @960, centered
+    const slideW = 960, slideH = 540;
+    const width = 150, height = 90;
+    const x = Math.round((slideW - width) / 2);
+    const y = Math.round((slideH - height) / 2);
+
     const newElement: Element = {
       id: Date.now().toString(),
       type: 'shape',
-      x: 150,
-      y: 150,
-      width: 200,
-      height: 120,
+      x,
+      y,
+      width,
+      height,
       shapeType,
-      fill: 'transparent',
-      stroke: '#000000',
-      strokeWidth: 0.5,
+      fill: '#f5f5f5',
+      stroke: '#cccccc',
+      strokeWidth: 1,
       rotation: 0,
       opacity: 1,
-    };
+      borderRadius: shapeType === 'rounded-rectangle' ? 8 : 0,
+    } as any;
     updateCurrentSlide([...currentElements, newElement]);
     setSelectedElement(newElement);
     
@@ -216,16 +363,25 @@ const Editor = () => {
   };
 
   const handleAddChart = (chartType: 'bar' | 'line' | 'pie', chartData: any) => {
+    // Default Chart: 600x350 @1280 -> 450x263 @960, centered
+    const slideW = 960, slideH = 540;
+    const width = 450, height = 263;
+    const x = Math.round((slideW - width) / 2);
+    const y = Math.round((slideH - height) / 2);
+
     const newElement: Element = {
       id: Date.now().toString(),
       type: 'chart',
-      x: 100,
-      y: 100,
-      width: 400,
-      height: 300,
+      x,
+      y,
+      width,
+      height,
       chartType,
       chartData,
-    };
+      backgroundColor: '#ffffff',
+      borderColor: '#e5e7eb',
+      borderWidth: 1,
+    } as any;
     updateCurrentSlide([...currentElements, newElement]);
   };
 
@@ -237,17 +393,25 @@ const Editor = () => {
     const safeRows = Math.max(1, Math.min(20, rows || 1));
     const safeCols = Math.max(1, Math.min(20, cols || 1));
     const tableData = Array.from({ length: safeRows }, () => Array.from({ length: safeCols }, () => ''));
+
+    // Default Table: 450x250 @1280 -> 338x188 @960, centered
+    const slideW = 960, slideH = 540;
+    const width = 338, height = 188;
+    const x = Math.round((slideW - width) / 2);
+    const y = Math.round((slideH - height) / 2);
+
     const newElement: Element = {
       id: Date.now().toString(),
       type: 'table',
-      x: 120,
-      y: 120,
-      width: 600,
-      height: 300,
+      x,
+      y,
+      width,
+      height,
       rows: safeRows,
       cols: safeCols,
       tableData,
-      // PPT-like defaults
+      // Defaults aligned with professional editors
+      themeId: 'keynote1',
       borderWidth: 1,
       borderColor: '#D9D9D9',
       backgroundColor: '#FFFFFF',
@@ -256,9 +420,10 @@ const Editor = () => {
       header: true,
       headerBg: '#E7E6E6',
       headerTextColor: '#000000',
-      cellPadding: 8,
+      cellPadding: 12,
       cellTextAlign: 'left',
       rotation: 0,
+      rowAltBg: '#fafafa',
     } as any;
     updateCurrentSlide([...currentElements, newElement]);
     setSelectedElement(newElement);
@@ -340,12 +505,18 @@ const Editor = () => {
   };
 
   const handleAddSlide = () => {
+    const now = Date.now();
+    const isFirst = slides.length === 0;
+    const elements = isFirst
+      ? createTitleSlidePlaceholders(now)
+      : createContentSlidePlaceholders(now);
+
     const newSlide: Slide = { 
-      id: Date.now().toString(), 
-      elements: [],
+      id: now.toString(), 
+      elements,
       background: '#ffffff',
       createdAt: new Date(),
-      lastUpdated: Date.now()
+      lastUpdated: now
     };
     const newSlides = [...slides, newSlide];
     pushSlides(newSlides);
@@ -353,13 +524,15 @@ const Editor = () => {
   };
 
   const handleAddSlideAtIndex = (index: number) => {
+    const now = Date.now();
+    const elements = createContentSlidePlaceholders(now);
     const newSlide: Slide = { 
-      id: Date.now().toString(), 
-      elements: [],
+      id: now.toString(), 
+      elements,
       background: '#ffffff',
       title: `Slide ${slides.length + 1}`,
       createdAt: new Date(),
-      lastUpdated: Date.now()
+      lastUpdated: now
     };
     const newSlides = [...slides];
     newSlides.splice(index + 1, 0, newSlide);
@@ -472,22 +645,49 @@ const Editor = () => {
         <div className="container-fluid py-2 sm:py-3">
           <div className="flex-modern justify-between">
             <div className="flex-modern min-w-0 flex-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.location.href = '/'}
-                className="touch-button bg-transparent text-gray-600 hover:bg-gray-200 hover:text-black transition-all duration-300 flex-shrink-0"
-                aria-label="Return to home page"
-              >
-                <Home className="w-4 h-4 sm:mr-2" aria-hidden="true" />
-                <span className="hidden sm:inline">Home</span>
-              </Button>
               <Logo />
               <div className="h-4 sm:h-6 w-px bg-border hidden sm:block" aria-hidden="true" />
-              <h1 className="text-fluid-sm font-semibold text-foreground truncate">
-                <span className="hidden sm:inline">Untitled Presentation</span>
-                <span className="sm:hidden">Untitled</span>
-              </h1>
+              <div className="flex items-center">
+                {isEditingTitle ? (
+                  <input
+                    type="text"
+                    className="text-fluid-sm font-semibold text-foreground bg-transparent border-b border-foreground focus:outline-none focus:border-blue-500 min-w-[200px] px-1"
+                    value={tempTitle}
+                    onChange={(e) => setTempTitle(e.target.value)}
+                    onBlur={() => {
+                      if (tempTitle.trim()) {
+                        setPresentationTitle(tempTitle);
+                      }
+                      setIsEditingTitle(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (tempTitle.trim()) {
+                          setPresentationTitle(tempTitle);
+                        }
+                        setIsEditingTitle(false);
+                      } else if (e.key === 'Escape') {
+                        setTempTitle(presentationTitle);
+                        setIsEditingTitle(false);
+                      }
+                    }}
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    onClick={() => {
+                      setTempTitle(presentationTitle);
+                      setIsEditingTitle(true);
+                    }}
+                    className="text-fluid-sm font-semibold text-foreground hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2 py-1 transition-colors"
+                    aria-label="Edit presentation title"
+                  >
+                    <span className="hidden sm:inline">{presentationTitle}</span>
+                    <span className="sm:hidden">{presentationTitle.length > 15 ? `${presentationTitle.substring(0, 12)}...` : presentationTitle}</span>
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex items-center space-fluid-xs text-fluid-xs text-muted-foreground flex-shrink-0">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" aria-hidden="true" />
@@ -507,12 +707,15 @@ const Editor = () => {
         onExport={() => setExportDialogOpen(true)}
         onUndo={undo}
         onRedo={redo}
-        onPresent={() => {
+        onHomeClick={() => window.location.href = '/'}
+        onPresent={async () => {
           try {
+            // Try to enter fullscreen immediately on user gesture
+            try { await document.documentElement.requestFullscreen(); } catch (e) { /* ignore */ }
             const deckId = `deck-${Date.now()}`;
             const deckPayload = {
               id: deckId,
-              title: 'Untitled Presentation',
+              title: presentationTitle,
               slides,
               createdAt: Date.now(),
               lastUpdated: Date.now(),
@@ -526,20 +729,33 @@ const Editor = () => {
         }}
         canUndo={canUndo}
         canRedo={canRedo}
+        zoom={zoom}
+        onZoomIn={() => {
+          // Increase zoom by 10% (0.1) but not beyond 300% (3.0)
+          setZoom((z) => {
+            const newZoom = Math.min(3.0, Math.round((z + 0.1) * 10) / 10);
+            return newZoom;
+          });
+        }}
+        onZoomOut={() => {
+          // Decrease zoom by 10% (0.1) but not below 30% (0.3)
+          setZoom((z) => {
+            const newZoom = Math.max(0.3, Math.round((z - 0.1) * 10) / 10);
+            return newZoom;
+          });
+        }}
       />
 
-      <main id="main-content" className="flex-1 flex flex-col lg:flex-row overflow-hidden" role="main">
+      <main id="main-content" className="flex-1 flex lg:flex-row items-stretch w-full overflow-hidden" role="main">
         {/* Mobile: Slide Thumbnails at top */}
         <aside className="lg:hidden" role="complementary" aria-label="Slide thumbnails">
-          <SlideThumbnails
+      <SlideThumbnails
             slides={slides}
             currentSlide={currentSlide}
             onSlideChange={setCurrentSlide}
             onAddSlide={handleAddSlide}
             onReorderSlides={handleReorderSlides}
             onUpdateSlide={(index, updates) => {
-              // console.log('Editor onUpdateSlide called with:', { index, updates });
-              // Update the slide at the specified index
               const newSlides = [...slides];
               newSlides[index] = { ...newSlides[index], ...updates };
               pushSlides(newSlides);
@@ -549,11 +765,13 @@ const Editor = () => {
             onDeleteSlide={handleDeleteSlide}
             onRenameSlide={handleRenameSlide}
             onChangeSlideBackground={handleChangeSlideBackground}
+            liveElements={liveElements || undefined}
+            liveSlideIndex={currentSlide}
           />
         </aside>
 
         {/* Desktop: Slide Thumbnails on left */}
-        <aside className="hidden lg:block" role="complementary" aria-label="Slide thumbnails">
+        <aside className="hidden lg:block w-[260px] shrink-0" role="complementary" aria-label="Slide thumbnails">
           <SlideThumbnails
             slides={slides}
             currentSlide={currentSlide}
@@ -561,8 +779,6 @@ const Editor = () => {
             onAddSlide={handleAddSlide}
             onReorderSlides={handleReorderSlides}
             onUpdateSlide={(index, updates) => {
-              // console.log('Editor onUpdateSlide called with:', { index, updates });
-              // Update the slide at the specified index
               const newSlides = [...slides];
               newSlides[index] = { ...newSlides[index], ...updates };
               pushSlides(newSlides);
@@ -575,43 +791,52 @@ const Editor = () => {
           />
         </aside>
 
-        {/* Canvas Area */}
-<section className="flex-1 flex flex-col min-w-0" aria-label="Presentation canvas">
-          <SimplePowerPointCanvas
-            elements={currentElements}
-            background={slides[currentSlide]?.background || '#ffffff'}
-            onElementSelect={handleElementSelect}
-            onElementUpdate={(element) => {
-              const newElements = currentElements.map(el => 
-                el.id === element.id ? element : el
-              );
-              updateCurrentSlide(newElements);
-            }}
-            onElementAdd={(element) => {
-              const newElements = [...currentElements, element];
-              updateCurrentSlide(newElements);
-            }}
-          />
-        </section>
+        {/* Main content area with canvas and sidebar */}
+        <div className="flex-1 flex min-w-0 overflow-hidden">
+          {/* Canvas Area - Takes remaining space */}
+          <div className="flex-1 min-w-0 flex items-center bg-[#f0f2f5] dark:bg-[#1e1e1e] overflow-auto p-4 px-12 transition-colors duration-300">
+            <section className="w-full h-full" aria-label="Presentation canvas">
+              <SimplePowerPointCanvas
+                  elements={currentElements}
+                  background={slides[currentSlide]?.background || '#ffffff'}
+                  onElementSelect={handleElementSelect}
+                  onElementUpdate={(element) => {
+                    const newElements = currentElements.map(el => 
+                      el.id === element.id ? element : el
+                    );
+                    updateCurrentSlide(newElements);
+                  }}
+                  onElementAdd={(element) => {
+                    const newElements = [...currentElements, element];
+                    updateCurrentSlide(newElements);
+                  }}
+                  onLiveElementsChange={(els) => setLiveElements(els as any)}
+                  zoom={zoom}
+                />
+            </section>
+          </div>
 
-        {/* Smart Sidebar - Context-aware Properties & Layouts */}
-        <SmartSidebar
-          selectedElement={selectedElement}
-          onElementUpdate={(elementId: string, updates: Partial<Element>) => {
-            const currentElement = slides[currentSlide]?.elements.find(el => el.id === elementId);
-            if (currentElement) {
-              const updatedElement = { ...currentElement, ...updates };
-              const newElements = currentElements.map(el => 
-                el.id === elementId ? updatedElement : el
-              );
-              updateCurrentSlide(newElements);
-              setSelectedElement(updatedElement);
-            }
-          }}
-          onElementDelete={handleElementDelete}
-          onLayoutSelect={handleLayoutSelect}
-          currentLayoutId={currentLayoutId}
-        />
+          {/* Smart Sidebar - Context-aware Properties & Layouts */}
+          <div className="w-[280px] flex-shrink-0 border-l border-gray-200 bg-white overflow-y-auto">
+            <SmartSidebar
+              selectedElement={selectedElement}
+              onElementUpdate={(elementId: string, updates: Partial<Element>) => {
+                const currentElement = slides[currentSlide]?.elements.find(el => el.id === elementId);
+                if (currentElement) {
+                  const updatedElement = { ...currentElement, ...updates };
+                  const newElements = currentElements.map(el => 
+                    el.id === elementId ? updatedElement : el
+                  );
+                  updateCurrentSlide(newElements);
+                  setSelectedElement(updatedElement);
+                }
+              }}
+              onElementDelete={handleElementDelete}
+              onLayoutSelect={handleLayoutSelect}
+              currentLayoutId={currentLayoutId}
+            />
+          </div>
+        </div>
       </main>
       
       <ChartPanel
@@ -639,6 +864,8 @@ const Editor = () => {
         onClose={() => setExportDialogOpen(false)}
         onExport={handleExportFormat}
       />
+
+      {layoutModal}
       
       <ShapeModal
         isOpen={shapeModalOpen}

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, Type, Palette, AlignLeft, AlignCenter, AlignRight, AlertTriangle, Plus, X, BarChart3, PieChart, TrendingUp, Settings, Tag, Database, Bold, Italic, Underline, Strikethrough, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Eye, EyeOff, Shapes, Table, Minus, Droplet } from "lucide-react";
+import { Trash2, Type, Palette, AlignLeft, AlignCenter, AlignRight, AlertTriangle, Plus, X, BarChart3, PieChart, TrendingUp, Settings, Tag, Database, Bold, Italic, Underline, Strikethrough, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Eye, EyeOff, Shapes, Table, Minus, Droplet, Lock, Image, Square, ChevronDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -28,9 +29,12 @@ const CHART_COLOR_PALETTE = [
   '#6366f1', // Indigo
 ];
 
+// System UI full stack (canonical default for all text)
+const SYSTEM_UI_STACK = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif';
+
 // Font family options
 const FONT_FAMILIES = [
-  { value: 'system-ui', label: 'System UI' },
+  { value: SYSTEM_UI_STACK, label: 'System UI' },
   { value: 'Arial', label: 'Arial' },
   { value: 'Helvetica', label: 'Helvetica' },
   { value: 'Times New Roman', label: 'Times New Roman' },
@@ -74,7 +78,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
   }
   const [properties, setProperties] = useState({
     fontSize: 18,
-    fontFamily: 'system-ui',
+    fontFamily: SYSTEM_UI_STACK,
     fontWeight: 'normal' as 'normal' | 'medium' | 'bold',
     fontStyle: 'normal' as 'normal' | 'italic',
     textDecoration: 'none' as string,
@@ -97,6 +101,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
   // State for tracking label and data counts
   const [labelCount, setLabelCount] = useState(0);
   const [dataCounts, setDataCounts] = useState<number[]>([]);
+  const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
   // Removed showTableProperties state - no longer needed with accordion approach
 
   // Removed handleTextScopeChange - no longer needed
@@ -105,7 +110,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
     if (selectedElement) {
       setProperties({
         fontSize: selectedElement.fontSize || 18,
-        fontFamily: selectedElement.fontFamily || 'system-ui',
+        fontFamily: selectedElement.fontFamily || SYSTEM_UI_STACK,
         fontWeight: selectedElement.fontWeight || 'normal',
         fontStyle: selectedElement.fontStyle || 'normal',
         textDecoration: (selectedElement as any).textDecoration || 'none',
@@ -129,14 +134,38 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
 
   // Update counts when chart data changes
   useEffect(() => {
-    if (selectedElement?.type === 'chart' && selectedElement.chartData) {
-      const labels = selectedElement.chartData.labels || [];
-      const datasets = selectedElement.chartData.datasets || [];
+    if (selectedElement?.type === 'chart' && 'chartData' in selectedElement && selectedElement.chartData) {
+      const chartData = selectedElement.chartData as any;
+      const labels = chartData.labels || [];
+      const datasets = chartData.datasets || [];
       
       setLabelCount(labels.length);
-      setDataCounts(datasets.map(dataset => dataset.data?.length || 0));
+      setDataCounts(datasets.map((dataset: any) => dataset.data?.length || 0));
     }
-  }, [selectedElement?.chartData]);
+  }, [selectedElement]);
+
+  // Handle image dimension changes with aspect ratio lock
+  const handleImageDimensionChange = (dimension: 'width' | 'height', value: number) => {
+    if (!selectedElement) return;
+    
+    const updates: any = { [dimension]: value };
+    
+    if (maintainAspectRatio && selectedElement.type === 'image' && selectedElement.imageUrl) {
+      const img = new Image();
+      img.onload = () => {
+        const aspectRatio = img.width / img.height;
+        if (dimension === 'width') {
+          updates.height = Math.round(value / aspectRatio);
+        } else {
+          updates.width = Math.round(value * aspectRatio);
+        }
+        onElementUpdate(selectedElement.id, updates);
+      };
+      img.src = selectedElement.imageUrl;
+    } else {
+      onElementUpdate(selectedElement.id, updates);
+    }
+  };
 
   const updateProperty = (key: string, value: any) => {
     if (!selectedElement) return;
@@ -161,8 +190,14 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
   };
 
   const handlePropertyChange = (key: string, value: any) => {
-    setProperties(prev => ({ ...prev, [key]: value }));
-    updateProperty(key, value);
+    if (key === 'chartData') {
+      // For chart data updates, we need to merge the existing chartData with the new values
+      onElementUpdate(selectedElement.id, { chartData: { ...(selectedElement as any).chartData, ...value } });
+    } else {
+      // For regular properties, update as before
+      setProperties(prev => ({ ...prev, [key]: value }));
+      updateProperty(key, value);
+    }
   };
 
   // Table helper functions
@@ -221,10 +256,10 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
     return (
       <motion.div
         key={theme.id}
-        className={`relative rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer group ${
+        className={`relative rounded-lg p-2 border-2 transition-all duration-200 cursor-pointer group ${
           isSelected
-            ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50/50'
-            : 'border-gray-200 hover:border-gray-300 hover:shadow-md bg-white/80'
+            ? 'border-blue-500 ring-1 ring-blue-100 bg-blue-50/50'
+            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm bg-white/80'
         }`}
         onClick={() => handleThemeSelect(theme)}
         whileHover={{ scale: 1.02 }}
@@ -235,10 +270,10 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
           <div className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
         )}
 
-        <div className="flex flex-col w-full h-32 sm:h-36 overflow-hidden rounded-lg border border-gray-200 shadow-sm">
+        <div className="flex flex-col w-full h-24 sm:h-28 overflow-hidden rounded-md border border-gray-200 shadow-xs">
           {/* Header */}
           <div
-            className="h-6 sm:h-7 w-full flex items-center justify-center text-xs font-semibold px-1"
+            className="h-4 w-full flex items-center justify-center text-[10px] font-medium px-0.5"
             style={{ backgroundColor: theme.headerBg, color: theme.headerTextColor }}
           >
             Header
@@ -248,7 +283,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
             {[0, 1, 2, 3].map((row) => (
               <div
                 key={row}
-                className={`h-3 sm:h-4 w-full ${row % 2 === 0 ? 'opacity-90' : 'opacity-70'} transition-opacity`}
+                className={`h-2 w-full ${row % 2 === 0 ? 'opacity-90' : 'opacity-70'} transition-opacity`}
                 style={{
                   backgroundColor: row % 2 === 0 ? theme.rowEvenBg : theme.rowOddBg,
                   color: theme.textColor
@@ -259,34 +294,34 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
         </div>
 
         {/* Theme name */}
-        <div className="mt-4 text-center">
-          <div className={`text-sm font-semibold transition-colors ${
+        <div className="mt-1.5 text-center">
+          <div className={`text-[11px] font-medium transition-colors ${
             isSelected ? 'text-blue-700' : 'text-gray-700 group-hover:text-gray-900'
           }`}>
             {theme.name}
           </div>
           {/* Color indicators */}
-          <div className="flex justify-center gap-2 mt-2">
-            <div className="flex flex-col items-center gap-1">
+          <div className="flex justify-center gap-2 mt-1">
+            <div className="flex flex-col items-center gap-0">
               <div
-                className="w-3 h-3 rounded-full border border-gray-200 shadow-sm"
+                className="w-2 h-2 rounded-full border border-gray-200 shadow-xs"
                 style={{ backgroundColor: theme.headerBg }}
               />
-              <span className="text-xs text-gray-500">Header</span>
+              <span className="text-[8px] text-gray-500 leading-tight">Header</span>
             </div>
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-0">
               <div
-                className="w-3 h-3 rounded-full border border-gray-200 shadow-sm"
+                className="w-2 h-2 rounded-full border border-gray-200 shadow-xs"
                 style={{ backgroundColor: theme.rowEvenBg }}
               />
-              <span className="text-xs text-gray-500">Row</span>
+              <span className="text-[8px] text-gray-500 leading-tight">Row</span>
             </div>
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-0">
               <div
-                className="w-3 h-3 rounded-full border border-gray-200 shadow-sm"
+                className="w-2 h-2 rounded-full border border-gray-200 shadow-xs"
                 style={{ backgroundColor: theme.borderColor }}
               />
-              <span className="text-xs text-gray-500">Border</span>
+              <span className="text-[8px] text-gray-500 leading-tight">Border</span>
             </div>
           </div>
         </div>
@@ -297,7 +332,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
   if (!selectedElement) {
     return (
       <TooltipProvider>
-        <aside className="w-full md:w-80 lg:w-96 h-full bg-gradient-to-b from-gray-50 via-white to-gray-100 border-l border-gray-200 shadow-inner flex flex-col overflow-hidden">
+<aside className="w-full h-full bg-gradient-to-b from-gray-50 via-white to-gray-100 border-l border-gray-200 shadow-inner flex flex-col overflow-hidden">
           <div className="px-5 py-4 border-b bg-white/70 backdrop-blur-lg sticky top-0 z-10">
             <h2 className="font-semibold text-lg flex items-center gap-2">
               <Settings className="w-5 h-5" />
@@ -324,7 +359,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
     <TooltipProvider>
       <aside 
         data-property-panel="true"
-        className="w-full md:w-80 lg:w-96 h-full bg-gradient-to-b from-gray-50 via-white to-gray-100 border-l border-gray-200 shadow-inner flex flex-col overflow-hidden"
+        className="w-[280px] h-full bg-gradient-to-b from-gray-50 via-white to-gray-100 border-l border-gray-200 shadow-inner flex flex-col overflow-hidden"
         onMouseDown={() => {
           // Signal that Properties Panel is being interacted with
           window.dispatchEvent(new CustomEvent('propertyPanelFocus', { detail: true }));
@@ -354,31 +389,34 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
           }
         }}
       >
-      {/* Header */}
-      <div className="px-5 py-4 border-b bg-white/70 backdrop-blur-lg sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-lg flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Properties
-          </h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onElementDelete(selectedElement.id)}
-            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+      {/* Header with Delete Button Next to Title */}
+      <div className="px-3 py-2 border-b bg-white/70 backdrop-blur-lg sticky top-0 z-10">
+        <div className="flex items-center gap-2 w-full">
+          <Settings className="w-4 h-4 flex-shrink-0 text-gray-600" />
+          <div className="flex items-center justify-between flex-1 min-w-0">
+            <h2 className="font-semibold text-sm text-gray-800">
+              Properties
+            </h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onElementDelete(selectedElement.id)}
+              className="h-5 w-5 p-0 ml-4 text-red-600 hover:bg-red-50 hover:text-red-700 flex-shrink-0"
+              title="Delete Element"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-visible px-4 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-4 w-[280px] max-w-[280px]">
         {/* Element Type */}
         <motion.section 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-2"
+          className="space-y-2 w-full"
         >
           <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">Element Type</h3>
           <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-gray-100 text-gray-800 text-sm font-semibold">
@@ -397,28 +435,26 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
             transition={{ delay: 0.1 }}
             className="space-y-4"
           >
-            <Accordion type="single" collapsible className="space-y-2" defaultValue="text-formatting">
+            <Accordion type="single" collapsible className="w-full space-y-2" defaultValue="text-formatting">
               {/* Text Formatting */}
-              <AccordionItem value="text-formatting" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
-                <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div title="Text Formatting">
-                      <Type className="w-4 h-4" />
-                    </div>
-                Text Formatting
+              <AccordionItem value="text-formatting" className="w-full border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
+                <AccordionTrigger className="w-full px-3 py-2 hover:bg-gray-50/50 rounded-md text-sm">
+                  <div className="flex items-center gap-2 w-full">
+                    <Type className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Text Formatting</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 space-y-4">
                   
                   {/* Font Family */}
-                  <div>
-                    <Label className="text-xs text-gray-500 mb-1 block">Font Family</Label>
+                  <div className="w-full">
+                    <Label className="text-xs text-gray-500 mb-1 block">Font</Label>
                     <Select
-                      value={properties.fontFamily || 'system-ui'}
+                      value={properties.fontFamily || SYSTEM_UI_STACK}
                       onValueChange={(value) => handlePropertyChange('fontFamily', value)}
                     >
-                      <SelectTrigger className="h-8 text-sm">
-                        <SelectValue />
+                      <SelectTrigger className="h-8 text-sm w-full">
+                        <SelectValue className="truncate" />
                       </SelectTrigger>
                       <SelectContent>
                         {FONT_FAMILIES.map((font) => (
@@ -431,14 +467,14 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                   </div>
 
                   {/* Font Size & Weight */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-xs text-gray-500 mb-1 block">Font Size</Label>
-                    <Input
-                      type="number"
-                      value={properties.fontSize}
-                      onChange={(e) => handlePropertyChange('fontSize', parseInt(e.target.value) || 18)}
-                        className="h-8 text-sm"
+                      <Input
+                        type="number"
+                        value={properties.fontSize}
+                        onChange={(e) => handlePropertyChange('fontSize', parseInt(e.target.value) || 18)}
+                        className="h-8 text-sm w-full"
                         min="8"
                         max="72"
                       />
@@ -813,7 +849,6 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                   </div>
                 </AccordionContent>
               </AccordionItem>
-
             </Accordion>
           </motion.div>
         )}
@@ -837,8 +872,8 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     <span className="text-sm sm:text-base">Table Themes</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-5">
+                <AccordionContent className="px-2 pb-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {TABLE_THEMES.map(theme => renderThemePreview(theme))}
                   </div>
                 </AccordionContent>
@@ -1011,32 +1046,6 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
             transition={{ delay: 0.1 }}
           >
             <Accordion type="single" collapsible className="space-y-2">
-              <AccordionItem value="chart-type" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
-                <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div title="Chart Type">
-                      {getChartIcon(selectedElement.chartType || 'bar')}
-                    </div>
-                    Chart Type
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                     <Select
-                    value={selectedElement.chartType || 'bar'}
-                    onValueChange={(value) => handlePropertyChange('chartType', value)}
-                     >
-                    <SelectTrigger className="w-full h-8 text-sm">
-                         <SelectValue />
-                       </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bar">Bar Chart</SelectItem>
-                      <SelectItem value="line">Line Chart</SelectItem>
-                      <SelectItem value="pie">Pie Chart</SelectItem>
-                       </SelectContent>
-                     </Select>
-                </AccordionContent>
-              </AccordionItem>
-
               <AccordionItem value="chart-title" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
                 <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
                   <div className="flex items-center gap-2">
@@ -1062,47 +1071,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs text-gray-500 mb-1 block">Font Size</Label>
-                      <Input
-                        type="number"
-                        value={selectedElement.chartData?.titleFontSize || 18}
-                        onChange={(e) => {
-                          handlePropertyChange('chartData', {
-                            ...selectedElement.chartData,
-                            titleFontSize: parseInt(e.target.value) || 18
-                          });
-                        }}
-                        className="h-8 text-sm"
-                        min="8"
-                        max="72"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-gray-500 mb-1 block">Font Weight</Label>
-                     <Select
-                        value={selectedElement.chartData?.titleFontWeight || 'bold'}
-                        onValueChange={(value) => {
-                          handlePropertyChange('chartData', {
-                            ...selectedElement.chartData,
-                            titleFontWeight: value
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="h-8 text-sm">
-                         <SelectValue />
-                       </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="light">Light</SelectItem>
-                          <SelectItem value="normal">Normal</SelectItem>
-                          <SelectItem value="bold">Bold</SelectItem>
-                       </SelectContent>
-                     </Select>
-                    </div>
-                </div>
-
-                <div>
+                  <div>
                     <Label className="text-xs text-gray-500 mb-1 block">Font Family</Label>
                     <Select
                       value={selectedElement.chartData?.titleFontFamily || 'system-ui'}
@@ -1210,7 +1179,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     <div title="Labels">
                       <Tag className="w-4 h-4" />
                     </div>
-                    Labels ({labelCount})
+                    {selectedElement.chartType === 'pie' ? 'Pie Segments' : `Labels (${labelCount})`}
                     {dataCounts.some(count => count !== labelCount && labelCount > 0) && (
                       <TooltipProvider>
                         <Tooltip>
@@ -1223,102 +1192,6 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                               <div>Some datasets don't match label count</div>
                               <div className="text-yellow-300 mt-1">
                                 Check individual datasets for details
-              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Chart Labels</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const currentLabels = selectedElement.chartData.labels || [];
-                        if (currentLabels.length < 10) {
-                          const newLabels = [...currentLabels, `Label ${currentLabels.length + 1}`];
-                          handlePropertyChange('chartData', {
-                            ...selectedElement.chartData,
-                            labels: newLabels
-                          });
-                        }
-                      }}
-                      disabled={labelCount >= 10}
-                      className="h-7 px-2 text-xs"
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Add Label
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {selectedElement.chartData.labels?.map((label: string, index: number) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <Input
-                          value={label}
-                          onChange={(e) => {
-                            const newLabels = [...(selectedElement.chartData.labels || [])];
-                            newLabels[index] = e.target.value;
-                            handlePropertyChange('chartData', {
-                              ...selectedElement.chartData,
-                              labels: newLabels
-                            });
-                          }}
-                          className="flex-1 h-7 text-sm"
-                          placeholder={`Label ${index + 1}`}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const newLabels = (selectedElement.chartData.labels || []).filter((_: any, i: number) => i !== index);
-                            handlePropertyChange('chartData', {
-                              ...selectedElement.chartData,
-                              labels: newLabels
-                            });
-                          }}
-                          className="h-7 w-7 p-0 text-red-600 hover:bg-red-600 hover:text-white transition-colors duration-200"
-                          disabled={labelCount <= 1}
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    ))}
-            </div>
-
-                  {labelCount === 0 && (
-                    <p className="text-xs text-gray-500 text-center py-2">
-                      Click "Add Label" to add chart labels (max 10)
-                    </p>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="datasets" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
-                <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div title="Datasets">
-                      <Database className="w-4 h-4" />
-                    </div>
-                    Datasets ({selectedElement.chartData?.datasets?.length || 0})
-                    {dataCounts.some(count => count !== labelCount && labelCount > 0) && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <AlertTriangle className="w-4 h-4 text-yellow-500 cursor-pointer animate-pulse" />
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-black text-white text-xs rounded-md p-2 shadow-md">
-                            <div className="text-center">
-                              <div className="font-semibold mb-1">⚠️ Data Mismatch</div>
-                              <div>Some datasets have incorrect data counts</div>
-                              <div className="text-yellow-300 mt-1">
-                                Check individual datasets for details
                               </div>
                             </div>
                           </TooltipContent>
@@ -1327,8 +1200,321 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     )}
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4 space-y-4 overflow-visible">
-                  <TooltipProvider>
+                <AccordionContent className="px-4 pb-4 space-y-3">
+                  {selectedElement.chartType === 'pie' ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 border-b pb-1">
+                        <div className="col-span-2 text-center">Color</div>
+                        <div className="col-span-5 text-center">Label</div>
+                        <div className="col-span-4 text-center">Value</div>
+                        <div className="col-span-1"></div>
+                      </div>
+                      
+                      {selectedElement.chartData.labels?.map((label: string, index: number) => {
+                        const dataset = selectedElement.chartData.datasets?.[0];
+                        const color = Array.isArray(dataset?.backgroundColor) 
+                          ? dataset.backgroundColor[index % dataset.backgroundColor.length] 
+                          : '#3b82f6';
+                        const value = dataset?.data?.[index] || 0;
+                        
+                        return (
+                          <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                            <div className="col-span-2 flex items-center justify-center">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    className="w-5 h-5 rounded-full border-2 border-gray-200 hover:border-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    style={{ backgroundColor: color }}
+                                    title="Click to change color"
+                                  />
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-2" align="start">
+                                  <div className="grid grid-cols-6 gap-2 w-[200px]">
+                                    {CHART_COLOR_PALETTE.map((c, i) => (
+                                      <button
+                                        key={i}
+                                        className="w-6 h-6 rounded-full border-2 border-transparent hover:border-gray-400 transition-colors"
+                                        style={{ backgroundColor: c }}
+                                        onClick={() => {
+                                          const newDatasets = [...(selectedElement.chartData.datasets || [])];
+                                          if (newDatasets[0]) {
+                                            const newBgColors = [...(Array.isArray(newDatasets[0].backgroundColor) ? newDatasets[0].backgroundColor : [])];
+                                            newBgColors[index] = c;
+                                            newDatasets[0] = {
+                                              ...newDatasets[0],
+                                              backgroundColor: newBgColors,
+                                              borderColor: newBgColors
+                                            };
+                                            handlePropertyChange('chartData', {
+                                              ...selectedElement.chartData,
+                                              datasets: newDatasets
+                                            });
+                                          }
+                                        }}
+                                        title={c}
+                                      />
+                                    ))}
+                                  </div>
+                                  <div className="mt-3">
+                                    <Label className="text-xs text-gray-500 mb-1 block">Custom Color</Label>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        type="color"
+                                        value={color}
+                                        onChange={(e) => {
+                                          const newDatasets = [...(selectedElement.chartData.datasets || [])];
+                                          if (newDatasets[0]) {
+                                            const newBgColors = [...(Array.isArray(newDatasets[0].backgroundColor) ? newDatasets[0].backgroundColor : [])];
+                                            newBgColors[index] = e.target.value;
+                                            newDatasets[0] = {
+                                              ...newDatasets[0],
+                                              backgroundColor: newBgColors,
+                                              borderColor: newBgColors
+                                            };
+                                            handlePropertyChange('chartData', {
+                                              ...selectedElement.chartData,
+                                              datasets: newDatasets
+                                            });
+                                          }
+                                        }}
+                                        className="w-10 h-8 p-1 border rounded cursor-pointer"
+                                      />
+                                      <Input
+                                        type="text"
+                                        value={color}
+                                        onChange={(e) => {
+                                          const newDatasets = [...(selectedElement.chartData.datasets || [])];
+                                          if (newDatasets[0]) {
+                                            const newBgColors = [...(Array.isArray(newDatasets[0].backgroundColor) ? newDatasets[0].backgroundColor : [])];
+                                            newBgColors[index] = e.target.value;
+                                            newDatasets[0] = {
+                                              ...newDatasets[0],
+                                              backgroundColor: newBgColors,
+                                              borderColor: newBgColors
+                                            };
+                                            handlePropertyChange('chartData', {
+                                              ...selectedElement.chartData,
+                                              datasets: newDatasets
+                                            });
+                                          }
+                                        }}
+                                        className="flex-1 h-8 text-sm"
+                                        placeholder="#RRGGBB"
+                                      />
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                            <div className="col-span-5">
+                              <Input
+                                value={label}
+                                onChange={(e) => {
+                                  const newLabels = [...(selectedElement.chartData.labels || [])];
+                                  newLabels[index] = e.target.value;
+                                  handlePropertyChange('chartData', {
+                                    ...selectedElement.chartData,
+                                    labels: newLabels
+                                  });
+                                }}
+                                className="h-7 text-xs w-full px-2"
+                              />
+                            </div>
+                            <div className="col-span-4">
+                              <Input
+                                type="number"
+                                value={value}
+                                onChange={(e) => {
+                                  const newDatasets = [...(selectedElement.chartData.datasets || [])];
+                                  if (newDatasets[0]) {
+                                    newDatasets[0] = {
+                                      ...newDatasets[0],
+                                      data: newDatasets[0].data?.map((v: number, i: number) => 
+                                        i === index ? Number(e.target.value) : v
+                                      ) || []
+                                    };
+                                    handlePropertyChange('chartData', {
+                                      ...selectedElement.chartData,
+                                      datasets: newDatasets
+                                    });
+                                  }
+                                }}
+                                className="h-7 text-xs w-full px-2"
+                              />
+                            </div>
+                            <div className="col-span-1 flex justify-end">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newLabels = (selectedElement.chartData.labels || []).filter((_: any, i: number) => i !== index);
+                                  const newDatasets = [...(selectedElement.chartData.datasets || [])];
+                                  if (newDatasets[0]) {
+                                    newDatasets[0] = {
+                                      ...newDatasets[0],
+                                      data: newDatasets[0].data?.filter((_: any, i: number) => i !== index) || []
+                                    };
+                                  }
+                                  handlePropertyChange('chartData', {
+                                    ...selectedElement.chartData,
+                                    labels: newLabels,
+                                    datasets: newDatasets
+                                  });
+                                }}
+                                className="h-6 w-6 p-0 text-red-600 hover:bg-red-100"
+                                disabled={labelCount <= 1}
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const currentLabels = selectedElement.chartData.labels || [];
+                          if (currentLabels.length < 10) {
+                            const newLabels = [...currentLabels, `Segment ${currentLabels.length + 1}`];
+                            const newDatasets = [...(selectedElement.chartData.datasets || [])];
+                            
+                            if (newDatasets[0]) {
+                              newDatasets[0] = {
+                                ...newDatasets[0],
+                                data: [...(newDatasets[0].data || []), 0],
+                                backgroundColor: [
+                                  ...(Array.isArray(newDatasets[0].backgroundColor) ? newDatasets[0].backgroundColor : []),
+                                  `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`
+                                ]
+                              };
+                            }
+                            
+                            handlePropertyChange('chartData', {
+                              ...selectedElement.chartData,
+                              labels: newLabels,
+                              datasets: newDatasets
+                            });
+                          }
+                        }}
+                        disabled={labelCount >= 10}
+                        className="w-full h-8 text-xs mt-2"
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add Segment
+                      </Button>
+                      
+                      {labelCount === 0 && (
+                        <p className="text-xs text-gray-500 text-center py-2">
+                          Click "Add Segment" to add pie chart segments (max 10)
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">Chart Labels</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const currentLabels = selectedElement.chartData.labels || [];
+                            if (currentLabels.length < 10) {
+                              const newLabels = [...currentLabels, `Label ${currentLabels.length + 1}`];
+                              handlePropertyChange('chartData', {
+                                ...selectedElement.chartData,
+                                labels: newLabels
+                              });
+                            }
+                          }}
+                          disabled={labelCount >= 10}
+                          className="h-7 px-2 text-xs"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Label
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {selectedElement.chartData.labels?.map((label: string, index: number) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Input
+                              value={label}
+                              onChange={(e) => {
+                                const newLabels = [...(selectedElement.chartData.labels || [])];
+                                newLabels[index] = e.target.value;
+                                handlePropertyChange('chartData', {
+                                  ...selectedElement.chartData,
+                                  labels: newLabels
+                                });
+                              }}
+                              className="flex-1 h-7 text-sm"
+                              placeholder={`Label ${index + 1}`}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newLabels = (selectedElement.chartData.labels || []).filter((_: any, i: number) => i !== index);
+                                handlePropertyChange('chartData', {
+                                  ...selectedElement.chartData,
+                                  labels: newLabels
+                                });
+                              }}
+                              className="h-7 w-7 p-0 text-red-600 hover:bg-red-600 hover:text-white transition-colors duration-200"
+                              disabled={labelCount <= 1}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {labelCount === 0 && (
+                        <p className="text-xs text-gray-500 text-center py-2">
+                          Click "Add Label" to add chart labels (max 10)
+                        </p>
+                      )}
+                    </>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Dataset field is conditionally rendered based on chart type */}
+              {selectedElement.chartType !== 'pie' && (
+                <AccordionItem value="datasets" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
+                  <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div title="Datasets">
+                        <Database className="w-4 h-4" />
+                      </div>
+                      Datasets ({selectedElement.chartData?.datasets?.length || 0})
+                      {dataCounts.some(count => count !== labelCount && labelCount > 0) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertTriangle className="w-4 h-4 text-yellow-500 cursor-pointer animate-pulse" />
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-black text-white text-xs rounded-md p-2 shadow-md">
+                              <div className="text-center">
+                                <div className="font-semibold mb-1">⚠️ Data Mismatch</div>
+                                <div>Some datasets have incorrect data counts</div>
+                                <div className="text-yellow-300 mt-1">
+                                  Check individual datasets for details
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4 space-y-4 overflow-visible">
                     {selectedElement.chartData.datasets?.map((dataset: any, datasetIndex: number) => (
                       <motion.div 
                         key={datasetIndex}
@@ -1536,28 +1722,155 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
           </div>
                     </motion.div>
                   ))}
-                  </TooltipProvider>
                   
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const newDataset = {
-                        label: `Dataset ${(selectedElement.chartData?.datasets?.length || 0) + 1}`,
-                        data: selectedElement.chartData?.labels?.map(() => 0) || [0],
-                        backgroundColor: '#3b82f6',
-                        borderColor: '#3b82f6'
-                      };
-                      const newDatasets = [...(selectedElement.chartData?.datasets || []), newDataset];
-                      handlePropertyChange('chartData', {
-                        ...selectedElement.chartData,
-                        datasets: newDatasets
-                      });
-                    }}
-                    className="w-full h-10 border-dashed border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-600 hover:text-gray-700"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Dataset
-                  </Button>
+                  {selectedElement.chartType !== 'pie' && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const newDataset = {
+                          label: `Dataset ${(selectedElement.chartData?.datasets?.length || 0) + 1}`,
+                          data: selectedElement.chartData?.labels?.map(() => 0) || [0],
+                          backgroundColor: '#3b82f6',
+                          borderColor: '#3b82f6'
+                        };
+                        const newDatasets = [...(selectedElement.chartData?.datasets || []), newDataset];
+                        handlePropertyChange('chartData', {
+                          ...selectedElement.chartData,
+                          datasets: newDatasets
+                        });
+                      }}
+                      className="w-full h-10 border-dashed border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-600 hover:text-gray-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Dataset
+                    </Button>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+              )}
+            </Accordion>
+          </motion.div>
+        )}
+
+        {/* Image Properties */}
+        {selectedElement.type === 'image' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-4"
+          >
+            <Accordion type="single" collapsible className="space-y-2">
+
+              {/* Border & Styling */}
+              <AccordionItem value="image-border" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
+                <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div title="Border & Styling">
+                      <Square className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm sm:text-base">Border & Styling</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-4">
+                  {/* Border Width */}
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1 block">Border Width</Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        value={[selectedElement.borderWidth || 0]}
+                        onValueChange={([value]) => handlePropertyChange('borderWidth', value)}
+                        min={0}
+                        max={20}
+                        step={1}
+                        className="flex-1"
+                      />
+                      <span className="text-xs w-8 text-center">{selectedElement.borderWidth || 0}px</span>
+                    </div>
+                  </div>
+
+                  {/* Border Style */}
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1 block">Border Style</Label>
+                    <Select
+                      value={selectedElement.borderStyle || 'solid'}
+                      onValueChange={(value) => handlePropertyChange('borderStyle', value)}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue placeholder="Select border style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="solid">Solid</SelectItem>
+                        <SelectItem value="dashed">Dashed</SelectItem>
+                        <SelectItem value="dotted">Dotted</SelectItem>
+                        <SelectItem value="double">Double</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Border Color */}
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1 block">Border Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={selectedElement.borderColor || '#000000'}
+                        onChange={(e) => handlePropertyChange('borderColor', e.target.value)}
+                        className="w-12 h-8 p-1 border rounded cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={selectedElement.borderColor || '#000000'}
+                        onChange={(e) => handlePropertyChange('borderColor', e.target.value)}
+                        className="flex-1 h-8 text-sm"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Border Radius */}
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1 block">Border Radius</Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        value={[selectedElement.borderRadius || 0]}
+                        onValueChange={([value]) => handlePropertyChange('borderRadius', value)}
+                        min={0}
+                        max={Math.min(selectedElement.width || 0, selectedElement.height || 0) / 2}
+                        step={1}
+                        className="flex-1"
+                      />
+                      <span className="text-xs w-8 text-center">{selectedElement.borderRadius || 0}px</span>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Opacity */}
+              <AccordionItem value="image-opacity" className="border border-gray-200 rounded-lg bg-white/60 shadow-sm backdrop-blur-sm">
+                <AccordionTrigger className="px-4 py-3 hover:bg-gray-50/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div title="Opacity">
+                      <Droplet className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm sm:text-base">Opacity</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[selectedElement.opacity !== undefined ? selectedElement.opacity * 100 : 100]}
+                      onValueChange={([value]) => handlePropertyChange('opacity', value / 100)}
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <span className="text-xs w-12 text-center">
+                      {Math.round((selectedElement.opacity !== undefined ? selectedElement.opacity : 1) * 100)}%
+                    </span>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

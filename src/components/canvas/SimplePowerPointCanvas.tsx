@@ -9,6 +9,7 @@ import React, {
 import { Move } from "lucide-react";
 import { Element } from "@/hooks/use-action-manager";
 import { ChartJSChart } from "@/components/editor/ChartJSChart";
+import { TABLE_THEMES } from "@/constants/tableThemes";
 
 type SlideElement = Element;
 
@@ -18,24 +19,29 @@ interface Props {
   background?: string; // slide background color (default white)
   slideWidth?: number;  // canonical slide size
   slideHeight?: number;
+  zoom?: number; // external zoom multiplier
   // Removed textScope - using only entire text mode
   onElementSelect?: (el: SlideElement | null) => void;
   onElementUpdate?: (el: SlideElement) => void; // commit update
   onElementAdd?: (el: SlideElement) => void;
   onElementDelete?: (id: string) => void;
+  // Live preview callback for thumbnails during drag/resize/rotate
+  onLiveElementsChange?: (els: SlideElement[] | null) => void;
 }
 
 const SimplePowerPointCanvas: React.FC<Props> = ({
   className = "",
   elements: propElements = [],
   background = "#ffffff",
-  slideWidth = 1024,
-  slideHeight = 768,
+  slideWidth = 960,
+  slideHeight = 540,
+  zoom = 1,
   // Removed textScope parameter
   onElementSelect,
   onElementUpdate,
   onElementAdd,
   onElementDelete,
+  onLiveElementsChange,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const slideRef = useRef<HTMLDivElement | null>(null);
@@ -51,6 +57,26 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     initialRotation: number;
   } | null>(null);
   const [rotationAngle, setRotationAngle] = useState<number>(0);
+
+
+  // Smooth, Fabric-like live manipulation without spamming history
+  const [liveUpdates, setLiveUpdates] = useState<Record<string, Partial<SlideElement>>>({});
+  const applyLive = useCallback((el: SlideElement): SlideElement => {
+    const patch = liveUpdates[el.id];
+    return patch ? ({ ...el, ...patch } as SlideElement) : el;
+  }, [liveUpdates]);
+
+  // rAF-throttled emitter for live thumbnail updates (declared after applyLive to avoid TDZ)
+  const rafIdRef = useRef<number | null>(null);
+  const scheduleEmitLive = useCallback(() => {
+    if (typeof onLiveElementsChange !== 'function') return;
+    if (rafIdRef.current != null) return;
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      const applied = (elements || []).map(applyLive);
+      onLiveElementsChange(applied as any);
+    });
+  }, [elements, applyLive, onLiveElementsChange]);
   
   // Global editing context state management
   const [isEditingText, setIsEditingText] = useState(false);
@@ -110,12 +136,12 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     if (!containerRef.current) return;
     const obs = new ResizeObserver(() => {
       const rect = containerRef.current!.getBoundingClientRect();
-      // Calculate equal padding on all sides
-      const padding = Math.min(rect.width, rect.height) * 0.05; // 5% of the smaller dimension
-      const sx = (rect.width - padding * 2) / slideWidth;
-      const sy = (rect.height - padding * 2) / slideHeight;
-      // fit inside with equal padding on all sides; maintain aspect ratio
-      const s = Math.min(sx, sy, 1.0);
+      // Prioritize horizontal fill: remove side padding, keep small top/bottom gap
+      const hPad = 0;   // no side margin inside container
+      const vPad = 12;  // keep ~12px vertical breathing room
+      const sx = (rect.width - hPad * 2) / slideWidth;
+      const sy = (rect.height - vPad * 2) / slideHeight;
+      const s = Math.min(sx, sy);
       setScale(Math.max(s, 0.2)); // Minimum scale of 0.2 for very small screens
     });
     obs.observe(containerRef.current);
@@ -248,34 +274,59 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
           break;
       }
       
-      // Smooth update with proper delta calculations
-      if (onElementUpdate) {
-    onElementUpdate({
-          ...dragState.element,
+      // Smooth update with proper delta calculations (live-only)
+      setLiveUpdates(prev => ({
+        ...prev,
+        [dragState.element.id]: {
           x: newX,
           y: newY,
           width: newWidth,
-          height: newHeight
-        });
-      }
+          height: newHeight,
+        },
+      }));
+      // Emit live elements for thumbnail preview (rAF throttled)
+      scheduleEmitLive();
     } else {
-      // Smooth moving
+      // Smooth moving (live-only)
       const newX = Math.max(0, dragState.startElementX + deltaX);
       const newY = Math.max(0, dragState.startElementY + deltaY);
-      
-      if (onElementUpdate) {
-    onElementUpdate({
-          ...dragState.element,
+      setLiveUpdates(prev => ({
+        ...prev,
+        [dragState.element.id]: {
           x: newX,
-          y: newY
-        });
-      }
+          y: newY,
+        },
+      }));
+      // Emit live elements for thumbnail preview (rAF throttled)
+      scheduleEmitLive();
     }
-  }, [dragState, onElementUpdate]);
+  }, [dragState]);
 
   const handleMouseUp = useCallback(() => {
+    if (dragState && onElementUpdate) {
+      const patch = liveUpdates[dragState.element.id];
+      if (patch) {
+        onElementUpdate({ ...dragState.element, ...patch } as SlideElement);
+      }
+    }
     setDragState(null);
-  }, []);
+    // Clear only the committed element's live patch
+    if (dragState) {
+      setLiveUpdates(prev => {
+        const next = { ...prev };
+        delete next[dragState.element.id];
+        return next;
+      });
+    }
+    // Clear live preview snapshot
+    if (rafIdRef.current != null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    if (typeof onLiveElementsChange === 'function') {
+      onLiveElementsChange(null);
+    }
+  }, [dragState, liveUpdates, onElementUpdate]);
   
   // Rotation handlers: center-based with snapping and Shift constraint
   const startRotation = useCallback((e: React.MouseEvent, element: SlideElement) => {
@@ -321,14 +372,40 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
 
     const displayAngle = ((newRotation % 360) + 360) % 360;
     setRotationAngle(displayAngle);
-    onElementUpdate?.({ ...rotatingElement, rotation: displayAngle });
-  }, [rotatingElement, rotationStart, onElementUpdate]);
+    // Live-only rotation update for smoothness
+    setLiveUpdates(prev => ({
+      ...prev,
+      [rotatingElement.id]: { rotation: displayAngle },
+    }));
+    // Emit rAF-throttled live preview during rotation
+    scheduleEmitLive();
+  }, [rotatingElement, rotationStart]);
 
   const stopRotation = useCallback(() => {
+    if (rotatingElement && onElementUpdate) {
+      const patch = liveUpdates[rotatingElement.id];
+      if (patch) {
+        onElementUpdate({ ...rotatingElement, ...patch } as SlideElement);
+      }
+      // clear live patch
+      setLiveUpdates(prev => {
+        const next = { ...prev } as Record<string, Partial<SlideElement>>;
+        delete next[rotatingElement.id];
+        return next;
+      });
+    }
     setRotatingElement(null);
     setRotationStart(null);
     setRotationAngle(0);
-  }, []);
+    // Clear live rAF and snapshot
+    if (rafIdRef.current != null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    if (typeof onLiveElementsChange === 'function') {
+      onLiveElementsChange(null);
+    }
+  }, [rotatingElement, liveUpdates, onElementUpdate]);
 
   // Rotation event listeners
   useEffect(() => {
@@ -607,7 +684,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     tempDiv.style.textTransform = (el as any).textTransform || 'none';
     tempDiv.style.textDecoration = (el as any).textDecoration || 'none';
     tempDiv.style.letterSpacing = (el as any).letterSpacing ? `${(el as any).letterSpacing}px` : '0px';
-    tempDiv.style.fontFamily = el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif';
+    tempDiv.style.fontFamily = el.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif';
     tempDiv.style.padding = `${el.padding || 8}px`;
     tempDiv.style.border = 'none';
     tempDiv.style.outline = 'none';
@@ -658,7 +735,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     tempDiv.style.textTransform = (el as any).textTransform || 'none';
     tempDiv.style.textDecoration = (el as any).textDecoration || 'none';
     tempDiv.style.letterSpacing = (el as any).letterSpacing ? `${(el as any).letterSpacing}px` : '0px';
-    tempDiv.style.fontFamily = el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif';
+    tempDiv.style.fontFamily = el.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif';
     tempDiv.style.padding = `${el.padding || 8}px`;
     tempDiv.style.border = 'none';
     tempDiv.style.outline = 'none';
@@ -845,13 +922,13 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
             suppressContentEditableWarning
           data-placeholder={el.placeholder || "Click to edit"}
           dir="ltr"
-            onInput={(e) => {
+          onInput={(e) => {
             // Update dimensions during editing
             const html = e.currentTarget.innerHTML;
             const text = e.currentTarget.textContent || "";
             const { width, height } = calculateTextDimensions(el, html);
             
-              if (onElementUpdate) {
+            if (onElementUpdate) {
               onElementUpdate({ 
                 ...el, 
                 width: width,
@@ -859,8 +936,13 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
               });
             }
           }}
-          onFocus={() => {
+          onFocus={(e) => {
             setIsEditingText(true);
+            // If empty, clear placeholder rendering for clean typing UX
+            const target = e.currentTarget as HTMLDivElement;
+            if ((el.text ?? '').trim() === '' && !(el as any).content) {
+              target.innerHTML = '';
+            }
             saveSelection();
           }}
           onSelect={() => {
@@ -881,7 +963,6 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
                   content: html
                 });
               }
-              
               setEditingElement(null);
               setIsEditingText(false);
             } else {
@@ -953,8 +1034,8 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
             height: "100%", 
             outline: "none",
             fontSize: el.fontSize ?? 18,
-            color: isEmpty ? '#999' : (el.color ?? "#000"),
-            fontFamily: el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+            color: isEmpty ? '#9aa0a6' : (el.color ?? "#000"),
+            fontFamily: el.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif',
             fontWeight: el.fontWeight || 'normal',
             fontStyle: isEmpty ? 'italic' : (el.fontStyle ?? 'normal'),
             textTransform: (el as any).textTransform || 'none',
@@ -982,6 +1063,8 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
                       (el as any).verticalAlign === 'bottom' ? 'flex-end' : 'center',
             justifyContent: el.textAlign === 'center' ? 'center' : el.textAlign === 'right' ? 'flex-end' : 'flex-start',
             background: (el as any).backgroundColor || 'transparent', // 👈 Use element's background color
+            textShadow: '0 1px 2px rgba(0,0,0,0.08)',
+            transition: 'opacity 150ms ease, transform 150ms ease',
           }}
         >
           <span
@@ -991,6 +1074,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               width: '100%',
+              color: el.placeholder ? '#000000' : 'inherit' // Set black color for placeholders
             }}
           >
             {displayText}
@@ -1053,9 +1137,14 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
               height: "100%",
               objectFit: "cover",
               borderRadius: el.borderRadius || 0,
+              // Apply border properties from element
+              borderWidth: (el.borderWidth ?? 0),
+              borderStyle: (el.borderWidth ?? 0) > 0 ? ((el as any).borderStyle || 'solid') : 'none',
+              borderColor: (el.borderColor || '#000000'),
               display: "block",
               userSelect: 'none',
               pointerEvents: 'none', // ensure handles receive events cleanly
+              opacity: (el as any).opacity ?? 1
             }}
             onError={(e) => {
               // Handle error by showing error state
@@ -1107,7 +1196,6 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
       );
 
       const cellPadding = el.cellPadding ?? 8;
-      const borderColor = el.borderColor || '#D9D9D9';
       const borderWidth = (el.borderWidth ?? 1);
       const borderStyle = (el as any).borderStyle || 'solid';
       const textAlign = el.cellTextAlign || 'left';
@@ -1117,10 +1205,14 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
       const headerTextColor = (el as any).headerTextColor || '#111827';
       const rowAltBg = (el as any).rowAltBg || null;
 
-      // Get theme-based colors
-      const rowEvenBg = el.backgroundColor || '#FFFFFF'; // From theme
-      const rowOddBg = rowAltBg || 'transparent';
-      const textColor = el.color || '#000000';
+      // Get theme-based colors from theme or fallback to element properties
+      const theme = TABLE_THEMES.find(t => t.id === el.themeId) || {} as any;
+      const rowEvenBg = theme.rowEvenBg || el.backgroundColor || '#FFFFFF';
+      const rowOddBg = theme.rowOddBg || rowAltBg || (theme.rowEvenBg ? 'rgba(0,0,0,0.02)' : 'transparent');
+      const themeHeaderBg = theme.headerBg || headerBg || '#E7E6E6';
+      const themeHeaderTextColor = theme.headerTextColor || headerTextColor || '#111827';
+      const textColor = theme.textColor || el.color || '#000000';
+      const borderColor = theme.borderColor || el.borderColor || '#D9D9D9';
 
       const handleCellCommit = (r: number, c: number, html: string) => {
         const next = tableData.map(row => row.slice());
@@ -1190,11 +1282,9 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
                   overflow: 'hidden',
                   textAlign: textAlign as any,
                   caretColor: '#000',
-                  background: header && r === 0
-                    ? headerBg
-                    : ((header ? r - 1 : r) % 2 === 0 ? rowEvenBg : rowOddBg),
-                  color: header && r === 0 ? headerTextColor : textColor,
-                  fontWeight: header && r === 0 ? 600 : (el.fontWeight || 'normal'),
+                  backgroundColor: header && r === 0 ? themeHeaderBg : (r % 2 === 0 ? rowEvenBg : rowOddBg),
+                  color: header && r === 0 ? themeHeaderTextColor : textColor,
+                  fontWeight: header && r === 0 ? '600' : 'normal',
                   fontFamily: el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
                   fontSize: (el.fontSize || 16) as any,
                   fontStyle: (el as any).fontStyle || 'normal',
@@ -1255,7 +1345,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         height: "100%",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "flex-end",
         padding: 0, // Remove padding here, let parent handle spacing
         minHeight: "100%",
         boxSizing: "border-box",
@@ -1273,7 +1363,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
           boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
           borderRadius: 8,
           overflow: "visible",
-          transform: `scale(${scale})`,
+          transform: `scale(${scale * (zoom || 1)})`,
           transformOrigin: "center center",
           position: "relative",
           margin: "0 auto", // Center horizontally
@@ -1281,13 +1371,15 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         }}
       >
         {/* elements in slide-space */}
-        {elements.map((el) => (
+        {elements.map((raw) => {
+          const el = applyLive(raw);
+          return (
           <div
             id={`element-${el.id}`}
             key={el.id}
             style={{
               ...buildElementStyle(el),
-              overflow: selectedElement?.id === el.id ? "visible" : "hidden", // 👈 Selected elements always visible for controls
+              overflow: el.type === 'text' ? 'visible' : (selectedElement?.id === el.id ? 'visible' : 'hidden'), // Text never clips; others clip when not selected
             }}
             onClick={(ev) => handleElementClick(el, ev)}
             onDoubleClick={(ev) => {
@@ -1307,7 +1399,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
             {renderElementControls(el)}
             {renderResizeHandles(el)}
           </div>
-        ))}
+        );})}
       </div>
     </div>
   );

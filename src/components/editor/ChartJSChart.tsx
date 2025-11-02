@@ -551,8 +551,14 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
               {chart.chartData?.title && (
                 <div className="mb-4 px-2">
                   <div
-                    className="text-center font-bold text-lg text-black rounded px-2 py-1"
-                    style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                    className="rounded px-2 py-1"
+                    style={{
+                      fontSize: `${chart.chartData?.titleFontSize || 18}px`,
+                      fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
+                      fontWeight: chart.chartData?.titleFontWeight || 'bold',
+                      color: chart.chartData?.titleColor || '#000000',
+                      textAlign: chart.chartData?.titleAlign || 'center'
+                    }}
                   >
                     {chart.chartData.title}
                   </div>
@@ -654,8 +660,14 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
               {chart.chartData?.title && (
                 <div className="mb-4 px-2">
                   <div
-                    className="text-center font-bold text-lg text-black rounded px-2 py-1"
-                    style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                    className="rounded px-2 py-1"
+                    style={{
+                      fontSize: `${chart.chartData?.titleFontSize || 18}px`,
+                      fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
+                      fontWeight: chart.chartData?.titleFontWeight || 'bold',
+                      color: chart.chartData?.titleColor || '#000000',
+                      textAlign: chart.chartData?.titleAlign || 'center'
+                    }}
                   >
                     {chart.chartData.title}
                   </div>

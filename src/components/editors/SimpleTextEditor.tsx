@@ -51,19 +51,69 @@ export const SimpleTextEditor: React.FC<SimpleTextEditorProps> = ({
   }, [isVisible]);
 
   // Handle key events
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
       e.preventDefault();
       handleCancel();
     } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      // Ctrl+Enter saves the text
       e.preventDefault();
       handleSave();
+    } else if (e.key === 'Enter') {
+      // Regular Enter creates a new line
+      e.preventDefault();
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newValue = content.substring(0, start) + '\n' + content.substring(end);
+      setContent(newValue);
+      
+      // Move cursor to the new line
+      setTimeout(() => {
+        if (textarea) {
+          textarea.selectionStart = textarea.selectionEnd = start + 1;
+          // Trigger auto-resize
+          autoResize(textarea);
+        }
+      }, 0);
     }
+  };
+
+  // Auto-resize textarea based on content
+  const autoResize = (textarea: HTMLTextAreaElement) => {
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    // Set the height to scrollHeight to fit content
+    textarea.style.height = `${Math.max(textarea.scrollHeight, 60)}px`;
+    
+    // Update the element's height in the parent component if needed
+    if (element.height !== textarea.scrollHeight) {
+      const newElement = {
+        ...element,
+        height: Math.max(textarea.scrollHeight, 60)
+      };
+      onSave(newElement, content);
+    }
+  };
+  
+  // Handle textarea input changes
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value);
+    autoResize(e.target);
   };
 
   // Handle save
   const handleSave = () => {
-    onSave(element, content);
+    // Update element height based on content before saving
+    if (inputRef.current) {
+      const newElement = {
+        ...element,
+        height: Math.max(inputRef.current.scrollHeight, 60)
+      };
+      onSave(newElement, content);
+    } else {
+      onSave(element, content);
+    }
   };
 
   // Handle cancel
@@ -166,27 +216,33 @@ export const SimpleTextEditor: React.FC<SimpleTextEditorProps> = ({
           <textarea
             ref={inputRef}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={handleInput}
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
             onFocus={onFocus}
             placeholder={element.placeholder || 'Enter text...'}
-            className="w-full h-full resize-none border-none outline-none bg-transparent"
+            className="w-full resize-none border-none outline-none bg-transparent overflow-hidden"
             style={{
-              fontSize: fontSize,
+              fontSize: `${fontSize}px`,
               fontFamily: element.fontFamily || 'Segoe UI',
               fontWeight: fontWeight,
               color: element.color || '#000000',
               textAlign: textAlign,
               minHeight: '60px',
+              lineHeight: '1.4',
+              padding: '4px 6px',
+              boxSizing: 'border-box',
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
             }}
+            rows={1}
           />
         </div>
         
         {/* Footer with save/cancel buttons */}
         <div className="flex items-center justify-between p-2 bg-gray-50 border-t border-gray-200">
           <div className="text-xs text-gray-500">
-            Press Ctrl+Enter to save, Esc to cancel
+            Press Enter for new line, Ctrl+Enter to save, Esc to cancel
           </div>
           <div className="flex gap-2">
             <button

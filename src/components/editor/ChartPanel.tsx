@@ -94,7 +94,43 @@ export const ChartPanel = ({ open, onClose, onAddChart, onEditChart, editingChar
   const [selectedType, setSelectedType] = useState<'bar' | 'line' | 'pie'>('bar');
   const [showEditor, setShowEditor] = useState(false);
 
-  const handleCreate = () => {
+  // handleCreate has been moved into handleChartTypeSelect
+
+  const handleEdit = () => {
+    setShowEditor(true);
+  };
+
+  const handleEditorSave = (chartData: ChartData, chartType: 'bar' | 'line' | 'pie') => {
+    if (editingChart && onEditChart) {
+      onEditChart(chartType, chartData);
+    } else {
+      onAddChart(chartType, chartData);
+    }
+    setShowEditor(false);
+    onClose();
+  };
+
+  const chartTypes = [
+    { type: 'bar' as const, icon: BarChart3, label: 'Bar Chart' },
+    { type: 'line' as const, icon: LineChart, label: 'Line Chart' },
+    { type: 'pie' as const, icon: PieChart, label: 'Pie Chart' },
+  ];
+
+  if (showEditor) {
+    return (
+      <ChartEditor
+        open={showEditor}
+        onClose={() => setShowEditor(false)}
+        onSave={handleEditorSave}
+        initialData={editingChart?.data}
+        initialType={editingChart?.type}
+      />
+    );
+  }
+
+  // Auto-insert chart when a type is selected
+  const handleChartTypeSelect = (type: 'bar' | 'line' | 'pie') => {
+    setSelectedType(type);
     // Intelligent color assignment
     const colorMode = 'professional';
     const colorPalette = COLOR_MODES[colorMode as keyof typeof COLOR_MODES];
@@ -148,75 +184,23 @@ export const ChartPanel = ({ open, onClose, onAddChart, onEditChart, editingChar
       }
     };
 
-    onAddChart(selectedType, defaultData[selectedType]);
+    onAddChart(type, defaultData[type]);
     onClose();
   };
-
-  const handleEdit = () => {
-    setShowEditor(true);
-  };
-
-  const handleEditorSave = (chartData: ChartData, chartType: 'bar' | 'line' | 'pie') => {
-    if (editingChart && onEditChart) {
-      onEditChart(chartType, chartData);
-    } else {
-      onAddChart(chartType, chartData);
-    }
-    setShowEditor(false);
-    onClose();
-  };
-
-  const chartTypes = [
-    { type: 'bar' as const, icon: BarChart3, label: 'Bar Chart' },
-    { type: 'line' as const, icon: LineChart, label: 'Line Chart' },
-    { type: 'pie' as const, icon: PieChart, label: 'Pie Chart' },
-  ];
-
-  if (showEditor) {
-    return (
-      <ChartEditor
-        open={showEditor}
-        onClose={() => setShowEditor(false)}
-        onSave={handleEditorSave}
-        initialData={editingChart?.data}
-        initialType={editingChart?.type}
-      />
-    );
-  }
 
   return (
     <KeynoteModal
       isOpen={open}
-      title={editingChart ? 'Edit Chart' : 'Insert Chart'}
+      title="Select Chart Type"
       onClose={onClose}
-      footer={(
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onClose} className="bg-white/50 hover:bg-white/70 text-gray-700 border-white/30">
-            Cancel
-          </Button>
-          {editingChart && (
-            <Button variant="outline" onClick={handleEdit} className="bg-white/50 hover:bg-white/70 text-gray-700 border-white/30">
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Data
-            </Button>
-          )}
-          <Button onClick={handleCreate} className="bg-black text-white hover:bg-gray-800">
-            {editingChart ? 'Update Chart' : 'Insert Chart'}
-          </Button>
-        </div>
-      )}
     >
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
           {chartTypes.map(({ type, icon: Icon, label }) => (
             <button
               key={type}
-              onClick={() => setSelectedType(type)}
-              className={`p-6 rounded-xl border transition-all hover:border-gray-400/60 hover:bg-white/50 ${
-                selectedType === type
-                  ? 'border-gray-700 bg-white/60'
-                  : 'border-white/30 bg-white/30'
-              }`}
+              onClick={() => handleChartTypeSelect(type)}
+              className="p-6 rounded-xl border transition-all hover:border-gray-400/60 hover:bg-white/50 border-white/30 bg-white/30"
             >
               <Icon className="w-8 h-8 mx-auto mb-2 text-gray-800" />
               <p className="text-xs text-center text-gray-600">{label}</p>

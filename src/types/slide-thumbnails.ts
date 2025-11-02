@@ -57,6 +57,9 @@ export interface EnhancedSlideThumbnailsProps {
   onSetSlideCategory: (index: number, category: Slide['category']) => void;
   onChangeSlideBackground: (index: number, background: string) => void;
   onContextMenuAction: (action: SlideAction, slide: Slide, index: number) => void;
+  // Live preview support
+  liveElements?: Element[] | null;
+  liveSlideIndex?: number;
 }
 
 export interface ThumbnailCanvasProps {
@@ -65,6 +68,8 @@ export interface ThumbnailCanvasProps {
   height: number;
   scale?: number;
   className?: string;
+  responsive?: boolean; // when true, container fills parent; width/height used for internal resolution only
+  overrideElements?: Element[] | null;
 }
 
 export interface SlideCategory {

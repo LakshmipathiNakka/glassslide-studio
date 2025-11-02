@@ -199,16 +199,7 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
   onAction
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
-  const [dark, setDark] = useState(false);
-
-  // Detect dark mode dynamically
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    setDark(media.matches);
-    const listener = (e: MediaQueryListEvent) => setDark(e.matches);
-    media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
-  }, []);
+  const dark = false; // Force light theme
 
   // Close outside or ESC
   useEffect(() => {
@@ -296,11 +287,7 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
           damping: 25,
           mass: 0.8
         }}
-        className={`fixed z-[99999] w-56 rounded-2xl overflow-hidden border backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] ring-1 ${
-          dark 
-            ? 'bg-gradient-to-br from-gray-800/60 to-gray-900/30 border-gray-700/40 ring-white/10' 
-            : 'bg-gradient-to-br from-white/60 to-gray-200/30 border-white/40 ring-gray-300/20'
-        }`}
+        className="fixed z-[99999] w-56 rounded-2xl overflow-hidden border backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] ring-1 text-gray-800 bg-gradient-to-br from-white/80 to-gray-100/60 ring-gray-300/20"
         style={{
           left: Math.min(position.x, window.innerWidth - 240),
           top: Math.min(position.y, window.innerHeight - 320),
@@ -332,7 +319,7 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
                     }}
                     danger={item.destructive}
                     disabled={item.disabled}
-                    dark={dark}
+                    dark={false}
                   />
                 );
               })}

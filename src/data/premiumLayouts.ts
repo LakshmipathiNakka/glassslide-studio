@@ -1,10 +1,10 @@
 /**
- * Premium Layout Templates
- * Apple Keynote-inspired slide layout definitions with miniature preview data
+ * Google Slides Standard Layout Templates
+ * Standard slide layouts similar to Google Slides
  */
 
 export interface PreviewElement {
-  type: 'text' | 'line' | 'box' | 'gradient';
+  type: 'text' | 'line' | 'box' | 'gradient' | 'chart' | 'table';
   x: number;
   y: number;
   width: number;
@@ -18,6 +18,9 @@ export interface PreviewElement {
     gradient?: string;
     borderRadius?: string;
     opacity?: number;
+    chartType?: 'bar' | 'line' | 'pie';
+    rows?: number;
+    cols?: number;
   };
   content?: string;
 }
@@ -34,233 +37,215 @@ export interface LayoutPreview {
 }
 
 export const PREMIUM_LAYOUTS: LayoutPreview[] = [
+  // Title and Body
   {
-    id: 'title-slide',
-    name: 'Title Slide',
-    description: 'Perfect for opening slides with centered title and subtitle',
-    category: 'title',
-    preview: {
-      type: 'title-centered',
-      elements: [
-        {
-          type: 'text',
-          x: 10,
-          y: 35,
-          width: 80,
-          height: 12,
-          style: {
-            fontSize: 'xl',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            color: 'text-gray-900',
-          },
-          content: 'Title',
-        },
-        {
-          type: 'line',
-          x: 35,
-          y: 50,
-          width: 30,
-          height: 1,
-          style: {
-            backgroundColor: 'bg-gradient-to-r from-blue-400 to-purple-500',
-          },
-        },
-        {
-          type: 'text',
-          x: 20,
-          y: 55,
-          width: 60,
-          height: 8,
-          style: {
-            fontSize: 'sm',
-            fontWeight: 'normal',
-            textAlign: 'center',
-            color: 'text-gray-600',
-          },
-          content: 'Subtitle',
-        },
-      ],
-    },
-  },
-  {
-    id: 'title-content',
-    name: 'Title & Content',
-    description: 'Standard layout with title and large content area',
+    id: 'title-body',
+    name: 'Title and Body',
+    description: 'For content slides with title and body text',
     category: 'content',
     preview: {
       type: 'title-body',
       elements: [
+        // Title (top)
         {
           type: 'text',
-          x: 8,
-          y: 12,
-          width: 84,
-          height: 10,
+          x: 10,
+          y: 15,
+          width: 80,
+          height: 12,
           style: {
-            fontSize: 'lg',
+            fontSize: 'title',
             fontWeight: 'bold',
             textAlign: 'left',
             color: 'text-gray-900',
           },
           content: 'Title',
         },
+        // Body content area (text placeholder)
         {
-          type: 'box',
-          x: 8,
-          y: 28,
-          width: 84,
-          height: 60,
+          type: 'text',
+          x: 10,
+          y: 30,
+          width: 80,
+          height: 58,
           style: {
-            backgroundColor: 'bg-gray-100',
-            borderRadius: 'rounded-lg',
-            opacity: 0.5,
+            fontSize: 'body',
+            fontWeight: 'normal',
+            textAlign: 'left',
+            color: 'text-gray-700',
           },
+          content: 'Click to add text',
         },
       ],
     },
   },
+  // Section Header
   {
-    id: 'two-column',
+    id: 'section-header',
+    name: 'Section Header',
+    description: 'For section divider slides',
+    category: 'section',
+    preview: {
+      type: 'section-header',
+      elements: [
+        // Section title (large, centered)
+        {
+          type: 'text',
+          x: 10,
+          y: 40,
+          width: 80,
+          height: 20,
+          style: {
+            fontSize: 'display',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            color: 'text-gray-900',
+          },
+          content: 'SECTION',
+        },
+      ],
+    },
+  },
+  // Two Content
+  {
+    id: 'two-content',
     name: 'Two Content',
-    description: 'Split layout for side-by-side content',
+    description: 'For comparing two topics or showing related content',
     category: 'content',
     preview: {
       type: 'two-columns',
       elements: [
+        // Title
         {
           type: 'text',
-          x: 8,
-          y: 12,
-          width: 84,
+          x: 10,
+          y: 15,
+          width: 80,
           height: 10,
           style: {
-            fontSize: 'lg',
+            fontSize: 'title',
+            fontWeight: 'bold',
+            textAlign: 'left',
+            color: 'text-gray-900',
+          },
+          content: 'Title',
+        },
+        // Left content (text placeholder)
+        {
+          type: 'text',
+          x: 10,
+          y: 30,
+          width: 38,
+          height: 50,
+          style: {
+            fontSize: 'body',
+            fontWeight: 'normal',
+            textAlign: 'left',
+            color: 'text-gray-700',
+          },
+          content: 'Left content',
+        },
+        // Right content (text placeholder)
+        {
+          type: 'text',
+          x: 52,
+          y: 30,
+          width: 38,
+          height: 50,
+          style: {
+            fontSize: 'body',
+            fontWeight: 'normal',
+            textAlign: 'left',
+            color: 'text-gray-700',
+          },
+          content: 'Right content',
+        },
+      ],
+    },
+  },
+  // Title Only
+  {
+    id: 'title-only',
+    name: 'Title Only',
+    description: 'For slides with just a title',
+    category: 'content',
+    preview: {
+      type: 'title-only',
+      elements: [
+        // Title (centered)
+        {
+          type: 'text',
+          x: 10,
+          y: 35,
+          width: 80,
+          height: 30,
+          style: {
+            fontSize: 'display',
             fontWeight: 'bold',
             textAlign: 'center',
             color: 'text-gray-900',
           },
           content: 'Title',
         },
-        {
-          type: 'box',
-          x: 8,
-          y: 28,
-          width: 40,
-          height: 60,
-          style: {
-            backgroundColor: 'bg-gray-100',
-            borderRadius: 'rounded-lg',
-            opacity: 0.5,
-          },
-        },
-        {
-          type: 'box',
-          x: 52,
-          y: 28,
-          width: 40,
-          height: 60,
-          style: {
-            backgroundColor: 'bg-gray-100',
-            borderRadius: 'rounded-lg',
-            opacity: 0.5,
-          },
-        },
       ],
     },
   },
+  // Comparison
+  // 10. Table Layout
   {
-    id: 'comparison',
-    name: 'Comparison',
-    description: 'Before/after or vs. layout with contrasting sections',
+    id: 'table',
+    name: 'Table',
+    description: 'Data-heavy comparison slide',
     category: 'content',
     preview: {
-      type: 'comparison',
+      type: 'table',
       elements: [
-        {
-          type: 'text',
-          x: 8,
-          y: 12,
-          width: 84,
-          height: 10,
-          style: {
-            fontSize: 'lg',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            color: 'text-gray-900',
-          },
-          content: 'Comparison',
-        },
-        {
-          type: 'box',
-          x: 8,
-          y: 28,
-          width: 40,
-          height: 60,
-          style: {
-            backgroundColor: 'bg-blue-100',
-            borderRadius: 'rounded-lg',
-            opacity: 0.7,
-          },
-        },
-        {
-          type: 'box',
-          x: 52,
-          y: 28,
-          width: 40,
-          height: 60,
-          style: {
-            backgroundColor: 'bg-purple-100',
-            borderRadius: 'rounded-lg',
-            opacity: 0.7,
-          },
-        },
+        { type: 'text', x: 10, y: 12, width: 80, height: 8, style: { fontSize: 'title', fontWeight: 'bold', textAlign: 'center', color: 'text-gray-900' }, content: 'Table Title' },
+        { type: 'table', x: 10, y: 28, width: 80, height: 60, style: { rows: 4, cols: 4 } },
       ],
     },
   },
+  // 12. Text with Color Emphasis
   {
-    id: 'section-header',
-    name: 'Section Header',
-    description: 'Large centered text for section dividers',
-    category: 'section',
+    id: 'text-emphasis',
+    name: 'Text with Emphasis',
+    description: 'Highlighted keywords and callouts',
+    category: 'content',
     preview: {
-      type: 'section-break',
+      type: 'text-emphasis',
       elements: [
-        {
-          type: 'gradient',
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 100,
-          style: {
-            gradient: 'bg-gradient-to-br from-blue-400/20 to-purple-500/20',
-          },
-        },
-        {
-          type: 'text',
-          x: 10,
-          y: 42,
-          width: 80,
-          height: 16,
-          style: {
-            fontSize: '2xl',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            color: 'text-gray-900',
-          },
-          content: 'Section',
-        },
+        { type: 'text', x: 10, y: 12, width: 80, height: 8, style: { fontSize: 'title', fontWeight: 'bold', textAlign: 'center', color: 'text-gray-900' }, content: 'Title' },
+        { type: 'gradient', x: 0, y: 0, width: 100, height: 100, style: { gradient: 'bg-gradient-to-b from-white to-[#f8fafc]' } },
+        { type: 'text', x: 15, y: 38, width: 70, height: 22, style: { fontSize: 'body', fontWeight: 'normal', textAlign: 'center', color: 'text-gray-900' }, content: 'Clean, readable text with ' },
       ],
     },
   },
+  // 13. Table + Chart Combo
+  {
+    id: 'table-chart-combo',
+    name: 'Table + Chart',
+    description: 'Quantitative + qualitative blend',
+    category: 'content',
+    preview: {
+      type: 'table-chart',
+      elements: [
+        { type: 'text', x: 10, y: 10, width: 80, height: 10, style: { fontSize: 'title', fontWeight: 'bold', textAlign: 'center', color: 'text-gray-900' }, content: 'Overview' },
+        { type: 'table', x: 5, y: 25, width: 45, height: 60, style: { rows: 4, cols: 3 } },
+        { type: 'chart', x: 52, y: 25, width: 43, height: 60, style: { chartType: 'bar' } },
+      ],
+    },
+  },
+  // Blank Layout
   {
     id: 'blank',
     name: 'Blank',
-    description: 'Empty canvas for custom layouts',
+    description: 'Empty slide for custom content',
     category: 'blank',
     preview: {
-      type: 'empty',
-      elements: [],
+      type: 'blank',
+      elements: [
+        // No elements - completely blank
+      ],
     },
   },
 ];

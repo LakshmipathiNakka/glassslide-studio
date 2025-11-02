@@ -13,8 +13,8 @@ interface Props {
   onElementSelect?: (el: Element | null) => void; // only used in editor
 }
 
-const BASE_W = 1024;
-const BASE_H = 768;
+const BASE_W = 960;
+const BASE_H = 540;
 
 const SlideRenderer: React.FC<Props> = ({ slide, mode, scale = 1, className = '', onElementSelect }) => {
   const interactive = mode === 'editor';
@@ -29,7 +29,7 @@ const SlideRenderer: React.FC<Props> = ({ slide, mode, scale = 1, className = ''
         height: BASE_H * s,
         overflow: 'hidden',
         background: slide.background,
-        borderRadius: 8,
+        borderRadius: mode === 'presentation' ? 0 : 8,
       }}
       data-mode={mode}
     >
@@ -63,26 +63,31 @@ function styleFor(el: Element, s: number): React.CSSProperties {
 function renderContent(el: Element): React.ReactNode {
   switch (el.type) {
     case 'text': {
-      const text = el.content || el.text || '';
+      const textVal = el.text || '';
+      const hasHtml = !!el.content;
+      const commonStyle: React.CSSProperties = {
+        width: '100%', height: '100%', boxSizing: 'border-box',
+        fontSize: el.fontSize ?? 18, color: el.color ?? '#000',
+        fontFamily: el.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif',
+        fontWeight: el.fontWeight || 'normal', fontStyle: el.fontStyle || 'normal',
+        textAlign: el.textAlign || 'left', lineHeight: el.lineHeight || 1.2,
+        padding: (el as any).padding ?? 8, background: (el as any).backgroundColor || 'transparent',
+        borderWidth: (el as any).borderWidth ?? 0, borderStyle: (el as any).borderStyle || 'solid', borderColor: (el as any).borderColor || 'transparent',
+        borderRadius: (el as any).borderRadius ?? 0,
+        display: 'flex', alignItems: (el as any).verticalAlign === 'top' ? 'flex-start' : (el as any).verticalAlign === 'bottom' ? 'flex-end' : 'center',
+        justifyContent: el.textAlign === 'center' ? 'center' : el.textAlign === 'right' ? 'flex-end' : 'flex-start',
+        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+      };
+      if (hasHtml) {
+        return (
+          <div
+            style={commonStyle}
+            dangerouslySetInnerHTML={{ __html: el.content as string }}
+          />
+        );
+      }
       return (
-        <div
-          style={{
-            width: '100%', height: '100%', boxSizing: 'border-box',
-            fontSize: el.fontSize ?? 18, color: el.color ?? '#000',
-            fontFamily: el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
-            fontWeight: el.fontWeight || 'normal', fontStyle: el.fontStyle || 'normal',
-            textAlign: el.textAlign || 'left', lineHeight: el.lineHeight || 1.2,
-            padding: el.padding ?? 8, background: (el as any).backgroundColor || 'transparent',
-            borderWidth: (el as any).borderWidth ?? 0, borderStyle: (el as any).borderStyle || 'solid', borderColor: (el as any).borderColor || 'transparent',
-            borderRadius: (el as any).borderRadius ?? 0,
-            display: 'flex', alignItems: (el as any).verticalAlign === 'top' ? 'flex-start' : (el as any).verticalAlign === 'bottom' ? 'flex-end' : 'center',
-            justifyContent: el.textAlign === 'center' ? 'center' : el.textAlign === 'right' ? 'flex-end' : 'flex-start',
-            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-          }}
-          dangerouslySetInnerHTML={el.content ? { __html: el.content } : undefined}
-        >
-          {!el.content && text}
-        </div>
+        <div style={commonStyle}>{textVal}</div>
       );
     }
     case 'shape': {
@@ -162,7 +167,7 @@ function renderContent(el: Element): React.ReactNode {
               background: header && r===0 ? headerBg : ((header ? r-1 : r) % 2 === 0 ? rowEvenBg : rowOddBg),
               color: header && r===0 ? headerTextColor : textColor,
               fontWeight: header && r===0 ? 600 : (el.fontWeight || 'normal'),
-              fontFamily: el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+              fontFamily: el.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif',
               fontSize: (el.fontSize || 16) as any,
             }} dangerouslySetInnerHTML={{ __html: cell }} />
           )))}

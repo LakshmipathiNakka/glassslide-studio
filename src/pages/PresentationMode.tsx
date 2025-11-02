@@ -2,7 +2,6 @@ import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import SlideRenderer from '@/components/shared/SlideRenderer';
-import PresenterView from '@/components/presentation/PresenterView';
 import { usePresentationStore } from '@/hooks/usePresentationStore';
 import { PresentationDeck, PresentationSlide } from '@/types/presentation';
 import { animationEngine } from '@/utils/AnimationEngine';
@@ -16,7 +15,7 @@ import {
   Square, 
   Maximize, 
   Minimize,
-  Monitor,
+  RotateCcw,
   Eye,
   EyeOff,
   Settings,
@@ -60,6 +59,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [slideScale, setSlideScale] = useState(1);
+  const [isBlackout, setIsBlackout] = useState(false);
 
   // Presentation store
   const {
@@ -69,8 +69,6 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
     isPlaying,
     isPaused,
     isFullscreen,
-    presenterMode,
-    dualScreenMode,
     accessibilityOptions,
     nextSlide,
     previousSlide,
@@ -80,7 +78,6 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
     stop,
     enterFullscreen,
     exitFullscreen,
-    togglePresenterMode,
     loadDeck,
     unloadDeck,
     saveSession,
@@ -184,10 +181,22 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
           }
         }
         
-        // Load saved session
+        // Load saved session (but always start from first slide for Present flow)
         loadSession();
+        try { await goToSlide(0); } catch (_) {}
+        play();
         
         setIsLoading(false);
+
+        // Auto-enter fullscreen if configured
+        try {
+          if (getComputedStyle(document.documentElement).getPropertyValue('--fs-autostart') || (deckFromStorage?.settings?.fullScreen || (propDeck?.settings as any)?.fullScreen)) {
+            // Best-effort: may be blocked if not user gesture, but Editor also requests fullscreen before navigate
+            if (!document.fullscreenElement) {
+              enterFullscreen();
+            }
+          }
+        } catch (_) {}
       } catch (err) {
         console.error('Failed to load presentation deck:', err);
         setError('Failed to load presentation');
@@ -233,15 +242,14 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
       const containerRect = container.getBoundingClientRect();
       
       // Standard slide dimensions (16:9 aspect ratio)
-      const slideWidth = 1024;
-      const slideHeight = 576;
+      const slideWidth = 1280;
+      const slideHeight = 720;
       
-      // Calculate scale to fit container with padding
-      const padding = 40;
-      const scaleX = (containerRect.width - padding) / slideWidth;
-      const scaleY = (containerRect.height - padding) / slideHeight;
+      // Calculate scale to fit container edge-to-edge (black bars if needed)
+      const scaleX = (containerRect.width) / slideWidth;
+      const scaleY = (containerRect.height) / slideHeight;
       
-      const newScale = Math.min(scaleX, scaleY, 1);
+      const newScale = Math.min(scaleX, scaleY);
       setSlideScale(newScale);
     };
 
@@ -257,9 +265,18 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
     return () => resizeObserver.disconnect();
   }, []);
 
+  // Auto-advance every 5 seconds while playing
+  useEffect(() => {
+    if (!isPlaying || !deck || deck.slides.length === 0) return;
+    const id = window.setInterval(() => {
+      handleUserInteraction({ type: 'next' });
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [isPlaying, deck?.id, currentSlideIndex, handleUserInteraction]);
+
   // Mouse movement handler for showing/hiding controls
   const handleMouseMove = useCallback(() => {
-    if (embedded || presenterMode) return;
+    if (embedded) return;
 
     setShowControls(true);
     
@@ -269,10 +286,10 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
     
     const timeout = window.setTimeout(() => {
       setShowControls(false);
-    }, 3000);
+    }, 2000);
     
     setControlsTimeout(timeout);
-  }, [embedded, presenterMode, controlsTimeout]);
+  }, [embedded, controlsTimeout]);
 
   // Touch/swipe handlers
   const handleTouchStart = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -318,13 +335,13 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
 
   // Click handler for advancing slides
   const handleClick = useCallback((e: React.MouseEvent) => {
-    if (!deck?.settings.mouseClickAdvances || presenterMode) return;
+    if (!deck?.settings.mouseClickAdvances) return;
     
     // Don't advance on control clicks
     if ((e.target as Element).closest('.presentation-controls')) return;
 
     handleUserInteraction({ type: 'next' });
-  }, [deck?.settings.mouseClickAdvances, presenterMode, handleUserInteraction]);
+  }, [deck?.settings.mouseClickAdvances, handleUserInteraction]);
 
   // Exit presentation
   const handleExit = useCallback(() => {
@@ -347,9 +364,12 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
   useHotkeys('f5', () => handleUserInteraction({ type: 'play' }), { preventDefault: true });
   useHotkeys('escape', handleExit, { preventDefault: true });
   useHotkeys('f', () => handleUserInteraction({ type: 'fullscreen' }), { preventDefault: true });
-  useHotkeys('p', togglePresenterMode, { preventDefault: true });
   useHotkeys('home', () => handleUserInteraction({ type: 'goTo', payload: 0 }), { preventDefault: true });
   useHotkeys('end', () => handleUserInteraction({ type: 'goTo', payload: (deck?.slides.length ?? 1) - 1 }), { preventDefault: true });
+  // Blackout toggle
+  useHotkeys('b', () => setIsBlackout((v) => !v), { preventDefault: true });
+  // Restart presentation
+  useHotkeys('r', async () => { try { await goToSlide(0); } catch(_){} play(); }, { preventDefault: true });
 
   // Number key shortcuts for slide navigation
   useHotkeys('1,2,3,4,5,6,7,8,9,0', (e) => {
@@ -388,15 +408,6 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
 
   const currentSlide = deck?.slides?.[currentSlideIndex] ?? null;
 
-  // Presenter view mode
-  if (presenterMode && !embedded) {
-    return (
-      <PresenterView 
-        onExit={handleExit}
-        onTogglePresenterMode={togglePresenterMode}
-      />
-    );
-  }
 
   return (
     <div
@@ -419,6 +430,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
       role="application"
       aria-label="Presentation mode"
       tabIndex={0}
+      onContextMenu={(e) => { e.preventDefault(); handleUserInteraction({ type: 'previous' }); }}
     >
       {/* Main slide container */}
       <div
@@ -452,28 +464,24 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
               }}
             >
               <SlideRenderer
-                slide={currentSlide}
-                width={1024}
-                height={576}
+                slide={currentSlide as any}
+                mode="presentation"
                 scale={1}
-                isVisible={true}
-                enableAnimations={true}
-                quality={accessibilityOptions.reducedMotion ? 'low' : 'high'}
-                onSlideLoaded={() => {
-                  // Slide loaded callback
-                }}
-                onAnimationComplete={(elementId) => {
-                  // Animation completed callback
-                }}
+                className="shadow-[0_0_40px_rgba(0,0,0,0.5)]"
               />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
+      {/* Blackout overlay */}
+      {isBlackout && (
+        <div style={{ position: 'absolute', inset: 0, background: '#000' }} />
+      )}
+
       {/* On-screen controls */}
       <AnimatePresence>
-        {(showControls || embedded) && !presenterMode && (
+        {(showControls || embedded) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -538,16 +546,6 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
             {!embedded && (
               <>
                 <div className="w-px h-6 bg-white/30 mx-1" />
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={togglePresenterMode}
-                  className="text-white hover:bg-white/20"
-                  title="Toggle Presenter View (P)"
-                >
-                  <Monitor className="w-4 h-4" />
-                </Button>
 
                 <Button
                   variant="ghost"
@@ -561,6 +559,16 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
                   ) : (
                     <Maximize className="w-4 h-4" />
                   )}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => { try { await goToSlide(0); } catch(_){} play(); }}
+                  className="text-white hover:bg-white/20"
+                  title="Restart (R)"
+                >
+                  <RotateCcw className="w-4 h-4" />
                 </Button>
 
                 <Button

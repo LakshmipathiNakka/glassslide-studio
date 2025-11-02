@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { ThumbnailCanvasProps } from '@/types/slide-thumbnails';
 import { Element } from '@/hooks/use-action-manager';
+import { TABLE_THEMES } from '@/constants/tableThemes';
 
 // Simple image cache to avoid reload flicker during live updates
 const IMAGE_CACHE = new Map<string, HTMLImageElement>();
@@ -10,7 +11,9 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
   width,
   height,
   scale = 0.15,
-  className = ''
+  className = '',
+  responsive = false,
+  overrideElements,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -156,6 +159,8 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
     }
   };
 
+  const effectiveSlide = { ...slide, elements: overrideElements ?? slide.elements };
+
   // Render element based on type
   const renderElement = (ctx: CanvasRenderingContext2D, element: Element) => {
     const x = element.x * scale;
@@ -194,16 +199,19 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
         }
         // Text styling
         const padding = (element as any).padding ?? 8;
-        const content = (element.text || element.content || element.placeholder || '').toString();
+        const htmlRaw = ((element as any).content || '') as string;
+        const content = ((element.text || '') || stripHtml(htmlRaw) || '').toString().trim();
         ctx.fillStyle = element.color || '#000000';
-        ctx.font = `${element.fontWeight || 'normal'} ${(element.fontSize || 16) * scale}px ${element.fontFamily || 'Arial'}`;
+        ctx.font = `${element.fontWeight || 'normal'} ${(element.fontSize || 16) * scale}px ${element.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif'}`;
         const align = ((element.textAlign as CanvasTextAlign) || 'left');
         ctx.textAlign = align;
         ctx.textBaseline = 'top';
         const maxWidth = Math.max(0, w - 2 * padding * scale);
         const startX = padding * scale;
         const startY = padding * scale;
-        drawWrappedText(ctx, content.replace(/\n/g, ' '), startX, startY, maxWidth, (element.fontSize || 16) * scale * 1.2, align);
+        if (content.length > 0) {
+          drawWrappedText(ctx, content.replace(/\n/g, ' '), startX, startY, maxWidth, (element.fontSize || 16) * scale * 1.2, align);
+        }
         break;
       }
 
@@ -484,17 +492,21 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
         const rows = Math.max(1, (element as any).rows || 3);
         const cols = Math.max(1, (element as any).cols || 3);
         const cellPadding = (element as any).cellPadding ?? 6;
-        const borderColor = (element as any).borderColor || '#D9D9D9';
         const borderWidth = ((element as any).borderWidth ?? 1) * scale;
+        // Get theme if exists
+        const theme = (element as any).themeId ? 
+          TABLE_THEMES.find(t => t.id === (element as any).themeId) : null;
+          
         const header = !!(element as any).header;
-        const headerBg = (element as any).headerBg || '#E7E6E6';
-        const headerTextColor = (element as any).headerTextColor || '#111827';
+        const headerBg = theme?.headerBg || (element as any).headerBg || '#E7E6E6';
+        const headerTextColor = theme?.headerTextColor || (element as any).headerTextColor || '#111827';
         const rowAltBg = (element as any).rowAltBg || null;
-        const rowEvenBg = (element as any).backgroundColor || '#FFFFFF';
-        const rowOddBg = rowAltBg || 'transparent';
-        const textColor = (element as any).color || '#000000';
+        const rowEvenBg = theme?.rowEvenBg || (element as any).backgroundColor || '#FFFFFF';
+        const rowOddBg = theme?.rowOddBg || rowAltBg || (theme?.rowEvenBg ? 'rgba(0,0,0,0.02)' : 'transparent');
+        const textColor = theme?.textColor || (element as any).color || '#000000';
+        const borderColor = theme?.borderColor || (element as any).borderColor || '#D9D9D9';
         const textAlign = (element as any).cellTextAlign || 'left';
-        const fontFamily = (element as any).fontFamily || 'Arial';
+        const fontFamily = (element as any).fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif';
         const fontSize = ((element as any).fontSize || 16) * scale;
 
         // Outer border/background
@@ -772,7 +784,7 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
   }, [slide.elements, slide.background, slide.lastUpdated, width, height, scale]);
 
   return (
-    <div className={`thumbnail-canvas ${className}`} style={{ width, height }}>
+    <div className={`thumbnail-canvas ${className}`} style={responsive ? { width: '100%', height: '100%' } : { width, height }}>
       <canvas
         ref={canvasRef}
         width={width}

@@ -92,7 +92,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onBlur,
   placeholder = 'Click to add text',
   fontSize = 16,
-  fontFamily = 'Segoe UI',
+  fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif',
   fontWeight = 'normal',
   fontStyle = 'normal',
   textAlign = 'left',

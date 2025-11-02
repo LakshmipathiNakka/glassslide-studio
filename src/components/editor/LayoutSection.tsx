@@ -111,52 +111,37 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.3 }}
         className={cn(
-          'flex items-center justify-between',
-          'px-6 py-5',
-          'border-b border-gray-200/50 dark:border-gray-700/50',
-          'bg-white/30 dark:bg-gray-800/30',
-          'backdrop-blur-xl'
+          'px-4 sm:px-6 py-4',
+          'border-b border-slate-200/60 dark:border-slate-700/50',
+          'bg-white/60 dark:bg-gray-800/40 backdrop-blur-lg',
+          'rounded-t-2xl'
         )}
       >
-        <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              'w-10 h-10',
-              'bg-gradient-to-br from-blue-400 to-purple-500',
-              'rounded-xl',
-              'flex items-center justify-center',
-              'shadow-lg'
-            )}
-          >
-            <Layout className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+<div className="w-10 h-10 rounded-xl bg-white/80 border border-slate-200 grid place-items-center shadow-sm">
+              {/* Outline black icon to match properties panel */}
+              <Layout className="w-5 h-5 text-slate-800" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-medium text-slate-700 tracking-tight">Slide Layouts</h2>
+              <p className="text-xs text-slate-500">Choose a premium design</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
-              Slide Layouts
-            </h2>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Choose a premium design
-            </p>
+          <div className="flex items-center gap-2 justify-end">
+            {onClose && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onClose}
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                aria-label="Close layout panel"
+              >
+                <X className="w-5 h-5" />
+              </motion.button>
+            )}
           </div>
         </div>
-
-        {onClose && (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onClose}
-            className={cn(
-              'p-2 rounded-lg',
-              'text-gray-500 dark:text-gray-400',
-              'hover:bg-gray-100/80 dark:hover:bg-white/5',
-              'transition-colors duration-150',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40'
-            )}
-            aria-label="Close layout panel"
-          >
-            <X className="w-5 h-5" />
-          </motion.button>
-        )}
       </motion.div>
 
       {/* Scrollable layouts container */}
@@ -227,19 +212,15 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
             <div
               ref={scrollContainerRef}
               className={cn(
-                'h-full overflow-y-auto overflow-x-hidden',
-                'px-6 py-6',
-                'space-y-6',
-                // Custom scrollbar
-                'scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600',
-                'scrollbar-track-transparent',
-                // Responsive: horizontal scroll on very narrow screens
-                'sm:space-y-0 sm:grid sm:grid-cols-1 sm:gap-6',
-                'lg:grid-cols-2 lg:gap-5'
+                'h-full overflow-y-auto',
+                'px-4 py-4 sm:px-6 sm:py-6',
+                // Apple-style minimal scrollbar
+                'scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent',
+                // Single column layout with responsive cards
+                'flex flex-col space-y-4',
+                'w-full max-w-2xl mx-auto'  // Limit max width for better readability
               )}
-              style={{
-                scrollBehavior: 'smooth',
-              }}
+              style={{ scrollBehavior: 'smooth' }}
             >
               {PREMIUM_LAYOUTS.map((layout, index) => (
                 <LayoutCard
@@ -253,32 +234,6 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
             </div>
           </div>
 
-      {/* Footer hint */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.3 }}
-        className={cn(
-          'px-6 py-4',
-          'border-t border-gray-200/50 dark:border-gray-700/50',
-          'bg-white/30 dark:bg-gray-800/30',
-          'backdrop-blur-xl'
-        )}
-      >
-        <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
-            ←
-          </kbd>{' '}
-          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
-            →
-          </kbd>{' '}
-          to navigate •{' '}
-          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
-            Enter
-          </kbd>{' '}
-          to select
-        </p>
-      </motion.div>
     </>
   );
 

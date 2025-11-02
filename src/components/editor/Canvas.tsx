@@ -871,7 +871,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                     fontSize: element.fontSize || 18,
                     fontWeight: element.fontWeight || 'normal',
                     fontStyle: element.fontStyle || 'normal',
-                    color: (isPlaceholder || isDefaultElement || (!element.content || element.content.trim() === '')) ? '#999999' : (element.color || '#000000'),
+                    color: (isPlaceholder || isDefaultElement || (!element.content || element.content.trim() === '')) ? '#000000' : (element.color || '#000000'),
                     textAlign: (element.textAlign as any) || 'center'
                   }}
                 >

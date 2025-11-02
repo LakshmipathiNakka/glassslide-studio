@@ -4,11 +4,12 @@
  */
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SmartSidebar } from '@/components/editor/SmartSidebar';
 import { SlideElement } from '@/types/canvas';
 import { Type, Square, Circle, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSmartLayoutApply } from '@/hooks/useSmartLayoutApply.tsx';
 
 const DEMO_ELEMENTS: SlideElement[] = [
   {
@@ -57,6 +58,11 @@ export const SmartSidebarDemo: React.FC = () => {
   const [selectedElement, setSelectedElement] = useState<SlideElement | null>(null);
   const [currentLayout, setCurrentLayout] = useState('title-slide');
   const [elements, setElements] = useState<SlideElement[]>(DEMO_ELEMENTS);
+  const { requestApplyLayout, modal } = useSmartLayoutApply({
+    getElements: () => elements,
+    setElements: (els) => setElements(els),
+    onApplied: (layoutId) => setCurrentLayout(layoutId),
+  });
 
   const handleElementUpdate = (elementId: string, updates: Partial<SlideElement>) => {
     setElements(prev =>
@@ -75,8 +81,7 @@ export const SmartSidebarDemo: React.FC = () => {
   };
 
   const handleLayoutSelect = (layoutId: string) => {
-    setCurrentLayout(layoutId);
-    console.log('Layout selected:', layoutId);
+    requestApplyLayout(layoutId);
   };
 
   const getElementIcon = (element: SlideElement) => {
@@ -134,6 +139,7 @@ export const SmartSidebarDemo: React.FC = () => {
               }} />
 
               {/* Demo Elements */}
+              <AnimatePresence mode="wait" initial={false}>
               {elements.map(element => (
                 <motion.div
                   key={element.id}
@@ -155,6 +161,9 @@ export const SmartSidebarDemo: React.FC = () => {
                   onClick={() => setSelectedElement(element)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0, transition: { duration: 0.25, ease: [0, 0, 0.2, 1] } }}
+                  exit={{ opacity: 0, y: 10, transition: { duration: 0.2, ease: 'easeInOut' } }}
                 >
                   {element.type === 'text' && (
                     <div className="w-full h-full flex items-center justify-center p-4">
@@ -174,6 +183,7 @@ export const SmartSidebarDemo: React.FC = () => {
                   )}
                 </motion.div>
               ))}
+              </AnimatePresence>
 
               {/* Deselect Overlay */}
               {selectedElement && (
@@ -254,6 +264,7 @@ export const SmartSidebarDemo: React.FC = () => {
         onLayoutSelect={handleLayoutSelect}
         currentLayoutId={currentLayout}
       />
+      {modal}
     </div>
   );
 };

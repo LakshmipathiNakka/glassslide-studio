@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { ThumbnailCanvasProps } from '@/types/slide-thumbnails';
 import { Element } from '@/hooks/use-action-manager';
 import ThumbnailCanvasHTML from './ThumbnailCanvasHTML';
+import { TABLE_THEMES } from '@/constants/tableThemes';
 
 // Try to import React Konva, fallback to HTML5 Canvas if not available
 let Stage: any, Layer: any, Text: any, Rect: any, Circle: any, KonvaImage: any, Group: any, Line: any, RegularPolygon: any, StarShape: any, Ellipse: any, PathShape: any, WedgeShape: any;
@@ -32,17 +33,20 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
   width,
   height,
   scale = 0.1,
-  className = ''
+  className = '',
+  responsive = false,
+  overrideElements,
 }) => {
   // Use HTML5 Canvas fallback if React Konva is not available
   if (!useKonva) {
     return (
       <ThumbnailCanvasHTML
-        slide={slide}
+        slide={{ ...slide, elements: overrideElements ?? slide.elements }}
         width={width}
         height={height}
         scale={scale}
         className={className}
+        responsive={responsive}
       />
     );
   }
@@ -74,6 +78,7 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
     return (div.textContent || div.innerText || '').trim();
   };
 
+  const effectiveSlide = { ...slide, elements: overrideElements ?? slide.elements };
   // Render element based on type
   const renderElement = (element: Element, index: number) => {
     const scaledX = element.x * scale;
@@ -107,9 +112,9 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
             {/* Text content */}
             <Text
               {...commonProps}
-              text={element.text || element.content || element.placeholder || 'Text'}
+              text={(element.text || stripHtml((element as any).content || '') || '').trim()}
               fontSize={(element.fontSize || 16) * scale}
-              fontFamily={element.fontFamily || 'Arial'}
+              fontFamily={element.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif'}
               fontStyle={element.fontWeight === 'bold' ? 'bold' : 'normal'}
               fill={element.color || '#000000'}
               align={element.textAlign || 'left'}
@@ -339,15 +344,19 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
         const rows = Math.max(1, (element as any).rows || 3);
         const cols = Math.max(1, (element as any).cols || 3);
         const cellPadding = (element as any).cellPadding ?? 6;
-        const borderColor = (element as any).borderColor || '#D9D9D9';
+        
+        // Get theme if exists
+        const theme = (element as any).themeId ? 
+          TABLE_THEMES.find(t => t.id === (element as any).themeId) : null;
+        
+        const borderColor = theme?.borderColor || (element as any).borderColor || '#D9D9D9';
         const borderWidth = ((element as any).borderWidth ?? 1) * scale;
         const header = !!(element as any).header;
-        const headerBg = (element as any).headerBg || '#E7E6E6';
-        const headerTextColor = (element as any).headerTextColor || '#111827';
-        const rowAltBg = (element as any).rowAltBg || null;
-        const rowEvenBg = (element as any).backgroundColor || '#FFFFFF';
-        const rowOddBg = rowAltBg || 'transparent';
-        const textColor = (element as any).color || '#000000';
+        const headerBg = theme?.headerBg || (element as any).headerBg || '#E7E6E6';
+        const headerTextColor = theme?.headerTextColor || (element as any).headerTextColor || '#111827';
+        const rowEvenBg = theme?.rowEvenBg || (element as any).backgroundColor || '#FFFFFF';
+        const rowOddBg = theme?.rowOddBg || (element as any).rowAltBg || (theme?.rowEvenBg ? 'rgba(0,0,0,0.02)' : 'transparent');
+        const textColor = theme?.textColor || (element as any).color || '#000000';
         const textAlign = (element as any).cellTextAlign || 'left';
         const fontFamily = (element as any).fontFamily || 'Arial';
         const fontSize = ((element as any).fontSize || 16) * scale;
@@ -437,11 +446,12 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
   }, [slide.elements, slide.background, slide.lastUpdated]);
 
   return (
-    <div className={`thumbnail-canvas ${className}`} style={{ width, height }}>
+    <div className={`thumbnail-canvas ${className}`} style={responsive ? { width: '100%', height: '100%' } : { width, height }}>
       <Stage
         ref={stageRef}
         width={width}
         height={height}
+        style={responsive ? { width: '100%', height: '100%' } : undefined}
         scaleX={scale}
         scaleY={scale}
         offsetX={0}
@@ -495,7 +505,7 @@ const ChartElement: React.FC<{
           y={y + height / 2}
           text="📊 Chart"
           fontSize={10 * scale}
-          fontFamily="Arial"
+          fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif"
           fill="#666666"
           align="center"
           verticalAlign="middle"
@@ -564,7 +574,7 @@ const ChartElement: React.FC<{
           y={y + 5 * scale}
           text={chartData.title}
           fontSize={(chartData.titleFontSize || 14) * scale}
-          fontFamily={chartData.titleFontFamily || 'Arial'}
+          fontFamily={chartData.titleFontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif'}
           fill={chartData.titleColor || '#000000'}
           align="center"
           verticalAlign="top"
@@ -594,7 +604,7 @@ const ChartElement: React.FC<{
                   height={fs * 1.2}
                   text={`${Math.round(ratio * maxValue)}`}
                   fontSize={fs}
-                  fontFamily="Arial"
+                  fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif"
                   fill="#6b7280"
                   align="left"
                   verticalAlign="middle"
@@ -619,7 +629,7 @@ const ChartElement: React.FC<{
                 height={fs * 1.4}
                 text={label}
                 fontSize={fs}
-                fontFamily="Arial"
+                fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif"
                 fill="#6b7280"
                 align="center"
                 verticalAlign="top"

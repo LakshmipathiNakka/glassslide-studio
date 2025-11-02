@@ -88,14 +88,14 @@ export const SmartSidebar: React.FC<SmartSidebarProps> = ({
 
   const transition = {
     duration: 0.3,
-    ease: [0.4, 0.0, 0.2, 1], // Apple's ease-in-out curve
+    ease: 'easeInOut' as const, // Using a predefined easing function
   };
 
   return (
     <>
       {/* Mobile Overlay */}
       <AnimatePresence>
-        {currentMode === 'properties' && (
+        {true && (
           <motion.aside
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -104,8 +104,8 @@ export const SmartSidebar: React.FC<SmartSidebarProps> = ({
             className={cn(
               // Mobile only - floating overlay
               'md:hidden',
-              'fixed inset-y-0 right-0',
-              'w-full',
+'fixed inset-y-0 right-0',
+              'w-[92vw] max-w-[360px]',
               'z-50',
               
               // Glassmorphism
@@ -118,7 +118,8 @@ export const SmartSidebar: React.FC<SmartSidebarProps> = ({
               'shadow-[-8px_0_32px_rgba(0,0,0,0.3)]',
               'dark:shadow-[-8px_0_32px_rgba(0,0,0,0.5)]',
               
-              'overflow-hidden flex flex-col'
+              // Allow vertical scrolling when content exceeds height
+              'overflow-y-auto flex flex-col'
             )}
             role="complementary"
             aria-label={currentMode === 'properties' ? 'Properties panel' : 'Layout selection'}
@@ -163,100 +164,54 @@ export const SmartSidebar: React.FC<SmartSidebarProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Tablet & Desktop Sidebar */}
+      {/* Desktop Sidebar only (lg and up) */}
       <aside
         className={cn(
-          // Hide on mobile, show on tablet+
-          'hidden md:flex',
-          
-          // Base structure - flows with layout
-          'h-full flex-col',
-          'flex-shrink-0',
-          
-          // Responsive widths:
-          // Large screens (lg): ~30% of editor width = 28rem (448px)
-          // Tablets (md): 60% of large = 16.8rem ≈ 17rem (272px)
-          'w-[17rem] lg:w-[28rem]',
-          
-          // Glassmorphism
-          'bg-gradient-to-br from-white/95 via-white/90 to-white/85',
-          'dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/85',
-          'backdrop-blur-2xl',
-          
-          // Borders and shadows
-          'border-l border-white/20 dark:border-gray-700/50',
-          'shadow-[-8px_0_32px_rgba(0,0,0,0.08)]',
-          'dark:shadow-[-8px_0_32px_rgba(0,0,0,0.3)]',
-          
-          // Smooth transitions
-          'transition-all duration-300',
-          
-          'overflow-hidden',
-          
+          'hidden lg:flex',
+          'h-full flex-col flex-shrink-0 ml-auto mr-0',
+          'w-[280px]',
           className
         )}
-        ref={scrollContainerRef}
         role="complementary"
         aria-label={currentMode === 'properties' ? 'Properties panel' : 'Layout selection'}
       >
-      {/* Animated Content Switcher */}
-      <AnimatePresence mode="wait" initial={false}>
-        {currentMode === 'properties' ? (
-          <motion.div
-            key="properties"
-            variants={sidebarVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={transition}
-            className="w-full h-full flex flex-col"
-          >
-            <PropertiesPanel
-              selectedElement={selectedElement}
-              onElementUpdate={onElementUpdate}
-              onElementDelete={onElementDelete}
-            />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="layouts"
-            variants={sidebarVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={transition}
-            className="w-full h-full flex flex-col"
-          >
-            <LayoutSection
-              isVisible={true}
-              onLayoutSelect={onLayoutSelect}
-              currentLayoutId={currentLayoutId}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Mode Indicator (optional visual feedback) */}
-      <div className="absolute top-4 right-4 pointer-events-none z-50">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentMode}
-            initial={{ opacity: 0, scale: 0.8, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className={cn(
-              'px-3 py-1 rounded-full text-xs font-medium',
-              'backdrop-blur-md shadow-lg',
-              currentMode === 'properties'
-                ? 'bg-blue-500/90 text-white'
-                : 'bg-purple-500/90 text-white'
-            )}
-          >
-            {currentMode === 'properties' ? 'Properties' : 'Layouts'}
-          </motion.div>
+        {/* Animated Content Switcher */}
+        <AnimatePresence mode="wait" initial={false}>
+          {currentMode === 'properties' ? (
+            <motion.div
+              key="properties"
+              variants={sidebarVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={transition}
+              className="w-full h-full flex flex-col"
+            >
+              <PropertiesPanel
+                selectedElement={selectedElement}
+                onElementUpdate={onElementUpdate}
+                onElementDelete={onElementDelete}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="layouts"
+              variants={sidebarVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={transition}
+              className="w-full h-full flex flex-col"
+            >
+              <LayoutSection
+                isVisible={true}
+                onLayoutSelect={onLayoutSelect}
+                currentLayoutId={currentLayoutId}
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
-      </div>
+
 
       {/* Smooth Transition Overlay */}
       <AnimatePresence>
@@ -271,6 +226,70 @@ export const SmartSidebar: React.FC<SmartSidebarProps> = ({
         )}
       </AnimatePresence>
     </aside>
+
+    {/* Tablet Overlay (md to <lg) */}
+    <AnimatePresence>
+      {true && (
+        <motion.aside
+          key="tablet-overlay"
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ duration: 0.3, ease: [0.4, 0.0, 0.2, 1] }}
+          className={cn(
+            'hidden md:flex lg:hidden',
+            'fixed inset-y-0 right-0 z-40',
+            'bg-gradient-to-br from-white/95 via-white/90 to-white/85',
+            'dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/85',
+            'backdrop-blur-2xl',
+            'border-l border-white/20 dark:border-gray-700/50',
+            'shadow-[-8px_0_32px_rgba(0,0,0,0.14)]',
+            'overflow-y-auto'
+          )}
+          style={{ width: 'clamp(180px, 18%, 216px)' }}
+          role="complementary"
+          aria-label={currentMode === 'properties' ? 'Properties panel' : 'Layout selection'}
+        >
+          <div className="w-full h-full flex flex-col">
+            <AnimatePresence mode="wait" initial={false}>
+              {currentMode === 'properties' ? (
+                <motion.div
+                  key="properties-tablet"
+                  variants={sidebarVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={transition}
+                  className="w-full h-full flex flex-col"
+                >
+                  <PropertiesPanel
+                    selectedElement={selectedElement}
+                    onElementUpdate={onElementUpdate}
+                    onElementDelete={onElementDelete}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="layouts-tablet"
+                  variants={sidebarVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={transition}
+                  className="w-full h-full flex flex-col"
+                >
+                  <LayoutSection
+                    isVisible={true}
+                    onLayoutSelect={onLayoutSelect}
+                    currentLayoutId={currentLayoutId}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.aside>
+      )}
+    </AnimatePresence>
     </>
   );
 };
