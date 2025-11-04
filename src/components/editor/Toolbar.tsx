@@ -24,6 +24,7 @@ interface ToolbarProps {
   userName?: string;
   userEmail?: string;
   userAvatar?: string;
+  userSubtitle?: string;
 }
 
 export const Toolbar = ({
@@ -45,7 +46,8 @@ export const Toolbar = ({
   onZoomOut,
   userName = 'User',
   userEmail = 'user@example.com',
-  userAvatar
+  userAvatar,
+  userSubtitle,
 }: ToolbarProps) => {
   return (
     <div className="keynote-toolbar overflow-x-auto smooth-scroll bg-white border-b border-slate-200" role="toolbar" aria-label="Editor tools">
@@ -204,19 +206,7 @@ export const Toolbar = ({
           <span className="hidden sm:inline text-sm">Present</span>
         </Button>
 
-        <Button
-          variant="ghost"
-          size={{ base: 'icon', sm: 'sm' }}
-          onClick={onSave}
-          className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3"
-          title="Save"
-          aria-label="Save presentation"
-        >
-          <Save className="w-4 h-4 sm:mr-1" aria-hidden="true" />
-          <span className="hidden sm:inline text-sm">Save</span>
-        </Button>
-
-        <Button
+<Button
           variant="ghost"
           size={{ base: 'icon', sm: 'sm' }}
           onClick={onExport}
@@ -234,6 +224,7 @@ export const Toolbar = ({
             userName={userName}
             userEmail={userEmail}
             avatar={userAvatar}
+            subtitle={userSubtitle}
           />
         </div>
       </div>

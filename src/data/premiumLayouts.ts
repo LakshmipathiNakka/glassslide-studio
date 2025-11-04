@@ -205,22 +205,7 @@ export const PREMIUM_LAYOUTS: LayoutPreview[] = [
       ],
     },
   },
-  // 12. Text with Color Emphasis
-  {
-    id: 'text-emphasis',
-    name: 'Text with Emphasis',
-    description: 'Highlighted keywords and callouts',
-    category: 'content',
-    preview: {
-      type: 'text-emphasis',
-      elements: [
-        { type: 'text', x: 10, y: 12, width: 80, height: 8, style: { fontSize: 'title', fontWeight: 'bold', textAlign: 'center', color: 'text-gray-900' }, content: 'Title' },
-        { type: 'gradient', x: 0, y: 0, width: 100, height: 100, style: { gradient: 'bg-gradient-to-b from-white to-[#f8fafc]' } },
-        { type: 'text', x: 15, y: 38, width: 70, height: 22, style: { fontSize: 'body', fontWeight: 'normal', textAlign: 'center', color: 'text-gray-900' }, content: 'Clean, readable text with ' },
-      ],
-    },
-  },
-  // 13. Table + Chart Combo
+  // 12. Table + Chart Combo
   {
     id: 'table-chart-combo',
     name: 'Table + Chart',

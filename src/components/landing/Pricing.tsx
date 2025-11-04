@@ -1,5 +1,6 @@
 import { motion, useInView, useAnimation, Variants, Variant } from 'framer-motion';
 import { useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check, Zap, Clock, BarChart3, Palette, Image as ImageIcon, Code2, MousePointerClick } from 'lucide-react';
 
 interface PricingProps {
@@ -19,6 +20,7 @@ const PricingCard = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-20% 0px -20% 0px" });
   const controls = useAnimation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isInView) {
@@ -100,6 +102,8 @@ const PricingCard = () => {
       <motion.div variants={item} className="mb-8">
         <button 
           className="w-full bg-gray-900 text-white py-4 px-6 rounded-xl font-medium text-lg hover:bg-gray-800 transition-colors duration-300 flex items-center justify-center"
+          onClick={() => navigate('/editor')}
+          aria-label="Get started in editor"
         >
           Get Started Free
           <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

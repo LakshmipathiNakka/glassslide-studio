@@ -3,25 +3,59 @@ import { User, LogOut, Loader2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { useAuth } from '@/auth/AuthProvider';
 
 interface UserMenuProps {
   userName: string;
   userEmail: string;
   avatar?: string;
+  subtitle?: string;
 }
 
-export const UserMenu = ({ userName, userEmail, avatar }: UserMenuProps) => {
+export const UserMenu = ({ userName, userEmail, avatar, subtitle }: UserMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    console.info('[UserMenu] Sign-out clicked');
     setIsLoggingOut(true);
-    // Simulate API call
-    setTimeout(() => {
-      navigate('/login');
-    }, 1000);
+    try {
+      const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+      const signoutUrl = env?.VITE_SIGNOUT_URL as string | undefined;
+      if (signoutUrl) {
+        const isExternal = /^(https?:)?\/\//.test(signoutUrl) && !signoutUrl.startsWith(window.location.origin);
+        console.info('[UserMenu] Calling sign-out endpoint', { signoutUrl, isExternal });
+        await fetch(signoutUrl, {
+          method: 'POST',
+          ...(isExternal ? {} : { credentials: 'include' }),
+        }).then(async (r) => {
+          console.info('[UserMenu] Sign-out response', r.status);
+          try { await r.text(); } catch {}
+        }).catch((e) => {
+          console.warn('[UserMenu] Sign-out request failed (ignored)', e);
+        });
+      }
+    } catch (e) {
+      console.error('[UserMenu] Unexpected error during sign-out', e);
+    } finally {
+      // Always clear client session and redirect
+      // Best-effort: remove app cookie
+      document.cookie = 'jwt_token=; Max-Age=0; path=/';
+      try { logout(); } catch (e) { console.warn('[UserMenu] logout() error (ignored)', e); }
+      // Close menu to avoid overlay intercepting clicks
+      setIsOpen(false);
+      // Attempt SPA navigation first
+      try { navigate('/login', { replace: true }); } catch {}
+      // Hard redirect fallback
+      setTimeout(() => {
+        try { window.location.replace('/login'); } catch {}
+        try { window.location.assign('/login'); } catch {}
+      }, 0);
+      console.info('[UserMenu] Redirected to /login');
+    }
   };
 
   useEffect(() => {
@@ -64,6 +98,7 @@ export const UserMenu = ({ userName, userEmail, avatar }: UserMenuProps) => {
           boxShadow: '0 8px 30px rgba(0,0,0,0.12)'
         }}
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-white/10">
           <div className="flex items-start space-x-3">
@@ -80,6 +115,9 @@ export const UserMenu = ({ userName, userEmail, avatar }: UserMenuProps) => {
             )}
             <div className="min-w-0">
               <p className="font-medium text-slate-900 truncate">{userName}</p>
+              {subtitle && (
+                <p className="text-xs text-slate-600/90 truncate">{subtitle}</p>
+              )}
               <p className="text-xs text-slate-500/90 truncate">{userEmail}</p>
             </div>
           </div>
@@ -87,9 +125,12 @@ export const UserMenu = ({ userName, userEmail, avatar }: UserMenuProps) => {
         
         <div className="p-1.5">
           <button
-            onClick={handleLogout}
+            type="button"
+            onMouseDown={(e) => { e.stopPropagation(); console.info('[UserMenu] Sign-out mousedown'); }}
+            onClick={(e) => { e.stopPropagation(); handleLogout(); }}
             disabled={isLoggingOut}
             className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 group"
+            aria-label="Sign out"
           >
             <span className="font-medium group-hover:text-red-700">Sign Out</span>
             {isLoggingOut ? (

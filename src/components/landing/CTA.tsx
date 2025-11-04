@@ -4,6 +4,7 @@ import { useScrollAnimation } from "@/hooks/use-scroll-animations";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { EditorTransition } from "@/components/transitions/EditorTransition";
+import { useNavigate } from "react-router-dom";
 
 // Apple-style button component
 const AppleButton = ({ children, variant = 'primary', className = '', ...props }) => {
@@ -56,6 +57,7 @@ export const CTA = ({ id = 'cta' }: CTAProps) => {
   const ref = useRef(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isInView) {
@@ -66,7 +68,8 @@ export const CTA = ({ id = 'cta' }: CTAProps) => {
   const handleGetStarted = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsTransitioning(true);
-    // The actual navigation will be handled by the EditorTransition component
+    // Smoothly transition then navigate to /editor
+    setTimeout(() => navigate('/editor'), 300);
   };
   
   return (

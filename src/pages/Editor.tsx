@@ -19,6 +19,9 @@ import { Slide } from "@/types/slide-thumbnails";
 import { Element } from "@/hooks/use-action-manager";
 import pptxgen from "pptxgenjs";
 import { useSmartLayoutApply } from "@/hooks/useSmartLayoutApply.tsx";
+import { useAuth } from "@/auth/AuthProvider";
+import { safeDecodeJwt } from "@/auth/jwt";
+import { useUserProfile } from "@/auth/useUserProfile";
 
 // Default slide templates (Apple Keynote / PowerPoint inspired)
 function createTitleSlidePlaceholders(now: number): Element[] {
@@ -633,6 +636,15 @@ const Editor = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
 
+  // Derive user display from auth token (fallback to defaults)
+  const { token } = useAuth();
+  const payload = token ? safeDecodeJwt(token) : null;
+  const { data: profile } = useUserProfile();
+  const userNameDisplay = (profile?.name || payload?.name || payload?.username || payload?.sub || 'User') as string;
+  const userEmailDisplay = (profile?.email || payload?.email || '') as string;
+  const userSubtitleDisplay = profile?.title as string | undefined;
+  const userAvatarDisplay = profile?.avatarUrl as string | undefined;
+
   return (
     <div className="h-screen flex flex-col bg-bg-soft">
       {/* Skip Link for Accessibility */}
@@ -689,10 +701,6 @@ const Editor = () => {
                 )}
               </div>
             </div>
-            <div className="flex items-center space-fluid-xs text-fluid-xs text-muted-foreground flex-shrink-0">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" aria-hidden="true" />
-              <span className="hidden sm:inline">Auto-saved</span>
-            </div>
           </div>
         </div>
       </header>
@@ -708,8 +716,10 @@ const Editor = () => {
         onUndo={undo}
         onRedo={redo}
         onHomeClick={() => window.location.href = '/'}
-        userName="John Doe"
-        userEmail="john@example.com"
+        userName={userNameDisplay}
+        userEmail={userEmailDisplay}
+        userAvatar={userAvatarDisplay}
+        userSubtitle={userSubtitleDisplay}
         onPresent={async () => {
           try {
             // Try to enter fullscreen immediately on user gesture

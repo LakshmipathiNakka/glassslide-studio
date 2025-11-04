@@ -4,10 +4,26 @@ import { Testimonials } from "@/components/landing/Testimonials";
 import { Pricing } from "@/components/landing/Pricing";
 import { CTA } from "@/components/landing/CTA";
 import { Footer } from "@/components/landing/Footer";
+import { Logo } from "@/components/landing/Logo";
+import { UserMenuLanding } from "@/components/landing/UserMenuLanding";
 
 const Index = () => {
   return (
     <main className="min-h-screen bg-background">
+      {/* Top bar matching editor style */}
+      <header className="glass-toolbar border-b sticky top-0 z-40">
+        <div className="container-fluid py-2 sm:py-3">
+          <div className="flex-modern justify-between items-center">
+            <div className="flex-modern min-w-0 flex-1">
+              <Logo />
+            </div>
+            <nav aria-label="User menu" className="flex items-center">
+              <UserMenuLanding />
+            </nav>
+          </div>
+        </div>
+      </header>
+
       <Hero />
       <Features id="features" />
       <Testimonials />

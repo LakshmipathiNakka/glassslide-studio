@@ -1,8 +1,11 @@
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import { Lock, Mail, Apple, Github } from 'lucide-react';
+import { Lock, X, AlertCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Logo } from '../landing/Logo';
+import { useAuth } from '@/auth/AuthProvider';
+import { AUTH_CONFIG } from '@/auth/config';
+import { getCookie } from '@/auth/cookies';
 
 // Floating icon component for the background
 const FloatingIcon = ({ icon: Icon, ...props }: { icon: React.ElementType; [key: string]: any }) => (
@@ -26,13 +29,42 @@ const FloatingIcon = ({ icon: Icon, ...props }: { icon: React.ElementType; [key:
   </motion.div>
 );
 
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX_ATTEMPTS = 5;
+
+function getAttempts(): number[] {
+  try {
+    const raw = localStorage.getItem('login_attempts');
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as number[];
+    const now = Date.now();
+    const filtered = arr.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    localStorage.setItem('login_attempts', JSON.stringify(filtered));
+    return filtered;
+  } catch {
+    return [];
+  }
+}
+
+function addAttempt() {
+  const arr = getAttempts();
+  arr.push(Date.now());
+  localStorage.setItem('login_attempts', JSON.stringify(arr));
+}
+
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [touched, setTouched] = useState({
+    username: false,
+    password: false
+  });
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, login } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -43,6 +75,13 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Already logged in -> go landing
+      window.location.replace('/');
+    }
+  }, [isAuthenticated]);
+
   // Parallax effects
   const y1 = useTransform(scrollYProgress, [0, 1], ['0%', '5%']);
   const y2 = useTransform(scrollYProgress, [0, 1], ['0%', '15%']);
@@ -50,6 +89,17 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ username: true, password: true });
+
+    const attempts = getAttempts();
+    if (attempts.length >= RATE_LIMIT_MAX_ATTEMPTS) {
+      const first = attempts[0];
+      const msLeft = RATE_LIMIT_WINDOW_MS - (Date.now() - first);
+      const secLeft = Math.ceil(msLeft / 1000);
+      setError(`Too many attempts. Please wait ${secLeft}s and try again.`);
+      return;
+    }
+
     if (!username || !password) {
       setError('Please enter both username and password');
       return;
@@ -59,11 +109,27 @@ const Login = () => {
     setError('');
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      navigate('/editor');
-    } catch (err) {
-      setError('Invalid credentials. Please try again.');
+      const csrf = getCookie(AUTH_CONFIG.csrfCookie);
+      const res = await login(username, password, csrf);
+      if (!res.ok) {
+        addAttempt();
+        setPassword(''); // keep username, clear password
+        // Try to parse the error message from the response
+        try {
+          const errorData = JSON.parse(res.message);
+          setError(errorData.error_msg || 'Invalid credentials. Please try again.');
+        } catch (e) {
+          // If parsing fails, use the original message or a default
+          setError('Invalid credentials. Please try again.');
+        }
+        return;
+      }
+      // Emulate a 302-style redirect to Landing
+      window.location.replace('/');
+    } catch (err: any) {
+      addAttempt();
+      setPassword('');
+      setError(err?.message || 'Network error. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -140,15 +206,34 @@ const Login = () => {
                 </div>
               </div>
 
+              {/* Test Credentials */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h3 className="text-sm font-medium text-blue-800 mb-2">Test Credentials</h3>
+                <p className="text-sm text-blue-700">
+                  <span className="font-mono">username: raja</span>
+                  <br />
+                  <span className="font-mono">password: raja@2021</span>
+                </p>
+              </div>
+
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
                   <motion.div 
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-red-50 text-red-600 text-sm p-3 rounded-lg"
+                    className="bg-red-50 text-red-700 text-sm p-3 rounded-lg flex items-start justify-between"
+                    role="alert"
                   >
-                    {error}
+                    <span>{error}</span>
+                    <button
+                      type="button"
+                      aria-label="Dismiss error"
+                      onClick={() => setError('')}
+                      className="ml-3 text-red-500 hover:text-red-700"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </motion.div>
                 )}
 
@@ -171,8 +256,14 @@ const Login = () => {
                         autoComplete="username"
                         required
                         value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-white/50 focus:ring-2 focus:ring-black focus:border-transparent focus:outline-none transition-all duration-200"
+                        onChange={(e) => {
+                          setUsername(e.target.value);
+                          setError('');
+                        }}
+                        onBlur={() => setTouched({ ...touched, username: true })}
+                        className={`block w-full pl-10 pr-3 py-3 border ${
+                          touched.username && !username ? 'border-red-400' : 'border-slate-200'
+                        } rounded-xl bg-white/50 focus:ring-2 focus:ring-black focus:border-transparent focus:outline-none transition-all duration-200`}
                         placeholder="Enter your username"
                       />
                     </div>
@@ -193,8 +284,14 @@ const Login = () => {
                         autoComplete="current-password"
                         required
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl bg-white/50 focus:ring-2 focus:ring-black focus:border-transparent focus:outline-none transition-all duration-200"
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setError('');
+                        }}
+                        onBlur={() => setTouched({ ...touched, password: true })}
+                        className={`block w-full pl-10 pr-10 py-3 border ${
+                          touched.password && !password ? 'border-red-400' : 'border-slate-200'
+                        } rounded-xl bg-white/50 focus:ring-2 focus:ring-black focus:border-transparent focus:outline-none transition-all duration-200`}
                         placeholder="••••••••"
                       />
                       <button
@@ -216,25 +313,31 @@ const Login = () => {
                         )}
                       </button>
                     </div>
+                    {touched.password && !password && (
+                      <div className="mt-1 flex items-center text-red-500 text-xs">
+                        <AlertCircle className="w-3.5 h-3.5 mr-1" />
+                        <span>Please fill out this field</span>
+                      </div>
+                    )}
                   </div>
+                  {touched.username && !username && (
+                    <div className="mt-1 flex items-center text-red-500 text-xs">
+                      <AlertCircle className="w-3.5 h-3.5 mr-1" />
+                      <span>Please fill out this field</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center">
-                    <input
-                      id="remember-me"
-                      name="remember-me"
-                      type="checkbox"
-                      className="h-4 w-4 text-black focus:ring-black border-slate-300 rounded"
-                    />
-                    <label htmlFor="remember-me" className="ml-2 block text-slate-600">
-                      Remember me
-                    </label>
-                  </div>
-
-                  <a href="#" className="font-medium text-slate-900 hover:text-black transition-colors">
-                    Forgot password?
-                  </a>
+                <div className="flex items-center text-sm">
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    className="h-4 w-4 text-black focus:ring-black border-slate-300 rounded"
+                  />
+                  <label htmlFor="remember-me" className="ml-2 block text-slate-600">
+                    Remember me
+                  </label>
                 </div>
 
                 <div>
@@ -259,6 +362,7 @@ const Login = () => {
                       'Sign in'
                     )}
                   </motion.button>
+                  <p className="text-xs text-slate-500 mt-2">This site uses cookies for authentication.</p>
                 </div>
               </form>
 

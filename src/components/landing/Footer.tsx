@@ -133,7 +133,7 @@ export const Footer = () => {
                     whileHover={{ x: 4 }}
                   >
                     <a
-                      href={`#${item.toLowerCase()}`}
+                      href={item.toLowerCase() === 'editor' ? '/editor' : `#${item.toLowerCase()}`}
                       className="text-slate-600 hover:text-slate-900 text-sm transition-colors duration-200"
                     >
                       {item}
