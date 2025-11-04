@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import type { Slide } from '@/types/slide-thumbnails';
-import type { Element } from '@/hooks/use-action-manager';
-import { ChartJSChart } from '@/components/editor/ChartJSChart';
+import { Element } from '../../hooks/use-action-manager';
+import { ChartJSChart } from '../editor/ChartJSChart';
+import { TABLE_THEMES } from '../../constants/tableThemes';
 
 export type SlideRenderMode = 'editor' | 'thumbnail' | 'presentation' | 'export';
 
@@ -144,18 +145,26 @@ function renderContent(el: Element): React.ReactNode {
     case 'table': {
       const rows = Math.max(1, el.rows || 3);
       const cols = Math.max(1, el.cols || 3);
-      const td = Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => (el.tableData?.[r]?.[c] ?? '')));
-      const borderColor = el.borderColor || '#D9D9D9';
+      const td = Array.from({ length: rows }, (_, r) => 
+        Array.from({ length: cols }, (_, c) => (el.tableData?.[r]?.[c] ?? ''))
+      );
+      
+      // Get theme if exists
+      const theme = TABLE_THEMES.find(t => t.id === el.themeId) || {} as any;
+      
+      // Use theme colors with fallbacks
+      const borderColor = theme.borderColor || el.borderColor || '#D9D9D9';
       const borderWidth = (el.borderWidth ?? 1);
       const borderStyle = (el as any).borderStyle || 'solid';
       const textAlign = el.cellTextAlign || 'left';
       const header = (el as any).header ?? false;
-      const headerBg = (el as any).headerBg || '#E7E6E6';
-      const headerTextColor = (el as any).headerTextColor || '#111827';
-      const rowAltBg = (el as any).rowAltBg || null;
-      const rowEvenBg = el.backgroundColor || '#FFFFFF';
-      const rowOddBg = rowAltBg || 'transparent';
-      const textColor = el.color || '#000000';
+      
+      // Theme colors with fallbacks
+      const headerBg = theme.headerBg || (el as any).headerBg || '#E7E6E6';
+      const headerTextColor = theme.headerTextColor || (el as any).headerTextColor || '#111827';
+      const rowEvenBg = theme.rowEvenBg || el.backgroundColor || '#FFFFFF';
+      const rowAltBg = theme.rowOddBg || (el as any).rowAltBg || 'transparent';
+      const textColor = theme.textColor || el.color || '#000000';
       const cellPadding = el.cellPadding ?? 8;
       return (
         <div style={{ width:'100%', height:'100%', display:'grid', gridTemplateColumns:`repeat(${cols},1fr)`, gridTemplateRows:`repeat(${rows},1fr)`, boxSizing:'border-box', border: borderStyle==='none'||borderWidth===0? undefined : `${borderWidth}px ${borderStyle} ${borderColor}` }}>
@@ -164,7 +173,7 @@ function renderContent(el: Element): React.ReactNode {
               borderRight: borderStyle==='none'||borderWidth===0? 'none': `${borderWidth}px ${borderStyle} ${borderColor}`,
               borderBottom: borderStyle==='none'||borderWidth===0? 'none': `${borderWidth}px ${borderStyle} ${borderColor}`,
               padding: cellPadding, overflow:'hidden', textAlign: textAlign as any,
-              background: header && r===0 ? headerBg : ((header ? r-1 : r) % 2 === 0 ? rowEvenBg : rowOddBg),
+              background: header && r===0 ? headerBg : ((header ? r-1 : r) % 2 === 0 ? rowEvenBg : rowAltBg),
               color: header && r===0 ? headerTextColor : textColor,
               fontWeight: header && r===0 ? 600 : (el.fontWeight || 'normal'),
               fontFamily: el.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif',

@@ -21,6 +21,7 @@ const buttonVariants = cva(
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
         icon: "h-10 w-10",
+        'icon-sm': "h-8 w-8 sm:h-9 sm:w-auto sm:px-2",
       },
     },
     defaultVariants: {
@@ -30,16 +31,41 @@ const buttonVariants = cva(
   },
 );
 
+type ResponsiveSize = {
+  base: 'icon' | 'sm' | 'default' | 'lg' | 'icon-sm';
+  sm: 'icon' | 'sm' | 'default' | 'lg' | 'icon-sm';
+};
+
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'size'>,
+    Omit<VariantProps<typeof buttonVariants>, 'size'> {
   asChild?: boolean;
+  size?: 'icon' | 'sm' | 'default' | 'lg' | 'icon-sm' | ResponsiveSize;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size: sizeProp, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    
+    // Handle responsive sizes
+    let sizeClass = '';
+    if (sizeProp && typeof sizeProp === 'object') {
+      // For responsive sizes, we'll use the base size and handle responsive classes in the className prop
+      sizeClass = buttonVariants({ variant, size: sizeProp.base, className: '' });
+    } else {
+      sizeClass = buttonVariants({ variant, size: sizeProp, className: '' });
+    }
+    
+    return (
+      <Comp 
+        className={cn(
+          sizeClass,
+          className
+        )} 
+        ref={ref} 
+        {...props} 
+      />
+    );
   },
 );
 Button.displayName = "Button";

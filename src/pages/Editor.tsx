@@ -708,6 +708,8 @@ const Editor = () => {
         onUndo={undo}
         onRedo={redo}
         onHomeClick={() => window.location.href = '/'}
+        userName="John Doe"
+        userEmail="john@example.com"
         onPresent={async () => {
           try {
             // Try to enter fullscreen immediately on user gesture
