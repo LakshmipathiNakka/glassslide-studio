@@ -392,18 +392,29 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
   }), [chartData, chart.chartType]);
 
   const renderChart = () => {
-    if (!chart.chartType || !chart.chartData) return null;
+    if (!chart.chartType || !chart.chartData) {
+      console.warn('[ChartJSChart] Missing chartType or chartData:', { chartType: chart.chartType, hasData: !!chart.chartData });
+      return null;
+    }
+    
+    console.log('[ChartJSChart] Rendering chart:', {
+      type: chart.chartType,
+      labels: chart.chartData?.labels?.length,
+      datasets: chart.chartData?.datasets?.length,
+      title: chart.chartData?.title
+    });
 
     switch (chart.chartType) {
       case 'bar':
         return (
-          <div className="w-full h-full flex flex-col">
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Title (read-only; editable in Properties Panel) */}
             {chart.chartData?.title && (
-              <div className="mb-4 px-2">
+              <div style={{ marginBottom: '16px', padding: '0 8px' }}>
                 <div
-                  className="rounded px-2 py-1"
                   style={{
+                    borderRadius: '4px',
+                    padding: '4px 8px',
                     fontSize: `${chart.chartData?.titleFontSize || 18}px`,
                     fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
                     fontWeight: chart.chartData?.titleFontWeight || 'bold',
@@ -415,7 +426,7 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
                 </div>
               </div>
             )}
-            <div className="flex-1 min-h-0">
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Bar 
                 data={chartData} 
                 options={{
@@ -454,13 +465,14 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
       
       case 'line':
         return (
-          <div className="w-full h-full flex flex-col">
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Title (read-only; editable in Properties Panel) */}
             {chart.chartData?.title && (
-              <div className="mb-4 px-2">
+              <div style={{ marginBottom: '16px', padding: '0 8px' }}>
                 <div
-                  className="rounded px-2 py-1"
                   style={{
+                    borderRadius: '4px',
+                    padding: '4px 8px',
                     fontSize: `${chart.chartData?.titleFontSize || 18}px`,
                     fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
                     fontWeight: chart.chartData?.titleFontWeight || 'bold',
@@ -472,7 +484,7 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
                 </div>
               </div>
             )}
-            <div className="flex-1 min-h-0">
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Line 
                 data={chartData} 
                 options={{
@@ -546,13 +558,14 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
           };
           
           return (
-            <div className="w-full h-full flex flex-col">
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
               {/* Title (read-only; editable in Properties Panel) */}
               {chart.chartData?.title && (
-                <div className="mb-4 px-2">
+                <div style={{ marginBottom: '16px', padding: '0 8px' }}>
                   <div
-                    className="rounded px-2 py-1"
                     style={{
+                      borderRadius: '4px',
+                      padding: '4px 8px',
                       fontSize: `${chart.chartData?.titleFontSize || 18}px`,
                       fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
                       fontWeight: chart.chartData?.titleFontWeight || 'bold',
@@ -564,7 +577,7 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
                   </div>
                 </div>
               )}
-              <div className="flex-1 min-h-0">
+              <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                 <Pie 
                   data={pieData} 
                   options={{
@@ -579,7 +592,7 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
                         callbacks: {
                           title: (context: any) => {
                             const label = context[0]?.label || '';
-                            return `${label}(${dataset.label})`;
+                            return `${label} (${dataset.label})`;
                           },
                           label: (context: any) => {
                             const value = context.parsed;
@@ -593,26 +606,6 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
                   }} 
                 />
               </div>
-               {/* Custom responsive legend */}
-               <div className="flex flex-wrap justify-center gap-3 p-3 bg-gray-50/50 rounded-b-lg">
-                 {chartData.datasets.map((dataset: any, index: number) => {
-                   const color = dataset.colorIdentity?.solid || dataset.backgroundColor;
-                   return (
-                     <div 
-                       key={index} 
-                       className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg text-sm font-medium shadow-sm border border-gray-200 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                     >
-                       <div 
-                         className="w-3 h-3 rounded-full"
-                         style={{ backgroundColor: color }}
-                       />
-                       <span style={{ color: color }}>
-                         {dataset.label}
-                       </span>
-                     </div>
-                   );
-                 })}
-               </div>
             </div>
           );
         } else {

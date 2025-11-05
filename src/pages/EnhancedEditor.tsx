@@ -5,7 +5,6 @@ import { SlideThumbnails } from "@/components/editor/SlideThumbnails";
 import { ChartPanel } from "@/components/editor/ChartPanel";
 import { PropertiesPanel } from "@/components/editor/PropertiesPanel";
 import { PresentationMode } from "@/components/editor/PresentationMode";
-import { ExportDialog } from "@/components/editor/ExportDialog";
 import { CommandPalette } from "@/components/editor/CommandPalette";
 import { FloatingToolbar } from "@/components/editor/FloatingToolbar";
 import { UserProfile } from "@/components/editor/UserProfile";
@@ -53,7 +52,7 @@ const EnhancedEditor = () => {
   // UI State
   const [chartPanelOpen, setChartPanelOpen] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [floatingToolbarVisible, setFloatingToolbarVisible] = useState(false);
   const [floatingToolbarPosition, setFloatingToolbarPosition] = useState({ x: 0, y: 0 });
@@ -271,58 +270,32 @@ const EnhancedEditor = () => {
     setChartPanelOpen(true);
   }, []);
 
-  const handleExportFormat = useCallback((format: 'pptx' | 'pdf' | 'png' | 'json') => {
-    switch (format) {
-      case 'pptx':
-        handleExportPPTX();
-        break;
-      case 'json':
-        fileManager.downloadFile('json');
-        break;
-      default:
-        toast({ title: "Coming Soon", description: `${format.toUpperCase()} export will be available soon.` });
-    }
-    setExportDialogOpen(false);
-  }, [fileManager, toast]);
-
-  const handleExportPPTX = useCallback(() => {
-    if (!fileManager.currentFile) return;
-
-    const pptx = new pptxgen();
-    fileManager.currentFile.slides.forEach((slide, index) => {
-      const slideObj = pptx.addSlide();
-      slideObj.background = { color: slide.background || '#FFFFFF' };
-      
-      slide.elements.forEach(element => {
-        if (element.type === 'text') {
-          slideObj.addText(element.content || '', {
-            x: element.x / 10,
-            y: element.y / 10,
-            w: element.width / 10,
-            h: element.height / 10,
-            fontSize: element.fontSize || 18,
-            bold: element.fontWeight === 'bold',
-            italic: element.fontStyle === 'italic',
-            color: element.color || '#000000',
-            align: element.textAlign || 'center',
-          });
-        } else if (element.type === 'shape') {
-          slideObj.addShape(element.shapeType === 'circle' ? 'ellipse' : 'rect', {
-            x: element.x / 10,
-            y: element.y / 10,
-            w: element.width / 10,
-            h: element.height / 10,
-            fill: element.fill || '#000000',
-          });
-        } else if (element.type === 'image' && element.content) {
-          slideObj.addImage({ data: element.content, x: element.x / 10, y: element.y / 10, w: element.width / 10, h: element.height / 10 });
-        }
+  const handleExport = useCallback(async () => {
+    if (isExporting || !fileManager.currentFile) return; // Prevent double-clicks
+    
+    setIsExporting(true);
+    try {
+      const { exportSlidesToPPTX } = await import('@/utils/exporter');
+      // Sanitize filename by removing invalid characters
+      const sanitizedName = fileManager.currentFile.name.replace(/[<>:"/\\|?*]/g, '-');
+      const filename = `${sanitizedName}.pptx`;
+      await exportSlidesToPPTX(fileManager.currentFile.slides, filename);
+      toast({ 
+        title: 'Export Successful!', 
+        description: 'Your presentation has been exported to PowerPoint.' 
       });
-    });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({ 
+        title: 'Export Failed', 
+        description: 'Failed to export presentation. Please check your content and try again.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isExporting, fileManager, toast]);
 
-    pptx.writeFile({ fileName: `${fileManager.currentFile.name}.pptx` });
-    toast({ title: "Export Complete", description: "Your presentation has been exported as PPTX." });
-  }, [fileManager, toast]);
 
   const handleToggleDarkMode = useCallback(() => {
     setIsDarkMode(!isDarkMode);
@@ -386,13 +359,16 @@ const EnhancedEditor = () => {
         onAddImage={handleAddImage}
         onAddShape={handleAddShape}
         onAddChart={handleAddChart}
+        onAddTable={handleAddTable}
         onSave={fileManager.saveFile}
-        onExport={() => setExportDialogOpen(true)}
+        onExport={handleExport}
         onUndo={fileManager.undo}
         onRedo={fileManager.redo}
         onPresent={() => setPresentationMode(true)}
+        onHomeClick={() => window.location.href = '/'}
         canUndo={fileManager.canUndo}
         canRedo={fileManager.canRedo}
+        isExporting={isExporting}
       />
 
       {/* Main Content */}
@@ -511,12 +487,6 @@ const EnhancedEditor = () => {
         />
       )}
 
-      {exportDialogOpen && (
-        <ExportDialog
-          onClose={() => setExportDialogOpen(false)}
-          onExport={handleExportFormat}
-        />
-      )}
 
       {commandPaletteOpen && (
         <CommandPalette
@@ -530,7 +500,7 @@ const EnhancedEditor = () => {
           onAddSlide={handleAddSlide}
           onNewFile={fileManager.newFile}
           onSave={fileManager.saveFile}
-          onExport={() => setExportDialogOpen(true)}
+          onExport={handleExport}
           onPresent={() => setPresentationMode(true)}
         />
       )}

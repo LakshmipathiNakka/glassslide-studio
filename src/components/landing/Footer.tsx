@@ -124,7 +124,7 @@ export const Footer = () => {
             <div>
               <h3 className="text-sm font-semibold text-slate-800 mb-4 uppercase tracking-wider">Product</h3>
               <ul className="space-y-3">
-                {['Features', 'Pricing', 'Reviews', 'Editor', 'Explore'].map((item, index) => (
+                {['Features', 'Pricing', 'Testimonials', 'Editor', 'Explore'].map((item, index) => (
                   <motion.li
                     key={item}
                     initial={{ opacity: 0, x: -10 }}
@@ -133,7 +133,25 @@ export const Footer = () => {
                     whileHover={{ x: 4 }}
                   >
                     <a
-                      href={item.toLowerCase() === 'editor' ? '/editor' : `#${item.toLowerCase()}`}
+                      href={
+                        item.toLowerCase() === 'editor' ? '/editor' : 
+                        item.toLowerCase() === 'testimonials' ? '#testimonials' :
+                        item.toLowerCase() === 'explore' ? '#cta' :
+                        `#${item.toLowerCase()}`
+                      }
+                      onClick={(e) => {
+                        // Smooth scroll for anchor links without changing URL
+                        if (item.toLowerCase() !== 'editor') {
+                          e.preventDefault();
+                          const targetId = item.toLowerCase() === 'testimonials' ? 'testimonials' :
+                                          item.toLowerCase() === 'explore' ? 'cta' :
+                                          item.toLowerCase();
+                          const element = document.getElementById(targetId);
+                          if (element) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }
+                      }}
                       className="text-slate-600 hover:text-slate-900 text-sm transition-colors duration-200"
                     >
                       {item}
@@ -145,7 +163,7 @@ export const Footer = () => {
             <div>
               <h3 className="text-sm font-semibold text-slate-800 mb-4 uppercase tracking-wider">Company</h3>
               <ul className="space-y-3">
-                {['About', 'Blog', 'Careers', 'Contact'].map((item, index) => (
+                {['About', 'Blog', 'Careers', 'Contact', 'Reviews'].map((item, index) => (
                   <motion.li
                     key={item}
                     initial={{ opacity: 0, x: -10 }}
@@ -154,7 +172,16 @@ export const Footer = () => {
                     whileHover={{ x: 4 }}
                   >
                     <a
-                      href={`#${item.toLowerCase()}`}
+                      href={item.toLowerCase() === 'reviews' ? '#testimonials' : `#${item.toLowerCase()}`}
+                      onClick={(e) => {
+                        // Smooth scroll for anchor links without changing URL
+                        e.preventDefault();
+                        const targetId = item.toLowerCase() === 'reviews' ? 'testimonials' : item.toLowerCase();
+                        const element = document.getElementById(targetId);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }}
                       className="text-slate-600 hover:text-slate-900 text-sm transition-colors duration-200"
                     >
                       {item}

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Favicon Generator - Glass Slide</title>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f7fafc;
+    }
+    h1 {
+      color: #1a202c;
+      margin-bottom: 30px;
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+    .preview-item {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .preview-item h3 {
+      margin: 10px 0 5px;
+      font-size: 14px;
+      color: #2d3748;
+    }
+    .preview-item p {
+      margin: 0;
+      font-size: 12px;
+      color: #718096;
+    }
+    canvas {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    button {
+      background: #1a202c;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin: 5px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #2d3748;
+      transform: translateY(-1px);
+    }
+    .button-group {
+      margin: 20px 0;
+      text-align: center;
+    }
+    .instructions {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+      border-left: 4px solid #1a202c;
+    }
+    .instructions h2 {
+      margin-top: 0;
+      color: #1a202c;
+    }
+    .instructions ol {
+      line-height: 1.8;
+      color: #4a5568;
+    }
+    .instructions code {
+      background: #f7fafc;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      color: #1a202c;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎨 Glass Slide Favicon Generator</h1>
+  
+  <div class="instructions">
+    <h2>Instructions</h2>
+    <ol>
+      <li>The favicons will be generated automatically when you open this page</li>
+      <li>Click the download buttons below to save each size</li>
+      <li>Place the downloaded files in the <code>public/</code> folder</li>
+      <li>The files should be named: <code>favicon-32x32.png</code>, <code>favicon-64x64.png</code>, <code>apple-touch-icon.png</code></li>
+      <li>For <code>favicon.ico</code>, you can use an online converter or keep the existing one</li>
+    </ol>
+  </div>
+
+  <div class="preview-grid">
+    <div class="preview-item">
+      <canvas id="canvas32" width="32" height="32"></canvas>
+      <h3>32x32</h3>
+      <p>Standard favicon</p>
+      <button onclick="download('canvas32', 'favicon-32x32.png')">Download</button>
+    </div>
+    
+    <div class="preview-item">
+      <canvas id="canvas64" width="64" height="64"></canvas>
+      <h3>64x64</h3>
+      <p>High-DPI favicon</p>
+      <button onclick="download('canvas64', 'favicon-64x64.png')">Download</button>
+    </div>
+    
+    <div class="preview-item">
+      <canvas id="canvas180" width="180" height="180"></canvas>
+      <h3>180x180</h3>
+      <p>Apple touch icon</p>
+      <button onclick="download('canvas180', 'apple-touch-icon.png')">Download</button>
+    </div>
+  </div>
+
+  <div class="button-group">
+    <button onclick="downloadAll()">⬇️ Download All Favicons</button>
+  </div>
+
+  <script>
+    // SVG content for Glass Slide logo (hexagonal shape with gradient)
+    const svgContent = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+        <defs>
+          <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#1a1a1a;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#4a5568;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <polygon 
+          points="32,4 56,20 56,44 32,60 8,44 8,20" 
+          fill="url(#logoGradient)"
+          stroke="none"
+        />
+        <polygon 
+          points="32,4 56,20 56,44 32,60 8,44 8,20" 
+          fill="none"
+          stroke="rgba(255,255,255,0.1)"
+          stroke-width="1"
+        />
+      </svg>
+    `;
+
+    function generateFavicon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      
+      // Create image from SVG
+      const img = new Image();
+      const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      
+      img.onload = function() {
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(img, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+      };
+      
+      img.src = url;
+    }
+
+    function download(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function downloadAll() {
+      setTimeout(() => download('canvas32', 'favicon-32x32.png'), 100);
+      setTimeout(() => download('canvas64', 'favicon-64x64.png'), 300);
+      setTimeout(() => download('canvas180', 'apple-touch-icon.png'), 500);
+    }
+
+    // Generate all favicons on page load
+    window.onload = function() {
+      generateFavicon('canvas32', 32);
+      generateFavicon('canvas64', 64);
+      generateFavicon('canvas180', 180);
+    };
+  </script>
+</body>
+</html>

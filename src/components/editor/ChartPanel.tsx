@@ -178,8 +178,17 @@ export const ChartPanel = ({ open, onClose, onAddChart, onEditChart, editingChar
         datasets: [{
           label: 'Products',
           data: [300, 150, 100],
-          backgroundColor: colorPalette[2],
-          borderColor: colorPalette[2],
+          // Pie charts require backgroundColor to be an array of colors (one per label/slice)
+          backgroundColor: [
+            colorPalette[0],  // Product A color
+            colorPalette[1],  // Product B color
+            colorPalette[2],  // Product C color
+          ],
+          borderColor: [
+            colorPalette[0],
+            colorPalette[1],
+            colorPalette[2],
+          ],
         }]
       }
     };

@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Toolbar } from "@/components/editor/Toolbar";
 import SimplePowerPointCanvas from "@/components/canvas/SimplePowerPointCanvas";
 import { SlideThumbnails } from "@/components/editor/SlideThumbnails";
 import { ChartPanel } from "@/components/editor/ChartPanel";
 import { SmartSidebar } from "@/components/editor/SmartSidebar";
-import { PresentationMode } from "@/components/editor/PresentationMode";
-import { ExportDialog } from "@/components/editor/ExportDialog";
+import { SimplePresentationMode } from "@/components/editor/SimplePresentationMode";
 import ShapeModal, { ShapeType } from "@/components/editor/ShapeModal";
 import TableModal from "@/components/editor/TableModal";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +21,8 @@ import { useSmartLayoutApply } from "@/hooks/useSmartLayoutApply.tsx";
 import { useAuth } from "@/auth/AuthProvider";
 import { safeDecodeJwt } from "@/auth/jwt";
 import { useUserProfile } from "@/auth/useUserProfile";
+import { EditorLoader } from "@/components/editor/EditorLoader";
+import { validatePresentation, sanitizeSlidesForPresentation, getValidationSummary } from "@/utils/presentationValidator";
 
 // Default slide templates (Apple Keynote / PowerPoint inspired)
 function createTitleSlidePlaceholders(now: number): Element[] {
@@ -124,6 +125,7 @@ function createContentSlidePlaceholders(now: number): Element[] {
 }
 
 const Editor = () => {
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [presentationTitle, setPresentationTitle] = useState('Untitled Presentation');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -143,10 +145,14 @@ const Editor = () => {
   const [chartPanelOpen, setChartPanelOpen] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
   const [selectedElement, setSelectedElement] = useState<Element | null>(null);
+
+  const handleLoadingComplete = useCallback(() => {
+    setIsLoading(false);
+  }, []);
   const [currentLayoutId, setCurrentLayoutId] = useState('title-slide');
   const [editingChart, setEditingChart] = useState<{ type: 'bar' | 'line' | 'pie'; data: any } | null>(null);
   const [liveElements, setLiveElements] = useState<Element[] | null>(null);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [shapeModalOpen, setShapeModalOpen] = useState(false);
   const [tableModalOpen, setTableModalOpen] = useState(false);
 
@@ -164,9 +170,93 @@ const Editor = () => {
   usePersistence(slides, (loadedSlides) => {
     // This will be called when data is loaded from localStorage
     // We need to update the history with the loaded data
+    console.log('[Editor] Loaded slides from localStorage:', loadedSlides?.length || 0);
   });
 
+  // Reload slides when window regains focus (e.g., returning from presentation mode)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[Editor] Window focused - checking for updated slides');
+      try {
+        const saved = localStorage.getItem('glassslide-presentation');
+        if (saved) {
+          const parsedData = JSON.parse(saved);
+          // Only reload if data is different from current state
+          if (JSON.stringify(parsedData) !== JSON.stringify(slides)) {
+            console.log('[Editor] Slides updated externally, reloading...');
+            pushSlides(parsedData);
+            
+            // Show notification
+            toast({
+              title: 'Presentation Updated',
+              description: 'Your slides have been updated from presentation mode',
+              duration: 3000,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[Editor] Failed to reload slides on focus:', error);
+        toast({
+          title: 'Sync Error',
+          description: 'Failed to reload slides. Please refresh the page.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [slides, pushSlides, toast]);
+
+  // Also listen for storage events (when localStorage is updated from another tab/window)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'glassslide-presentation' && e.newValue) {
+        console.log('[Editor] Storage event detected - syncing slides');
+        try {
+          const parsedData = JSON.parse(e.newValue);
+          if (JSON.stringify(parsedData) !== JSON.stringify(slides)) {
+            console.log('[Editor] Syncing slides from storage event');
+            pushSlides(parsedData);
+            
+            toast({
+              title: 'Auto-Sync Complete',
+              description: 'Slides synchronized in real-time',
+              duration: 2000,
+            });
+          }
+        } catch (error) {
+          console.error('[Editor] Failed to sync from storage event:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [slides, pushSlides, toast]);
+
   const currentElements = slides[currentSlide]?.elements || [];
+
+  // Handle slide updates with synchronization
+  const handleSlideUpdate = useCallback((elements: Element[]) => {
+    if (!slides[currentSlide]) return;
+    
+    const updatedSlides = [...slides];
+    updatedSlides[currentSlide] = {
+      ...updatedSlides[currentSlide],
+      elements,
+      lastUpdated: Date.now()
+    };
+    
+    pushSlides(updatedSlides);
+    
+    // Update the current slide reference to trigger re-renders
+    setCurrentSlide(currentSlide);
+    
+  }, [currentSlide, pushSlides, slides]);
+
+  // Note: useSlideSync removed - not compatible with SimplePowerPointCanvas
+  // SimplePowerPointCanvas handles its own state management through onElementUpdate callbacks
 
   const updateCurrentSlide = (elements: Element[]) => {
     const newSlides = [...slides];
@@ -451,61 +541,32 @@ const Editor = () => {
   const navigate = useNavigate();
 
 
-  const handleExportFormat = (format: 'pptx' | 'pdf' | 'png' | 'json') => {
-    switch (format) {
-      case 'pptx':
-        handleExportPPTX();
-        break;
-      case 'pdf':
-        handleExportPDF();
-        break;
-      case 'png':
-        handleExportPNG();
-        break;
-      case 'json':
-        handleSave();
-        break;
-    }
-  };
-
-  const handleExportPPTX = async () => {
+  const handleExport = async () => {
+    if (isExporting) return; // Prevent double-clicks
+    
+    setIsExporting(true);
     try {
       const { exportSlidesToPPTX } = await import('@/utils/exporter');
-      await exportSlidesToPPTX(slides, 'GlassSlide-Presentation.pptx');
-      toast({ title: 'Exported!', description: 'Your presentation has been exported to PowerPoint.' });
+      // Sanitize filename by removing invalid characters
+      const sanitizedTitle = presentationTitle.replace(/[<>:"/\\|?*]/g, '-');
+      const filename = `${sanitizedTitle}.pptx`;
+      await exportSlidesToPPTX(slides, filename);
+      toast({ 
+        title: 'Export Successful!', 
+        description: 'Your presentation has been exported to PowerPoint.' 
+      });
     } catch (error) {
-      toast({ title: 'Export Error', description: 'Failed to export presentation. Please try again.', variant: 'destructive' });
+      console.error('Export error:', error);
+      toast({ 
+        title: 'Export Failed', 
+        description: 'Failed to export presentation. Please check your content and try again.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  const handleExportPDF = () => {
-    // For now, we'll use a simple approach - export as images and combine
-    // In a real implementation, you'd use a PDF library like jsPDF
-    toast({
-      title: "PDF Export",
-      description: "PDF export feature coming soon! For now, please use PowerPoint export.",
-    });
-  };
-
-  const handleExportPNG = () => {
-    // Export current slide as PNG
-    const canvas = document.querySelector('canvas') || document.createElement('canvas');
-    const slideElement = document.querySelector('[style*="width: 960px"]') as HTMLElement;
-    
-    if (slideElement) {
-      // Use html2canvas or similar library to capture the slide
-      toast({
-        title: "PNG Export",
-        description: "PNG export feature coming soon! For now, please use PowerPoint export.",
-      });
-    } else {
-      toast({
-        title: "Export Error",
-        description: "Could not find slide to export.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleAddSlide = () => {
     const now = Date.now();
@@ -645,8 +706,58 @@ const Editor = () => {
   const userSubtitleDisplay = profile?.title as string | undefined;
   const userAvatarDisplay = profile?.avatarUrl as string | undefined;
 
+  const handlePresent = useCallback(async () => {
+    try {
+      console.log('[Editor] Starting presentation mode');
+      
+      // Sanitize slides for presentation (remove placeholders and empty elements)
+      const sanitizedSlides = sanitizeSlidesForPresentation(slides);
+      
+      console.log('[Editor] Sanitized slides:', sanitizedSlides.length);
+      
+      // Save to localStorage for presentation mode
+      const deckId = `deck-${Date.now()}`;
+      const deckPayload = {
+        id: deckId,
+        title: presentationTitle,
+        slides: sanitizedSlides,
+        createdAt: Date.now(),
+        lastUpdated: Date.now(),
+      };
+      
+      localStorage.setItem(`presentation-${deckId}`, JSON.stringify(deckPayload));
+      console.log('[Editor] Saved presentation to localStorage');
+      
+      // Enter presentation mode
+      setPresentationMode(true);
+      
+      // Try to enter fullscreen after a small delay
+      setTimeout(async () => {
+        try {
+          await document.documentElement.requestFullscreen();
+          console.log('[Editor] Entered fullscreen');
+        } catch (e) {
+          console.warn('Fullscreen not supported or was denied:', e);
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error entering presentation mode:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to start presentation mode',
+        variant: 'destructive'
+      });
+    }
+  }, [slides, presentationTitle, toast]);
+
+  // Show loader until loading is complete
+  if (isLoading) {
+    return <EditorLoader onLoadingComplete={() => setIsLoading(false)} />;
+  }
+
   return (
-    <div className="h-screen flex flex-col bg-bg-soft">
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       {/* Skip Link for Accessibility */}
       <a href="#main-content" className="skip-link">
         Skip to main content
@@ -712,7 +823,7 @@ const Editor = () => {
         onAddChart={() => setChartPanelOpen(true)}
         onAddTable={handleAddTable}
         onSave={handleSave}
-        onExport={() => setExportDialogOpen(true)}
+        onExport={handleExport}
         onUndo={undo}
         onRedo={redo}
         onHomeClick={() => window.location.href = '/'}
@@ -720,25 +831,7 @@ const Editor = () => {
         userEmail={userEmailDisplay}
         userAvatar={userAvatarDisplay}
         userSubtitle={userSubtitleDisplay}
-        onPresent={async () => {
-          try {
-            // Try to enter fullscreen immediately on user gesture
-            try { await document.documentElement.requestFullscreen(); } catch (e) { /* ignore */ }
-            const deckId = `deck-${Date.now()}`;
-            const deckPayload = {
-              id: deckId,
-              title: presentationTitle,
-              slides,
-              createdAt: Date.now(),
-              lastUpdated: Date.now(),
-            };
-            localStorage.setItem(`glassslide-deck-${deckId}`, JSON.stringify(deckPayload));
-            navigate(`/present/${deckId}`);
-          } catch (e) {
-            console.error('Failed to start presentation:', e);
-            setPresentationMode(true); // fallback to legacy in-editor presentation
-          }
-        }}
+        onPresent={handlePresent}
         canUndo={canUndo}
         canRedo={canRedo}
         zoom={zoom}
@@ -756,6 +849,7 @@ const Editor = () => {
             return newZoom;
           });
         }}
+        isExporting={isExporting}
       />
 
       <main id="main-content" className="flex-1 flex lg:flex-row items-stretch w-full overflow-hidden" role="main">
@@ -864,18 +958,13 @@ const Editor = () => {
       
       
       {presentationMode && (
-        <PresentationMode
+        <SimplePresentationMode
           slides={slides}
           currentSlide={currentSlide}
           onClose={() => setPresentationMode(false)}
         />
       )}
       
-      <ExportDialog
-        open={exportDialogOpen}
-        onClose={() => setExportDialogOpen(false)}
-        onExport={handleExportFormat}
-      />
 
       {layoutModal}
       

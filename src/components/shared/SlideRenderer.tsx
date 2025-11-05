@@ -64,8 +64,18 @@ function styleFor(el: Element, s: number): React.CSSProperties {
 function renderContent(el: Element): React.ReactNode {
   switch (el.type) {
     case 'text': {
+      // CRITICAL: Never show placeholder in presentation or export modes
+      // Only show actual content
       const textVal = el.text || '';
-      const hasHtml = !!el.content;
+      const htmlContent = el.content || '';
+      const hasHtml = !!htmlContent && htmlContent.trim() !== '';
+      const hasText = !!textVal && textVal.trim() !== '';
+      
+      // If no content at all, don't render anything
+      if (!hasText && !hasHtml) {
+        return null;
+      }
+      
       const commonStyle: React.CSSProperties = {
         width: '100%', height: '100%', boxSizing: 'border-box',
         fontSize: el.fontSize ?? 18, color: el.color ?? '#000',
@@ -79,14 +89,17 @@ function renderContent(el: Element): React.ReactNode {
         justifyContent: el.textAlign === 'center' ? 'center' : el.textAlign === 'right' ? 'flex-end' : 'flex-start',
         whiteSpace: 'pre-wrap', wordBreak: 'break-word',
       };
+      // Render HTML content if available, otherwise plain text
       if (hasHtml) {
         return (
           <div
             style={commonStyle}
-            dangerouslySetInnerHTML={{ __html: el.content as string }}
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
           />
         );
       }
+      
+      // Render plain text
       return (
         <div style={commonStyle}>{textVal}</div>
       );
@@ -140,8 +153,21 @@ function renderContent(el: Element): React.ReactNode {
         <img src={el.imageUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius: (el as any).borderRadius || 0 }} />
       );
     }
-    case 'chart':
-      return <ChartJSChart chart={el as any} isSelected={false} onUpdate={() => {}} onDelete={() => {}} onSelect={() => {}} />;
+    case 'chart': {
+      // Use ChartJSChart component which handles all chart types including pie
+      // Pass mode prop to ensure proper rendering in presentation
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <ChartJSChart 
+            chart={el as any} 
+            isSelected={false} 
+            onUpdate={() => {}} 
+            onDelete={() => {}} 
+            onSelect={() => {}} 
+          />
+        </div>
+      );
+    }
     case 'table': {
       const rows = Math.max(1, el.rows || 3);
       const cols = Math.max(1, el.cols || 3);

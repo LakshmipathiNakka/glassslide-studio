@@ -208,6 +208,27 @@ const PresenterView: React.FC<PresenterViewProps> = ({
     return () => clearInterval(metricsInterval);
   }, [updateMetrics]);
 
+  // Debug logging for slides and elements
+  useEffect(() => {
+    if (deck && deck.slides) {
+      console.log('[PresenterView] Deck loaded with', deck.slides.length, 'slides');
+      deck.slides.forEach((slide, idx) => {
+        console.log(`[PresenterView] Slide ${idx + 1}: ${slide.elements?.length || 0} elements`);
+        slide.elements?.forEach((el: any) => {
+          if (el.type === 'chart') {
+            console.log(`  - chart: ${el.id}`, {
+              chartType: el.chartType,
+              hasData: !!el.chartData,
+              labels: el.chartData?.labels?.length || 0,
+            });
+          } else {
+            console.log(`  - ${el.type}: ${el.id}`);
+          }
+        });
+      });
+    }
+  }, [deck]);
+
   if (!deck || !presenterViewState.currentSlide) {
     return (
       <div className="h-screen w-screen bg-gray-900 flex items-center justify-center">

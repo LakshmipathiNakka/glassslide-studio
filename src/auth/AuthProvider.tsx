@@ -66,6 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Store token cookie for 30 days (Secure, Path=/). Note: HttpOnly must be set by server via Set-Cookie.
       setCookie(AUTH_CONFIG.tokenCookie, jwt, 30);
+      // Persist a display name fallback for profile (derived from entered username)
+      try { localStorage.setItem('auth_username', username); } catch {}
       setToken(jwt);
       return { ok: true };
     } catch (e: any) {

@@ -75,50 +75,129 @@ export const UserMenu = ({ userName, userEmail, avatar, subtitle }: UserMenuProp
   useEffect(() => {
     if (buttonRef.current && isOpen) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.right + window.scrollX,
-        width: rect.width
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const menuWidth = 240;
+      const menuHeight = 200; // Estimated menu height
+      
+      console.log('[UserMenu] Calculating position', {
+        buttonRect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right },
+        viewport: { width: viewportWidth, height: viewportHeight },
+        scroll: { x: window.scrollX, y: window.scrollY }
       });
+      
+      // Position menu directly below the button, right-aligned
+      let top = rect.bottom + 4; // Small gap below button
+      let right = viewportWidth - rect.right; // Align right edge with button right edge
+      
+      // Adjust if menu would go off bottom of viewport
+      if (top + menuHeight > viewportHeight) {
+        top = rect.top - menuHeight - 4; // Position above if not enough space below
+      }
+      
+      // Ensure menu doesn't go off left edge
+      const menuLeft = viewportWidth - right - menuWidth;
+      if (menuLeft < 8) {
+        right = viewportWidth - menuWidth - 8; // Keep 8px padding from left edge
+      }
+      
+      const finalPosition = {
+        top: Math.max(8, top),
+        right: Math.max(8, right),
+        width: rect.width
+      };
+      
+      console.log('[UserMenu] Final position:', finalPosition);
+      setPosition(finalPosition);
+    } else if (isOpen && !buttonRef.current) {
+      console.error('[UserMenu] Button ref not available when trying to position menu');
     }
   }, [isOpen]);
 
-  const menuContent = isOpen && createPortal(
-    <div 
-      className="fixed inset-0 z-[9999]" 
-      onClick={() => setIsOpen(false)}
-    >
+  const menuContent = isOpen && typeof document !== 'undefined' && createPortal(
+    <>
+      <style>{`
+        @keyframes menuSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        @keyframes menuSlideOut {
+          from {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+          to {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.95);
+          }
+        }
+        
+        @keyframes overlayFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
       <div 
-        className="absolute bg-white/90 backdrop-blur-lg rounded-xl shadow-2xl border border-white/20 overflow-hidden animate-fade-in"
+        className="fixed inset-0 bg-black/5 backdrop-blur-[2px]"
+        style={{ 
+          zIndex: 9999,
+          animation: 'overlayFadeIn 0.15s ease-out'
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          console.log('[UserMenu] Overlay clicked, closing menu');
+          setIsOpen(false);
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+      <div 
+        ref={menuRef}
+        className="fixed bg-white backdrop-blur-xl rounded-xl shadow-2xl border border-gray-200 overflow-hidden transition-all duration-200 ease-out"
         style={{
-          top: `${position.top + 4}px`,
-          right: `calc(100% - ${position.left}px + 8px)`,
-          minWidth: '220px',
-          transform: 'translateY(0)',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.12)'
+          top: `${position.top}px`,
+          right: `${position.right}px`,
+          minWidth: '240px',
+          maxWidth: '320px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.2), 0 2px 12px rgba(0,0,0,0.1)',
+          zIndex: 10000,
+          pointerEvents: 'auto',
+          opacity: 1,
+          transform: 'translateY(0) scale(1)',
+          animation: 'menuSlideIn 0.2s ease-out'
         }}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="p-4 border-b border-white/10">
+        <div className="p-4 border-b border-gray-200">
           <div className="flex items-start space-x-3">
             {avatar ? (
               <img
                 src={avatar}
                 alt={userName}
-                className="w-10 h-10 rounded-full object-cover border-2 border-white/20"
+                className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                onError={(e) => {
+                  console.warn('[UserMenu] Avatar failed to load:', avatar);
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center border-2 border-white/20">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center border-2 border-gray-200">
                 <User className="w-5 h-5 text-slate-600" />
               </div>
             )}
-            <div className="min-w-0">
-              <p className="font-medium text-slate-900 truncate">{userName}</p>
-              {subtitle && (
-                <p className="text-xs text-slate-600/90 truncate">{subtitle}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-slate-900 truncate text-sm">{userName || 'User'}</p>
+              {subtitle && subtitle.trim() && (
+                <p className="text-xs text-slate-600 truncate mt-0.5">{subtitle}</p>
               )}
-              <p className="text-xs text-slate-500/90 truncate">{userEmail}</p>
+              <p className="text-xs text-slate-500 truncate mt-0.5">{userEmail || 'No email'}</p>
             </div>
           </div>
         </div>
@@ -141,20 +220,35 @@ export const UserMenu = ({ userName, userEmail, avatar, subtitle }: UserMenuProp
           </button>
         </div>
       </div>
-    </div>,
+      </div>
+    </>,
     document.body
   );
 
+  // Debug: Log when component renders
+  useEffect(() => {
+    console.log('[UserMenu] Component rendered/updated', { isOpen, userName, userEmail });
+  }, [isOpen, userName, userEmail]);
+
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative">
       <button
         ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 ${
-          isOpen ? 'bg-white/80 backdrop-blur-sm shadow-sm' : 'hover:bg-white/60 hover:backdrop-blur-sm'
+        onClick={(e) => {
+          e.stopPropagation();
+          const newState = !isOpen;
+          console.log('[UserMenu] Button clicked, changing from', isOpen, 'to', newState);
+          console.log('[UserMenu] User data:', { userName, userEmail, avatar, subtitle });
+          setIsOpen(newState);
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-200 ease-out cursor-pointer ${
+          isOpen ? 'bg-white/90 backdrop-blur-sm shadow-md scale-[1.02]' : 'hover:bg-white/60 hover:backdrop-blur-sm hover:shadow-sm'
         }`}
         aria-haspopup="true"
         aria-expanded={isOpen}
+        type="button"
+        title="User menu"
       >
         {avatar ? (
           <img
@@ -170,7 +264,9 @@ export const UserMenu = ({ userName, userEmail, avatar, subtitle }: UserMenuProp
         <span className="text-sm font-medium text-slate-800 hidden sm:inline">
           {userName.split(' ')[0]}
         </span>
-        <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${isOpen ? 'transform rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-all duration-200 ease-out ${
+          isOpen ? 'rotate-180 text-slate-700' : ''
+        }`} />
       </button>
       {menuContent}
     </div>

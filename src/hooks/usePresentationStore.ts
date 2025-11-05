@@ -252,7 +252,8 @@ export const usePresentationStore = create<PresentationStore>()(
     },
 
     pause: () => {
-      set({ isPaused: true });
+      console.log('[usePresentationStore] pause() called - stopping auto-play');
+      set({ isPlaying: false, isPaused: true });
       get().stopTimer();
     },
 

@@ -7,6 +7,9 @@ import { PresentationDeck, PresentationSlide } from '@/types/presentation';
 import { animationEngine } from '@/utils/AnimationEngine';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Button } from '@/components/ui/button';
+import { usePresentationEditing, BackendSaveResult } from '@/hooks/usePresentationEditing';
+import { useToast } from '@/hooks/use-toast';
+import { Slide } from '@/types/slide-thumbnails';
 import { 
   Play, 
   Pause, 
@@ -19,7 +22,10 @@ import {
   Eye,
   EyeOff,
   Settings,
-  ArrowLeft
+  ArrowLeft,
+  Loader2,
+  Save,
+  AlertCircle
 } from 'lucide-react';
 
 /**
@@ -60,6 +66,9 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [slideScale, setSlideScale] = useState(1);
   const [isBlackout, setIsBlackout] = useState(false);
+  const [slideTimer, setSlideTimer] = useState(0);
+  const [isSavingBeforeExit, setIsSavingBeforeExit] = useState(false);
+  const { toast } = useToast();
 
   // Presentation store
   const {
@@ -85,6 +94,72 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
     handleUserInteraction,
     addError
   } = usePresentationStore();
+
+  // Backend save callback (optional - implement based on your backend)
+  const backendSaveCallback = useCallback(async (slides: Slide[]): Promise<BackendSaveResult> => {
+    // TODO: Implement actual backend API call
+    // Example:
+    // const response = await fetch('/api/presentations/' + deckId, {
+    //   method: 'PUT',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ slides })
+    // });
+    // return { success: response.ok, timestamp: Date.now() };
+    
+    // For now, return success (localStorage-only mode)
+    return { success: true, timestamp: Date.now() };
+  }, [deckId]);
+
+  // Presentation editing with auto-save
+  const {
+    slides: editableSlides,
+    updateSlides,
+    hasUnsavedChanges,
+    lastSavedAt,
+    isSaving,
+    saveError,
+    forceSave,
+    retrySave,
+  } = usePresentationEditing(
+    deck?.slides.map(s => ({
+      id: s.id,
+      elements: s.elements as any[],
+      background: s.background,
+      createdAt: s.createdAt,
+      lastUpdated: Date.now(),
+    })) || [],
+    deckId || null,
+    backendSaveCallback
+  );
+
+  // Show save notifications
+  useEffect(() => {
+    if (saveError) {
+      toast({
+        title: 'Save Failed',
+        description: saveError,
+        variant: 'destructive',
+        action: (
+          <Button size="sm" variant="outline" onClick={retrySave}>
+            Retry
+          </Button>
+        ),
+      });
+    }
+  }, [saveError, toast, retrySave]);
+
+  useEffect(() => {
+    if (lastSavedAt && !saveError) {
+      const timeSince = Date.now() - lastSavedAt;
+      if (timeSince < 1000) {
+        toast({
+          title: 'Saved',
+          description: 'All changes saved successfully',
+          duration: 2000,
+        });
+      }
+    }
+  }, [lastSavedAt, saveError, toast]);
 
   // Load deck on mount
   useEffect(() => {
@@ -184,7 +259,8 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
         // Load saved session (but always start from first slide for Present flow)
         loadSession();
         try { await goToSlide(0); } catch (_) {}
-        play();
+        // Auto-play is now opt-in by pressing play button
+        console.log('[PresentationMode] Loaded. Press Play or P to start auto-play.');
         
         setIsLoading(false);
 
@@ -265,14 +341,49 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
     return () => resizeObserver.disconnect();
   }, []);
 
+  // Slide timer for progress bar
+  useEffect(() => {
+    if (isPlaying) {
+      console.log('[SlideTimer] Starting timer for slide', currentSlideIndex + 1);
+      const timer = setInterval(() => {
+        setSlideTimer(prev => {
+          const newValue = prev + 1;
+          if (newValue <= 5) {
+            console.log('[SlideTimer] Timer tick:', newValue, '/', 5);
+          }
+          return newValue;
+        });
+      }, 1000);
+      return () => {
+        console.log('[SlideTimer] Clearing timer');
+        clearInterval(timer);
+      };
+    } else {
+      console.log('[SlideTimer] Resetting timer (not playing)');
+      setSlideTimer(0);
+    }
+  }, [isPlaying, currentSlideIndex]);
+
   // Auto-advance every 5 seconds while playing
   useEffect(() => {
-    if (!isPlaying || !deck || deck.slides.length === 0) return;
+    if (!isPlaying || !deck || deck.slides.length === 0) {
+      console.log('[Slideshow] Auto-advance disabled. isPlaying:', isPlaying, 'deck:', !!deck, 'slides:', deck?.slides.length);
+      return;
+    }
+    
+    console.log('[Slideshow] Auto-advancing in 5 seconds... (Slide', currentSlideIndex + 1, '/', deck.slides.length, ')');
+    
     const id = window.setInterval(() => {
+      // Check again if still playing before advancing
+      console.log('[Slideshow] Timer fired - advancing to slide', currentSlideIndex + 2);
       handleUserInteraction({ type: 'next' });
     }, 5000);
-    return () => window.clearInterval(id);
-  }, [isPlaying, deck?.id, currentSlideIndex, handleUserInteraction]);
+    
+    return () => {
+      console.log('[Slideshow] Clearing auto-advance timer for slide', currentSlideIndex + 1);
+      window.clearInterval(id);
+    };
+  }, [isPlaying, deck, currentSlideIndex, handleUserInteraction]);
 
   // Mouse movement handler for showing/hiding controls
   const handleMouseMove = useCallback(() => {
@@ -343,26 +454,105 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
     handleUserInteraction({ type: 'next' });
   }, [deck?.settings.mouseClickAdvances, handleUserInteraction]);
 
-  // Exit presentation
-  const handleExit = useCallback(() => {
-    saveSession();
+  // Exit presentation with save-before-exit
+  const handleExit = useCallback(async () => {
+    console.log('[PresentationMode] Exit requested');
     
+    // Check if there are unsaved changes
+    if (hasUnsavedChanges || isSaving) {
+      console.log('[PresentationMode] Unsaved changes detected, saving before exit...');
+      setIsSavingBeforeExit(true);
+      
+      try {
+        // Force immediate save
+        const saveSuccess = await forceSave();
+        
+        if (!saveSuccess) {
+          // Show error and ask user
+          const shouldExit = window.confirm(
+            'Failed to save changes. Do you want to exit anyway? Unsaved changes will be lost.'
+          );
+          
+          if (!shouldExit) {
+            console.log('[PresentationMode] Exit cancelled by user');
+            setIsSavingBeforeExit(false);
+            return;
+          }
+        }
+        
+        console.log('[PresentationMode] All changes saved successfully');
+        toast({
+          title: 'Saved',
+          description: 'All changes saved before exiting',
+          duration: 2000,
+        });
+      } catch (error) {
+        console.error('[PresentationMode] Error during save:', error);
+        const shouldExit = window.confirm(
+          'An error occurred while saving. Do you want to exit anyway?'
+        );
+        
+        if (!shouldExit) {
+          setIsSavingBeforeExit(false);
+          return;
+        }
+      } finally {
+        setIsSavingBeforeExit(false);
+      }
+    }
+    
+    console.log('[PresentationMode] Exiting presentation mode');
+    
+    // Save current session state (slide position, etc.)
+    saveSession();
+    console.log('[PresentationMode] Session saved');
+    
+    // Exit fullscreen if active
     if (isFullscreen) {
+      console.log('[PresentationMode] Exiting fullscreen');
       exitFullscreen();
     }
     
+    // Verify final state persisted
+    if (deck && deckId) {
+      try {
+        const existingData = localStorage.getItem(`glassslide-deck-${deckId}`);
+        if (existingData) {
+          console.log('[PresentationMode] Deck data verified in localStorage');
+        }
+      } catch (e) {
+        console.error('[PresentationMode] Failed to verify deck persistence:', e);
+      }
+    }
+    
+    // Return to editor or call custom exit handler
     if (onExit) {
+      console.log('[PresentationMode] Calling custom exit handler');
       onExit();
     } else {
-      navigate(-1); // Go back to previous page
+      console.log('[PresentationMode] Navigating back to editor');
+      navigate(-1); // Go back to previous page (Editor)
     }
-  }, [saveSession, isFullscreen, exitFullscreen, onExit, navigate]);
+  }, [hasUnsavedChanges, isSaving, forceSave, saveSession, isFullscreen, exitFullscreen, onExit, navigate, deck, deckId, toast]);
 
   // Keyboard shortcuts (PowerPoint-style)
   useHotkeys('right,down,space,enter,pagedown', () => handleUserInteraction({ type: 'next' }), { preventDefault: true });
   useHotkeys('left,up,backspace,pageup', () => handleUserInteraction({ type: 'previous' }), { preventDefault: true });
   useHotkeys('f5', () => handleUserInteraction({ type: 'play' }), { preventDefault: true });
-  useHotkeys('escape', handleExit, { preventDefault: true });
+  useHotkeys('p', () => {
+    console.log('[Slideshow] P key pressed. Current isPlaying:', isPlaying);
+    if (isPlaying) {
+      console.log('[Slideshow] Pausing via P key');
+      pause();
+    } else {
+      console.log('[Slideshow] Starting play via P key');
+      play();
+    }
+  }, { preventDefault: true });
+  useHotkeys('escape', () => {
+    console.log('[PresentationMode] ESC key pressed');
+    handleExit();
+  }, { preventDefault: true });
   useHotkeys('f', () => handleUserInteraction({ type: 'fullscreen' }), { preventDefault: true });
   useHotkeys('home', () => handleUserInteraction({ type: 'goTo', payload: 0 }), { preventDefault: true });
   useHotkeys('end', () => handleUserInteraction({ type: 'goTo', payload: (deck?.slides.length ?? 1) - 1 }), { preventDefault: true });
@@ -479,6 +669,25 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
         <div style={{ position: 'absolute', inset: 0, background: '#000' }} />
       )}
 
+      {/* Saving overlay */}
+      {isSavingBeforeExit && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}>
+          <div className="text-center text-white">
+            <Loader2 className="w-16 h-16 animate-spin mx-auto mb-4" />
+            <p className="text-xl font-medium">Saving changes...</p>
+            <p className="text-sm text-white/60 mt-2">Please wait while we save your presentation</p>
+          </div>
+        </div>
+      )}
+
       {/* On-screen controls */}
       <AnimatePresence>
         {(showControls || embedded) && (
@@ -517,11 +726,28 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => isPlaying ? pause() : play()}
-              className="text-white hover:bg-white/20"
+              onClick={() => {
+                console.log('[Slideshow] Play/pause button clicked. Current isPlaying:', isPlaying);
+                if (isPlaying) {
+                  console.log('[Slideshow] Calling pause()');
+                  pause();
+                  // Force update to ensure state changes
+                  setTimeout(() => {
+                    console.log('[Slideshow] After pause(), isPlaying should be false');
+                  }, 100);
+                } else {
+                  console.log('[Slideshow] Calling play()');
+                  play();
+                  setTimeout(() => {
+                    console.log('[Slideshow] After play(), isPlaying should be true');
+                  }, 100);
+                }
+              }}
+              className={`text-white hover:bg-white/20 transition-all ${isPlaying ? 'bg-red-500/30 hover:bg-red-500/40' : ''}`}
+              title={isPlaying ? 'Pause auto-play (P)' : 'Start auto-play (P)'}
             >
               {isPlaying && !isPaused ? (
-                <Pause className="w-4 h-4" />
+                <Pause className="w-4 h-4 animate-pulse" />
               ) : (
                 <Play className="w-4 h-4" />
               )}
@@ -537,9 +763,45 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
               <SkipForward className="w-4 h-4" />
             </Button>
 
-            {/* Slide counter */}
-            <div className="text-white text-sm px-2">
-              {currentSlideIndex + 1} / {deck.slides.length}
+            {/* LIVE indicator and Slide counter */}
+            <div className="flex items-center gap-2">
+              {isPlaying && (
+                <div className="bg-red-500/80 text-white px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm animate-pulse flex items-center gap-1">
+                  <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                  LIVE
+                </div>
+              )}
+              <div className="text-white text-sm px-2">
+                {currentSlideIndex + 1} / {deck.slides.length}
+              </div>
+            </div>
+
+            {/* Save status indicator */}
+            <div className="flex items-center gap-2">
+              {isSaving && (
+                <div className="flex items-center gap-1 text-white/70 text-xs">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Saving...
+                </div>
+              )}
+              {hasUnsavedChanges && !isSaving && (
+                <div className="flex items-center gap-1 text-yellow-400 text-xs" title="Auto-save in progress">
+                  <AlertCircle className="w-3 h-3" />
+                  Unsaved
+                </div>
+              )}
+              {!hasUnsavedChanges && !isSaving && lastSavedAt && (
+                <div className="flex items-center gap-1 text-green-400 text-xs" title={`Last saved at ${new Date(lastSavedAt).toLocaleTimeString()}`}>
+                  <Save className="w-3 h-3" />
+                  Saved
+                </div>
+              )}
+              {saveError && (
+                <div className="flex items-center gap-1 text-red-400 text-xs" title={saveError}>
+                  <AlertCircle className="w-3 h-3" />
+                  Error
+                </div>
+              )}
             </div>
 
             {/* Additional controls */}
@@ -586,7 +848,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Progress bar */}
+      {/* Progress bar with auto-play timer */}
       {deck.settings.showProgressBar && !embedded && (
         <div
           style={{
@@ -594,18 +856,43 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
             top: 0,
             left: 0,
             right: 0,
-            height: '2px',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
           }}
         >
+          {/* Slide progress */}
           <div
             style={{
-              height: '100%',
-              backgroundColor: '#3b82f6',
-              width: `${deck.slides.length > 0 ? ((currentSlideIndex + 1) / deck.slides.length) * 100 : 0}%`,
-              transition: 'width 0.3s ease',
+              height: '2px',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
             }}
-          />
+          >
+            <div
+              style={{
+                height: '100%',
+                backgroundColor: '#3b82f6',
+                width: `${deck.slides.length > 0 ? ((currentSlideIndex + 1) / deck.slides.length) * 100 : 0}%`,
+                transition: 'width 0.3s ease',
+              }}
+            />
+          </div>
+          {/* Auto-play timer */}
+          {isPlaying && (
+            <div
+              style={{
+                height: '1px',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                marginTop: '1px',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  backgroundColor: '#ef4444',
+                  width: `${(slideTimer / 5) * 100}%`,
+                  transition: 'width 0.1s linear',
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 

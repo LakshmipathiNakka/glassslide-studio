@@ -705,26 +705,31 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
       // Pie chart
       const centerX = chartX + chartWidth / 2;
       const centerY = chartY + chartHeight / 2;
-      const radius = Math.min(chartWidth, chartHeight) / 2 - 10 * scale;
+      // Ensure radius is always positive with a minimum value
+      const calculatedRadius = Math.min(chartWidth, chartHeight) / 2 - 10 * scale;
+      const radius = Math.max(5, calculatedRadius); // Minimum radius of 5 pixels
       
-      let currentAngle = 0;
-      const total = datasets[0]?.data.reduce((sum: number, val: number) => sum + val, 0) || 1;
-      const bg = (datasets[0]?.backgroundColor as (string[] | string)) || [];
-      const FALLBACK_PIE_COLORS = ['#007AFF','#FF3B30','#34C759','#FF9500','#AF52DE','#5AC8FA','#FFCC00','#8E8E93','#FF2D92','#30D158'];
-      
-      datasets[0]?.data.forEach((value: number, i: number) => {
-        const sliceAngle = (value / total) * 2 * Math.PI;
+      // Only render if we have valid dimensions
+      if (radius > 0 && chartWidth > 0 && chartHeight > 0) {
+        let currentAngle = 0;
+        const total = datasets[0]?.data.reduce((sum: number, val: number) => sum + val, 0) || 1;
+        const bg = (datasets[0]?.backgroundColor as (string[] | string)) || [];
+        const FALLBACK_PIE_COLORS = ['#007AFF','#FF3B30','#34C759','#FF9500','#AF52DE','#5AC8FA','#FFCC00','#8E8E93','#FF2D92','#30D158'];
         
-        const fill = Array.isArray(bg) ? (bg[i] || FALLBACK_PIE_COLORS[i % FALLBACK_PIE_COLORS.length]) : FALLBACK_PIE_COLORS[i % FALLBACK_PIE_COLORS.length];
-        ctx.fillStyle = fill;
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-        ctx.closePath();
-        ctx.fill();
-        
-        currentAngle += sliceAngle;
-      });
+        datasets[0]?.data.forEach((value: number, i: number) => {
+          const sliceAngle = (value / total) * 2 * Math.PI;
+          
+          const fill = Array.isArray(bg) ? (bg[i] || FALLBACK_PIE_COLORS[i % FALLBACK_PIE_COLORS.length]) : FALLBACK_PIE_COLORS[i % FALLBACK_PIE_COLORS.length];
+          ctx.fillStyle = fill;
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+          ctx.closePath();
+          ctx.fill();
+          
+          currentAngle += sliceAngle;
+        });
+      }
     }
   };
 

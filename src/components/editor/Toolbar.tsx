@@ -1,4 +1,4 @@
-import { Type, Image, Shapes, BarChart3, Table, Download, Save, Undo, Redo, Layout, Play, Palette, Home } from "lucide-react";
+import { Type, Image, Shapes, BarChart3, Table, Download, Save, Undo, Redo, Layout, Play, Palette, Home, Presentation, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { UserMenu } from "./UserMenu";
@@ -25,6 +25,7 @@ interface ToolbarProps {
   userEmail?: string;
   userAvatar?: string;
   userSubtitle?: string;
+  isExporting?: boolean;
 }
 
 export const Toolbar = ({
@@ -48,6 +49,7 @@ export const Toolbar = ({
   userEmail = 'user@example.com',
   userAvatar,
   userSubtitle,
+  isExporting = false,
 }: ToolbarProps) => {
   return (
     <div className="keynote-toolbar overflow-x-auto smooth-scroll bg-white border-b border-slate-200" role="toolbar" aria-label="Editor tools">
@@ -210,12 +212,17 @@ export const Toolbar = ({
           variant="ghost"
           size={{ base: 'icon', sm: 'sm' }}
           onClick={onExport}
-          className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 bg-white text-black border border-gray-300 hover:bg-gray-100 hover:text-black hover-lift focus-ring hover-glow"
-          title="Export"
-          aria-label="Export presentation"
+          disabled={isExporting}
+          className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 bg-white text-black border border-gray-300 hover:bg-gray-100 hover:text-black hover-lift focus-ring hover-glow disabled:opacity-60 disabled:cursor-not-allowed"
+          title={isExporting ? "Exporting..." : "Export to PowerPoint"}
+          aria-label={isExporting ? "Exporting presentation" : "Export presentation to PowerPoint"}
         >
-          <Download className="w-4 h-4 sm:mr-1" aria-hidden="true" />
-          <span className="hidden sm:inline text-sm">Export</span>
+          {isExporting ? (
+            <Loader2 className="w-4 h-4 sm:mr-1 animate-spin" aria-hidden="true" />
+          ) : (
+            <Presentation className="w-4 h-4 sm:mr-1" aria-hidden="true" />
+          )}
+          <span className="hidden sm:inline text-sm">{isExporting ? "Exporting..." : "Export to PowerPoint"}</span>
         </Button>
         
         {/* User Menu */}

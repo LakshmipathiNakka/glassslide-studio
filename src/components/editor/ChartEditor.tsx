@@ -28,7 +28,7 @@ interface ChartEditorProps {
 export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }: ChartEditorProps) => {
   const [chartType, setChartType] = useState<'bar' | 'line' | 'pie'>('bar');
   const [labels, setLabels] = useState<string[]>(['Jan', 'Feb', 'Mar', 'Apr', 'May']);
-  const [datasets, setDatasets] = useState<{ label: string; data: number[]; color: string }[]>([
+  const [datasets, setDatasets] = useState<{ label: string; data: number[]; color: string | string[] }[]>([
     { label: 'Series 1', data: [65, 59, 80, 81, 56], color: '#000000' }
   ]);
 
@@ -38,6 +38,7 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
       setDatasets(initialData.datasets.map(ds => ({
         label: ds.label,
         data: ds.data,
+        // For pie charts, backgroundColor is an array of colors
         color: ds.backgroundColor || '#000000'
       })));
     }
@@ -51,13 +52,27 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
     if (chartType === 'pie') {
       // keep only first dataset
       setDatasets(prev => {
-        const first = prev[0] || { label: 'Series 1', data: labels.map(() => 0), color: '#000000' };
+        const first = prev[0] || { label: 'Series 1', data: labels.map(() => 0), color: [] };
         // sync data length to labels length
         let data = first.data.slice(0, labels.length);
         if (data.length < labels.length) {
           data = [...data, ...new Array(labels.length - data.length).fill(0)];
         }
-        return [{ ...first, data }];
+        
+        // For pie charts, ensure color is an array matching label count
+        let colors: string[];
+        if (Array.isArray(first.color)) {
+          colors = first.color.slice(0, labels.length);
+          // Fill missing colors with random colors
+          while (colors.length < labels.length) {
+            colors.push(`hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`);
+          }
+        } else {
+          // Convert single color to array of random colors
+          colors = labels.map((_, i) => `hsl(${(i * 360 / labels.length)}, 70%, 60%)`);
+        }
+        
+        return [{ ...first, data, color: colors }];
       });
     }
   }, [chartType, labels]);
@@ -67,7 +82,7 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
     const newDataset = {
       label: `Series ${datasets.length + 1}`,
       data: new Array(labels.length).fill(0),
-      color: `#${Math.floor(Math.random()*16777215).toString(16)}`
+      color: `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`
     };
     setDatasets([...datasets, newDataset]);
   };
@@ -93,16 +108,29 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
 
   const addLabel = () => {
     setLabels([...labels, `Label ${labels.length + 1}`]);
-    setDatasets(datasets.map(ds => ({ ...ds, data: [...ds.data, 0] })));
+    setDatasets(datasets.map(ds => {
+      const newData = [...ds.data, 0];
+      // For pie charts, also add a new color to the color array
+      if (chartType === 'pie' && Array.isArray(ds.color)) {
+        const newColors = [...ds.color, `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`];
+        return { ...ds, data: newData, color: newColors };
+      }
+      return { ...ds, data: newData };
+    }));
   };
 
   const removeLabel = (index: number) => {
     if (labels.length > 1) {
       setLabels(labels.filter((_, i) => i !== index));
-      setDatasets(datasets.map(ds => ({
-        ...ds,
-        data: ds.data.filter((_, i) => i !== index)
-      })));
+      setDatasets(datasets.map(ds => {
+        const newData = ds.data.filter((_, i) => i !== index);
+        // For pie charts, also remove the corresponding color from the color array
+        if (chartType === 'pie' && Array.isArray(ds.color)) {
+          const newColors = ds.color.filter((_, i) => i !== index);
+          return { ...ds, data: newData, color: newColors };
+        }
+        return { ...ds, data: newData };
+      }));
     }
   };
 
@@ -115,12 +143,24 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
   const handleSave = () => {
     const chartData: ChartData = {
       labels,
-      datasets: datasets.map(ds => ({
-        label: ds.label,
-        data: ds.data,
-        backgroundColor: chartType === 'pie' ? ds.color : undefined,
-        borderColor: chartType === 'line' ? ds.color : undefined,
-      }))
+      datasets: datasets.map(ds => {
+        // For pie charts, backgroundColor should be an array of colors
+        // For bar/line charts, it should be a single color
+        const backgroundColor = chartType === 'pie' 
+          ? (Array.isArray(ds.color) ? ds.color : [ds.color])
+          : (Array.isArray(ds.color) ? ds.color[0] : ds.color);
+        
+        const borderColor = chartType === 'pie'
+          ? (Array.isArray(ds.color) ? ds.color : [ds.color])
+          : (chartType === 'line' ? (Array.isArray(ds.color) ? ds.color[0] : ds.color) : undefined);
+        
+        return {
+          label: ds.label,
+          data: ds.data,
+          backgroundColor,
+          borderColor,
+        };
+      })
     };
     onSave(chartData, chartType);
   };

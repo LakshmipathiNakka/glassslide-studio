@@ -17,11 +17,16 @@ function deriveEmailFromName(name: string): string {
 
 function mapProfile(data: any, jwtPayload: any | null): UserProfile {
   const src = (data && typeof data === "object") ? (data.user || data) : {};
-  const name = (src.name || src.username || src.fullName || jwtPayload?.name || jwtPayload?.username || jwtPayload?.sub || "User") as string;
-  const title = (src.title || src.designation || src.headline || src.bio) as string | undefined;
+  const localName = (typeof window !== 'undefined' && window.localStorage) ? (localStorage.getItem('auth_username') || undefined) : undefined;
+  const computedName = (src.name || src.username || src.fullName || jwtPayload?.name || jwtPayload?.username || jwtPayload?.sub || localName || "User") as string;
+  // Title may also be stored locally in the future (auth_title)
+  const localTitle = (typeof window !== 'undefined' && window.localStorage) ? (localStorage.getItem('auth_title') || undefined) : undefined;
+  const title = (src.title || src.designation || src.headline || src.bio || localTitle) as string | undefined;
   const avatarUrl = (src.avatarUrl || src.avatar || src.profile_image || src.profileImage || src.profileDP) as string | undefined;
-  const emailRaw = (src.email as string | undefined) || (jwtPayload?.email as string | undefined) || deriveEmailFromName(name);
+  const emailRaw = (src.email as string | undefined) || (jwtPayload?.email as string | undefined) || deriveEmailFromName(computedName);
   const email = emailRaw.toLowerCase();
+  // Capitalize first letter if computed from username
+  const name = computedName ? (computedName.charAt(0).toUpperCase() + computedName.slice(1)) : "User";
   return { name, email, title, avatarUrl };
 }
 

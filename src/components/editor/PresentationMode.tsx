@@ -1,136 +1,324 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { fabric } from "fabric";
 import { Button } from "@/components/ui/button";
-import { X, ChevronLeft, ChevronRight, Play, Pause, RotateCcw } from "lucide-react";
-import { Slide } from '@/types/slide-thumbnails';
-import { Element } from '@/hooks/use-action-manager';
+import { ArrowLeft, ArrowRight, X, Maximize2, Minimize2 } from "lucide-react";
+import { Slide } from "@/types/slide-thumbnails";
+import { useHotkeys } from "react-hotkeys-hots";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
+import { sanitizeSlidesForPresentation } from '@/utils/presentationValidator';
+import { ChartJSChart } from './ChartJSChart';
 
 interface PresentationModeProps {
-  slides: Slide[];
-  currentSlide: number;
   onClose: () => void;
+  initialSlide?: number;
+  slides: Slide[];
+  title?: string;
+  onSlideChange?: (index: number) => void;
+  onSlideUpdate?: (slideIndex: number, elements: any[]) => void;
 }
 
-export const PresentationMode = ({ slides, currentSlide: initialSlide, onClose }: PresentationModeProps) => {
-  // Always start presentation from the first slide (index 0)
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [showControls, setShowControls] = useState(true);
+export const PresentationMode = ({ 
+  onClose, 
+  initialSlide = 0, 
+  slides, 
+  title = 'Presentation',
+  onSlideChange,
+  onSlideUpdate
+}: PresentationModeProps) => {
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(initialSlide);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fabricRef = useRef<fabric.Canvas | null>(null);
+  const navigate = useNavigate();
+  const { deckId } = useParams();
+  
+  // Load slides from localStorage if deckId is provided
+  const [presentationSlides, setPresentationSlides] = useState<Slide[]>(slides);
 
-  const [slideTimer, setSlideTimer] = useState(0);
-
-  // Detect fullscreen changes
+  // Load slides from localStorage if deckId is provided
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+    if (deckId) {
+      try {
+        const saved = localStorage.getItem(`presentation-${deckId}`);
+        if (saved) {
+          const data = JSON.parse(saved);
+          setPresentationSlides(data.slides);
+        }
+      } catch (error) {
+        console.error('Failed to load presentation:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load presentation',
+          variant: 'destructive'
+        });
+      }
+    }
+  }, [deckId]);
+
+  // Initialize canvas
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    
+    setIsLoading(true);
+
+    const canvas = new fabric.Canvas(canvasRef.current, {
+      width: 960,
+      height: 540,
+      backgroundColor: '#ffffff',
+      selection: false,
+      preserveObjectStacking: true,
+      renderOnAddRemove: false
+    });
+
+    // Disable right-click menu
+    canvasRef.current.oncontextmenu = (e) => {
+      e.preventDefault();
+      return false;
     };
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+    fabricRef.current = canvas;
 
-  // Slide timer effect
-  useEffect(() => {
-    if (isPlaying) {
-      const timer = setInterval(() => {
-        setSlideTimer(prev => prev + 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    } else {
-      setSlideTimer(0);
-    }
-  }, [isPlaying, currentSlide]);
-
-  // Auto-hide controls after 3 seconds
-  useEffect(() => {
-    if (isPlaying) {
-      const timer = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [isPlaying]);
-
-  const nextSlide = () => {
-    if (currentSlide < slides.length - 1) {
-      setCurrentSlide(currentSlide + 1);
-    }
-  };
-
-  const prevSlide = () => {
-    if (currentSlide > 0) {
-      setCurrentSlide(currentSlide - 1);
-    }
-  };
-
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
-    setShowControls(true);
-  };
-
-  const restartPresentation = () => {
-    setCurrentSlide(0);
-    setIsPlaying(false);
-    setShowControls(true);
-  };
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'Escape':
-          onClose();
-          break;
-        case 'ArrowRight':
-        case ' ':
-          e.preventDefault();
-          nextSlide();
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          prevSlide();
-          break;
-        case 'r':
-          e.preventDefault();
-          restartPresentation();
-          break;
-        case 'f':
-          e.preventDefault();
-          if (document.fullscreenElement) {
-            document.exitFullscreen();
-          } else {
-            document.documentElement.requestFullscreen();
-          }
-          break;
+    // Load initial slide
+    const loadInitialSlide = async () => {
+      try {
+        await loadSlide(currentSlideIndex);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentSlide, isPlaying]);
+    loadInitialSlide();
 
-  // Auto-play functionality
-  useEffect(() => {
-    if (isPlaying) {
-      const timer = setInterval(() => {
-        if (currentSlide < slides.length - 1) {
-          setCurrentSlide(currentSlide + 1);
-        } else {
-          setIsPlaying(false);
-        }
-      }, 5000); // 5 seconds per slide
+    return () => {
+      if (canvas) {
+        canvas.dispose();
+      }
+    };
+  }, []);
 
-      return () => clearInterval(timer);
+  // Load slide into canvas - MUST be defined before navigation functions that use it
+  const loadSlide = useCallback(async (index: number) => {
+    const canvas = fabricRef.current;
+    if (!canvas || index < 0 || index >= presentationSlides.length) return;
+
+    // Notify parent component of slide change
+    onSlideChange?.(index);
+    
+    // Clear canvas but keep it in a loading state
+    canvas.clear();
+    
+    const slide = presentationSlides[index];
+    if (!slide) return;
+    
+    // Track loaded objects to ensure all are rendered
+    let objectsToLoad = 0;
+    let objectsLoaded = 0;
+    
+    // Load slide background
+    if (slide.background) {
+      canvas.setBackgroundColor(slide.background, () => {
+        canvas.renderAll();
+      });
+    } else {
+      canvas.setBackgroundColor('#ffffff', () => {
+        canvas.renderAll();
+      });
     }
-  }, [isPlaying, currentSlide, slides.length]);
 
-  const currentElements = slides[currentSlide]?.elements || [];
+    // Function to check if all objects are loaded
+    const checkAllLoaded = () => {
+      objectsLoaded++;
+      if (objectsLoaded >= objectsToLoad) {
+        canvas.renderAll();
+        setIsLoading(false);
+      }
+    };
 
-  const renderElement = (element: Element, isFullscreen: boolean = false) => {
-    // Scale factor for fullscreen (16:9 aspect ratio)
-    const scaleFactor = isFullscreen ? Math.min(window.innerWidth / 960, window.innerHeight / 540) : 1;
-    const baseWidth = isFullscreen ? window.innerWidth : 960;
-    const baseHeight = isFullscreen ? window.innerHeight : 540;
+    // Load slide elements
+    if (slide.elements?.length) {
+      objectsToLoad = slide.elements.length;
+      
+      // If no objects, mark as loaded
+      if (objectsToLoad === 0) {
+        checkAllLoaded();
+      }
+
+      // Load each element
+      for (const element of slide.elements) {
+        try {
+          // Handle different element types
+          if (element.type === 'image' && element.src) {
+            // Handle image loading
+            fabric.Image.fromURL(element.src, (img) => {
+              img.set({
+                left: element.left,
+                top: element.top,
+                scaleX: element.scaleX || 1,
+                scaleY: element.scaleY || 1,
+                angle: element.angle || 0,
+                opacity: element.opacity ?? 1,
+                selectable: false,
+                evented: false,
+                excludeFromExport: false,
+                ...(element as any)
+              });
+              
+              canvas.add(img);
+              checkAllLoaded();
+            });
+          } else {
+            // Handle other objects (shapes, text, etc.)
+            fabric.util.enlivenObjects(
+              [element],
+              (enlivenedObjects) => {
+                enlivenedObjects.forEach((obj) => {
+                  // Make objects non-interactive in presentation mode
+                  obj.set({
+                    selectable: false,
+                    evented: false,
+                    excludeFromExport: false
+                  });
+                  canvas.add(obj);
+                });
+                checkAllLoaded();
+              },
+              'fabric'
+            );
+          }
+        } catch (error) {
+          console.error('Error loading slide element:', error);
+          checkAllLoaded();
+        }
+      }
+    } else {
+      checkAllLoaded();
+    }
+  }, [presentationSlides, onSlideChange]);
+
+  // Navigation functions - defined AFTER loadSlide
+  const goToNextSlide = useCallback(() => {
+    if (currentSlideIndex < presentationSlides.length - 1) {
+      const newIndex = currentSlideIndex + 1;
+      setCurrentSlideIndex(newIndex);
+      loadSlide(newIndex);
+    }
+  }, [currentSlideIndex, presentationSlides.length, loadSlide]);
+
+  const goToPrevSlide = useCallback(() => {
+    if (currentSlideIndex > 0) {
+      const newIndex = currentSlideIndex - 1;
+      setCurrentSlideIndex(newIndex);
+      loadSlide(newIndex);
+    }
+  }, [currentSlideIndex, loadSlide]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading slide {currentSlideIndex + 1} of {presentationSlides.length}...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black z-50 flex flex-col select-none"
+    >
+      {/* Header */}
+      <div className="bg-black/90 text-white p-3 flex justify-between items-center transition-opacity duration-300 hover:opacity-100 opacity-0 group-hover:opacity-100">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 transition-colors"
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-4 h-4" />
+            ) : (
+              <Maximize2 className="w-4 h-4" />
+            )}
+          </Button>
+
+          <div className={`w-px bg-white/30 mx-2 ${isFullscreen ? 'h-8 mx-3' : 'h-6'}`} />
+
+          <Button
+            variant="ghost"
+            size={isFullscreen ? "lg" : "sm"}
+            onClick={onClose}
+            className={`text-white hover:bg-white/20 transition-colors ${isFullscreen ? 'w-12 h-12' : ''}`}
+          >
+            <X className={`${isFullscreen ? 'w-6 h-6' : 'w-4 h-4'}`} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Instructions - Only show when not in fullscreen */}
+      {!isFullscreen && (
+        <div className="absolute top-6 left-6 text-white/70 text-sm">
+          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">Space</kbd> or <kbd className="bg-white/20 px-2 py-1 rounded">→</kbd> for next slide</div>
+          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">←</kbd> for previous slide</div>
+          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">R</kbd> to restart from beginning</div>
+          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">P</kbd> to play/pause</div>
+          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">F</kbd> to toggle fullscreen</div>
+          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">Esc</kbd> to exit presentation</div>
+        </div>
+      )}
+
+      {/* Main slide content */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div 
+          className="relative bg-white"
+          style={{
+            width: isFullscreen ? baseWidth : baseWidth,
+            height: isFullscreen ? baseHeight : baseHeight,
+            maxWidth: '100%',
+            maxHeight: '100%'
+          }}
+        >
+          {slides[currentSlide]?.elements.map((element) => renderElement(element))}
+        </div>
+      </div>
+
+      {/* Navigation controls */}
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={prevSlide}
+          disabled={currentSlide === 0}
+          className="text-white hover:bg-white/20 transition-colors"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </Button>
+        
+        <div className="text-white text-sm font-medium px-4 py-2 bg-black/50 rounded-lg">
+          {currentSlide + 1} / {slides.length}
+        </div>
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={nextSlide}
+          disabled={currentSlide === slides.length - 1}
+          className="text-white hover:bg-white/20 transition-colors"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Helper function to render each element
+  function renderElement(element: any) {
+    const scaleFactor = isFullscreen ? baseWidth / 960 : 1;
+
     switch (element.type) {
       case 'text':
         return (
@@ -142,36 +330,34 @@ export const PresentationMode = ({ slides, currentSlide: initialSlide, onClose }
               top: isFullscreen ? element.y * (baseHeight / 540) : element.y,
               width: isFullscreen ? element.width * (baseWidth / 960) : element.width,
               height: isFullscreen ? element.height * (baseHeight / 540) : element.height,
-              fontSize: isFullscreen ? `${(element.fontSize || 18) * scaleFactor}px` : `${element.fontSize || 18}px`,
+              fontSize: (element.fontSize || 16) * scaleFactor,
+              color: element.color || '#000000',
+              fontFamily: element.fontFamily || 'Arial',
               fontWeight: element.fontWeight || 'normal',
               fontStyle: element.fontStyle || 'normal',
-              color: element.color || '#000000',
-              textAlign: element.textAlign || 'center',
+              textAlign: (element.textAlign || 'left') as any,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: element.textAlign === 'left' ? 'flex-start' :
-                             element.textAlign === 'right' ? 'flex-end' : 'center'
+              justifyContent: element.textAlign === 'center' ? 'center' : element.textAlign === 'right' ? 'flex-end' : 'flex-start',
             }}
-          >
-            {element.content || 'Text'}
-          </div>
+            dangerouslySetInnerHTML={{ __html: element.content || element.text || '' }}
+          />
         );
 
       case 'image':
         return (
           <div
             key={element.id}
-            className="absolute overflow-hidden rounded-lg"
+            className="absolute"
             style={{
               left: isFullscreen ? element.x * (baseWidth / 960) : element.x,
               top: isFullscreen ? element.y * (baseHeight / 540) : element.y,
               width: isFullscreen ? element.width * (baseWidth / 960) : element.width,
               height: isFullscreen ? element.height * (baseHeight / 540) : element.height,
-              borderRadius: element.borderRadius ? `${element.borderRadius * scaleFactor}px` : '0'
             }}
           >
             <img
-              src={element.imageUrl || element.content}
+              src={element.imageUrl}
               alt="Presentation content"
               className="w-full h-full object-cover"
             />
@@ -179,133 +365,31 @@ export const PresentationMode = ({ slides, currentSlide: initialSlide, onClose }
         );
 
       case 'chart':
-        const renderChartContent = () => {
-          if (!element.chartData) {
-            return (
-              <div className="text-center text-muted-foreground">
-                <div className={`text-lg font-semibold mb-2 ${isFullscreen ? 'text-2xl' : ''}`}>
-                  {element.chartType?.toUpperCase() || 'CHART'} Chart
-                </div>
-                <div className={isFullscreen ? 'text-sm' : 'text-xs'}>No data available</div>
-              </div>
-            );
-          }
-
-          const { labels = [], datasets = [] } = element.chartData;
-
-          switch (element.chartType) {
-            case 'bar':
-              return (
-                <div className="text-center">
-                  <div className={`text-lg font-semibold mb-3 text-blue-600 ${isFullscreen ? 'text-2xl' : ''}`}>📊 Bar Chart</div>
-                  <div className="space-y-2">
-                    {labels.slice(0, 5).map((label: string, index: number) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <span className={`w-20 text-left ${isFullscreen ? 'text-base' : 'text-sm'}`}>{label}</span>
-                        <div className={`flex-1 mx-2 bg-gray-200 rounded-full ${isFullscreen ? 'h-3' : 'h-2'}`}>
-                          <div
-                            className="bg-blue-500 rounded-full"
-                            style={{
-                              width: datasets[0]?.data?.[index]
-                                ? `${Math.min((datasets[0].data[index] / Math.max(...datasets[0].data)) * 100, 100)}%`
-                                : '0%',
-                              height: isFullscreen ? '12px' : '8px'
-                            }}
-                          />
-                        </div>
-                        <span className={`w-12 text-right ${isFullscreen ? 'text-base' : 'text-sm'}`}>
-                          {datasets[0]?.data?.[index] || 0}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-
-            case 'line':
-              return (
-                <div className="text-center">
-                  <div className={`text-lg font-semibold mb-3 text-green-600 ${isFullscreen ? 'text-2xl' : ''}`}>📈 Line Chart</div>
-                  <div className="space-y-2">
-                    {labels.slice(0, 5).map((label: string, index: number) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <span className={`w-20 text-left ${isFullscreen ? 'text-base' : 'text-sm'}`}>{label}</span>
-                        <div className={`flex-1 mx-2 flex items-center ${isFullscreen ? 'h-3' : 'h-2'}`}>
-                          <div className={`w-full border-t-2 border-b-2 border-green-200 relative ${isFullscreen ? 'h-3' : 'h-2'}`}>
-                            <div
-                              className="absolute top-0 left-0 w-2 h-2 bg-green-500 rounded-full"
-                              style={{
-                                left: `${(index / Math.max(labels.length - 1, 1)) * 100}%`,
-                                top: datasets[0]?.data?.[index]
-                                  ? `${50 - (datasets[0].data[index] - 50)}%`
-                                  : '50%',
-                                transform: 'translateY(-50%)'
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <span className={`w-12 text-right ${isFullscreen ? 'text-base' : 'text-sm'}`}>
-                          {datasets[0]?.data?.[index] || 0}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-
-            case 'pie':
-              return (
-                <div className="text-center">
-                  <div className={`text-lg font-semibold mb-3 text-purple-600 ${isFullscreen ? 'text-2xl' : ''}`}>🥧 Pie Chart</div>
-                  <div className={`flex flex-wrap gap-2 justify-center ${isFullscreen ? 'gap-3' : 'gap-2'}`}>
-                    {labels.slice(0, 6).map((label: string, index: number) => (
-                      <div key={index} className="flex items-center gap-1">
-                        <div
-                          className={`rounded-full ${isFullscreen ? 'w-4 h-4' : 'w-3 h-3'}`}
-                          style={{
-                            backgroundColor: [
-                              '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
-                            ][index] || '#6B7280'
-                          }}
-                        />
-                        <span className={isFullscreen ? 'text-sm' : 'text-xs'}>
-                          {label}: {datasets[0]?.data?.[index] || 0}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-
-            default:
-              return (
-                <div className="text-center text-muted-foreground">
-                  <div className={`text-lg font-semibold mb-2 ${isFullscreen ? 'text-2xl' : ''}`}>
-                    {element.chartType?.toUpperCase() || 'CHART'} Chart
-                  </div>
-                  <div className={isFullscreen ? 'text-sm' : 'text-xs'}>
-                    {labels.join(', ')}
-                  </div>
-                </div>
-              );
-          }
-        };
-
+        console.log('[PresentationMode] Rendering chart:', {
+          id: element.id,
+          type: element.chartType,
+          hasData: !!element.chartData,
+          labels: element.chartData?.labels?.length || 0
+        });
+        
         return (
           <div
             key={element.id}
-            className="absolute bg-white rounded-lg p-4 flex items-center justify-center shadow-lg"
+            className="absolute"
             style={{
               left: isFullscreen ? element.x * (baseWidth / 960) : element.x,
               top: isFullscreen ? element.y * (baseHeight / 540) : element.y,
               width: isFullscreen ? element.width * (baseWidth / 960) : element.width,
               height: isFullscreen ? element.height * (baseHeight / 540) : element.height,
-              border: element.borderColor ? `1px solid ${element.borderColor}` : 'none',
-              backgroundColor: element.backgroundColor || '#FFFFFF',
-              padding: isFullscreen ? `${4 * scaleFactor}px` : '16px'
             }}
           >
-            {renderChartContent()}
+            <ChartJSChart
+              chart={element as any}
+              isSelected={false}
+              onUpdate={() => {}}
+              onDelete={() => {}}
+              onSelect={() => {}}
+            />
           </div>
         );
 
@@ -321,50 +405,11 @@ export const PresentationMode = ({ slides, currentSlide: initialSlide, onClose }
 
           switch (element.shapeType) {
             case 'circle':
-              return {
-                ...baseStyles,
-                borderRadius: '50%',
-              };
+              return { ...baseStyles, borderRadius: '50%' };
             case 'rounded-rectangle':
-              return {
-                ...baseStyles,
-                borderRadius: element.borderRadius ? `${element.borderRadius * scaleFactor}px` : `${8 * scaleFactor}px`,
-              };
-            case 'triangle':
-              return {
-                ...baseStyles,
-                clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-              };
-            case 'star':
-              return {
-                ...baseStyles,
-                clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-              };
-            case 'arrow-right':
-              return {
-                ...baseStyles,
-                clipPath: 'polygon(0% 50%, 70% 0%, 70% 20%, 100% 20%, 100% 80%, 70% 80%, 70% 100%, 0% 50%)',
-              };
-            case 'diamond':
-              return {
-                ...baseStyles,
-                clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-              };
-            case 'heart':
-              return {
-                ...baseStyles,
-                clipPath: 'path("M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z")',
-              };
-            case 'lightning':
-              return {
-                ...baseStyles,
-                clipPath: 'polygon(50% 0%, 20% 40%, 40% 40%, 10% 100%, 90% 60%, 60% 60%, 100% 100%, 50% 0%)',
-              };
+              return { ...baseStyles, borderRadius: element.borderRadius ? `${element.borderRadius * scaleFactor}px` : `${8 * scaleFactor}px` };
             default:
-              return {
-                ...baseStyles,
-                borderRadius: element.borderRadius ? `${element.borderRadius * scaleFactor}px` : 0,
-              };
+              return baseStyles;
           }
         };
 
@@ -372,12 +417,7 @@ export const PresentationMode = ({ slides, currentSlide: initialSlide, onClose }
           <div
             key={element.id}
             className="absolute"
-            style={{
-              ...getShapeStyles(),
-              border: element.stroke ? `${(element.strokeWidth || 1) * scaleFactor}px ${element.borderStyle || 'solid'} ${element.stroke}` : 'none',
-              opacity: element.opacity || 1,
-              transform: element.rotation ? `rotate(${element.rotation}deg)` : 'none',
-            }}
+            style={getShapeStyles()}
           />
         );
 
@@ -385,7 +425,7 @@ export const PresentationMode = ({ slides, currentSlide: initialSlide, onClose }
         return (
           <div
             key={element.id}
-            className="absolute"
+            className="absolute overflow-hidden"
             style={{
               left: isFullscreen ? element.x * (baseWidth / 960) : element.x,
               top: isFullscreen ? element.y * (baseHeight / 540) : element.y,
@@ -393,39 +433,20 @@ export const PresentationMode = ({ slides, currentSlide: initialSlide, onClose }
               height: isFullscreen ? element.height * (baseHeight / 540) : element.height,
             }}
           >
-            <table
-              className="w-full h-full border-collapse"
-              style={{
-                border: `1px solid ${element.borderColor || '#D9D9D9'}`,
-                backgroundColor: element.backgroundColor || '#FFFFFF'
-              }}
-            >
+            <table className="w-full h-full border-collapse">
               <tbody>
-                {element.tableData?.map((row: string[], rowIndex: number) => (
+                {element.tableData?.map((row: any[], rowIndex: number) => (
                   <tr key={rowIndex}>
-                    {row.map((cell: string, colIndex: number) => (
+                    {row.map((cell: any, cellIndex: number) => (
                       <td
-                        key={colIndex}
-                        className="border text-sm"
+                        key={cellIndex}
+                        className="border border-gray-300 p-2 text-sm"
                         style={{
-                          borderColor: element.borderColor || '#D9D9D9',
-                          borderWidth: element.borderWidth || 1,
-                          borderStyle: element.borderStyle || 'solid',
-                          backgroundColor: rowIndex === 0 && element.header && element.headerBg
-                            ? element.headerBg
-                            : rowIndex % 2 === 1 && element.rowAltBg
-                            ? element.rowAltBg
-                            : 'transparent',
-                          color: rowIndex === 0 && element.header && element.headerTextColor
-                            ? element.headerTextColor
-                            : element.color || '#000000',
-                          textAlign: element.cellTextAlign || 'left',
-                          padding: `${(element.cellPadding || 8) * scaleFactor}px`,
-                          fontSize: isFullscreen ? `${(element.fontSize || 12) * scaleFactor}px` : `${element.fontSize || 12}px`,
-                          fontWeight: rowIndex === 0 && element.header ? 'bold' : 'normal'
+                          fontSize: (element.fontSize || 14) * scaleFactor,
                         }}
-                        dangerouslySetInnerHTML={{ __html: cell }}
-                      />
+                      >
+                        {cell}
+                      </td>
                     ))}
                   </tr>
                 ))}
@@ -433,119 +454,11 @@ export const PresentationMode = ({ slides, currentSlide: initialSlide, onClose }
             </table>
           </div>
         );
+
+      default:
+        return null;
     }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 bg-black z-50 flex items-center justify-center"
-      onClick={() => setShowControls(!showControls)}
-    >
-      {/* Slide content */}
-      <div
-        className={`relative shadow-2xl transition-all duration-500 ${isFullscreen ? 'w-screen h-screen' : ''}`}
-        style={isFullscreen ? {
-          width: '100vw',
-          height: '100vh',
-          background: slides[currentSlide]?.background || '#ffffff'
-        } : {
-          width: '960px',
-          height: '540px',
-          background: slides[currentSlide]?.background || '#ffffff'
-        }}
-      >
-        {currentElements.map((element) => renderElement(element, isFullscreen))}
-
-        {/* Slide title */}
-        {slides[currentSlide]?.title && (
-          <div className={`absolute top-4 left-4 bg-black/20 text-white px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm ${isFullscreen ? 'text-lg' : ''}`}>
-            {slides[currentSlide].title}
-          </div>
-        )}
-
-        {/* Progress bar */}
-        <div className={`absolute top-4 left-1/2 -translate-x-1/2 bg-black/20 rounded-full h-1 backdrop-blur-sm ${isFullscreen ? 'w-96' : 'w-64'}`}>
-          <div
-            className="bg-blue-500 h-1 rounded-full transition-all duration-300"
-            style={{
-              width: `${((currentSlide + 1) / slides.length) * 100}%`
-            }}
-          />
-        </div>
-
-        {/* Slide counter */}
-        <div className={`absolute bottom-4 right-4 bg-black/20 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm ${isFullscreen ? 'text-base' : ''}`}>
-          {currentSlide + 1} / {slides.length}
-        </div>
-      </div>
-
-      {/* Controls */}
-      {showControls && (
-        <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/20 text-white px-6 py-3 rounded-full backdrop-blur-sm ${isFullscreen ? 'px-8 py-4 gap-6' : ''}`}>
-          <Button
-            variant="ghost"
-            size={isFullscreen ? "lg" : "sm"}
-            onClick={prevSlide}
-            disabled={currentSlide === 0}
-            className={`text-white hover:bg-white/20 ${isFullscreen ? 'w-12 h-12' : ''}`}
-          >
-            <ChevronLeft className={`${isFullscreen ? 'w-6 h-6' : 'w-4 h-4'}`} />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size={isFullscreen ? "lg" : "sm"}
-            onClick={restartPresentation}
-            disabled={currentSlide === 0}
-            className={`text-white hover:bg-white/20 ${isFullscreen ? 'w-12 h-12' : ''}`}
-            title="Restart from beginning (R)"
-          >
-            <RotateCcw className={`${isFullscreen ? 'w-6 h-6' : 'w-4 h-4'}`} />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size={isFullscreen ? "lg" : "sm"}
-            onClick={togglePlay}
-            className={`text-white hover:bg-white/20 ${isFullscreen ? 'w-12 h-12' : ''}`}
-          >
-            {isPlaying ? <Pause className={`${isFullscreen ? 'w-6 h-6' : 'w-4 h-4'}`} /> : <Play className={`${isFullscreen ? 'w-6 h-6' : 'w-4 h-4'}`} />}
-          </Button>
-
-          <Button
-            variant="ghost"
-            size={isFullscreen ? "lg" : "sm"}
-            onClick={nextSlide}
-            disabled={currentSlide === slides.length - 1}
-            className={`text-white hover:bg-white/20 ${isFullscreen ? 'w-12 h-12' : ''}`}
-          >
-            <ChevronRight className={`${isFullscreen ? 'w-6 h-6' : 'w-4 h-4'}`} />
-          </Button>
-
-          <div className={`w-px bg-white/30 mx-2 ${isFullscreen ? 'h-8 mx-3' : 'h-6'}`} />
-
-          <Button
-            variant="ghost"
-            size={isFullscreen ? "lg" : "sm"}
-            onClick={onClose}
-            className={`text-white hover:bg-white/20 ${isFullscreen ? 'w-12 h-12' : ''}`}
-          >
-            <X className={`${isFullscreen ? 'w-6 h-6' : 'w-4 h-4'}`} />
-          </Button>
-        </div>
-      )}
-
-      {/* Instructions - Only show when not in fullscreen */}
-      {!isFullscreen && (
-        <div className="absolute top-6 left-6 text-white/70 text-sm">
-          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">Space</kbd> or <kbd className="bg-white/20 px-2 py-1 rounded">→</kbd> for next slide</div>
-          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">←</kbd> for previous slide</div>
-          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">R</kbd> to restart from beginning</div>
-          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">P</kbd> to play/pause</div>
-          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">F</kbd> for fullscreen</div>
-          <div>Press <kbd className="bg-white/20 px-2 py-1 rounded">Esc</kbd> to exit</div>
-        </div>
-      )}
-    </div>
-  );
+  }
 };
+
+export default PresentationMode;
