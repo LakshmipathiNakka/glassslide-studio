@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { X, Square, Circle, Triangle, Star, ArrowRight, Diamond, Pentagon, Hexagon, Heart, Zap } from 'lucide-react';
+import { X, Square, Circle, Triangle, Star, Diamond, Pentagon, Hexagon, Octagon, ChevronRight } from 'lucide-react';
 
 export type ShapeType = 
   | 'rectangle' 
@@ -9,12 +9,13 @@ export type ShapeType =
   | 'circle' 
   | 'triangle' 
   | 'star' 
-  | 'arrow-right' 
   | 'diamond' 
   | 'pentagon' 
-  | 'hexagon' 
-  | 'heart' 
-  | 'lightning';
+  | 'hexagon'
+  | 'octagon'
+  | 'parallelogram'
+  | 'trapezoid'
+  | 'semicircle';
 
 interface ShapeModalProps {
   isOpen: boolean;
@@ -59,12 +60,6 @@ const shapeDefinitions: Array<{
     svg: '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="none" stroke="currentColor" strokeWidth="2"/>'
   },
   {
-    type: 'arrow-right',
-    name: 'Arrow Right',
-    icon: ArrowRight,
-    svg: '<path d="M5 12h14m-7-7l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>'
-  },
-  {
     type: 'diamond',
     name: 'Diamond',
     icon: Diamond,
@@ -83,16 +78,28 @@ const shapeDefinitions: Array<{
     svg: '<polygon points="7,3 17,3 21,12 17,21 7,21 3,12" fill="none" stroke="currentColor" strokeWidth="2"/>'
   },
   {
-    type: 'heart',
-    name: 'Heart',
-    icon: Heart,
-    svg: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" strokeWidth="2"/>'
+    type: 'octagon',
+    name: 'Octagon',
+    icon: Octagon,
+    svg: '<polygon points="7.39 2 16.61 2 22 7.39 22 16.61 16.61 22 7.39 22 2 16.61 2 7.39 7.39 2" fill="none" stroke="currentColor" strokeWidth="2"/>'
   },
   {
-    type: 'lightning',
-    name: 'Lightning',
-    icon: Zap,
-    svg: '<polygon points="13,2 3,14 12,14 11,22 21,10 12,10" fill="none" stroke="currentColor" strokeWidth="2"/>'
+    type: 'parallelogram',
+    name: 'Parallelogram',
+    icon: Square,
+    svg: '<polygon points="5,3 19,3 15,21 1,21" fill="none" stroke="currentColor" strokeWidth="2"/>'
+  },
+  {
+    type: 'trapezoid',
+    name: 'Trapezoid',
+    icon: Square,
+    svg: '<polygon points="5,16 19,16 22,8 2,8" fill="none" stroke="currentColor" strokeWidth="2"/>'
+  },
+  {
+    type: 'semicircle',
+    name: 'Semicircle',
+    icon: Circle,
+    svg: '<path d="M12 2a10 10 0 0 0-10 10h20a10 10 0 0 0-10-10z" fill="none" stroke="currentColor" strokeWidth="2"/>'
   },
 ];
 
@@ -127,7 +134,7 @@ const ShapeModal: React.FC<ShapeModalProps> = ({ isOpen, onClose, onSelectShape 
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="relative z-[99999] w-full max-w-[480px] rounded-2xl border border-white/20 bg-white/60 dark:bg-gray-800/40 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] p-6"
+            className="relative z-[99999] w-full max-w-[560px] rounded-2xl border border-white/20 bg-white/60 dark:bg-gray-800/40 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] p-6"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -144,7 +151,7 @@ const ShapeModal: React.FC<ShapeModalProps> = ({ isOpen, onClose, onSelectShape 
             </div>
 
             {/* Shape Grid */}
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
               {shapeDefinitions.map((shape) => (
                 <motion.button
                   key={shape.type}
@@ -153,17 +160,17 @@ const ShapeModal: React.FC<ShapeModalProps> = ({ isOpen, onClose, onSelectShape 
                   onMouseLeave={() => setHoveredShape(null)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`group relative p-3 rounded-xl border border-gray-200/40 bg-white/40 dark:bg-gray-700/40 hover:bg-white/80 dark:hover:bg-gray-600/60 transition-all duration-200 ease-out ${
+                  className={`group relative p-3 sm:p-4 rounded-xl border border-gray-200/40 bg-white/40 dark:bg-gray-700/40 hover:bg-white/80 dark:hover:bg-gray-600/60 transition-all duration-200 ease-out flex flex-col items-center h-[100px] w-[90px] sm:h-[120px] sm:w-[100px] ${
                     hoveredShape === shape.type 
                       ? 'ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/20' 
                       : 'hover:shadow-md'
                   }`}
                 >
                   {/* Shape Preview */}
-                  <div className="flex items-center justify-center mb-2">
+                  <div className="flex items-center justify-center mb-2 w-12 h-12 sm:w-14 sm:h-14">
                     <svg
-                      width="32"
-                      height="32"
+                      width="100%"
+                      height="100%"
                       viewBox="0 0 24 24"
                       className="text-gray-700 dark:text-gray-300"
                     >
@@ -172,8 +179,10 @@ const ShapeModal: React.FC<ShapeModalProps> = ({ isOpen, onClose, onSelectShape 
                   </div>
                   
                   {/* Shape Name */}
-                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
-                    {shape.name}
+                  <div className="w-full px-1 mt-1 overflow-hidden">
+                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300 text-center leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                      {shape.name}
+                    </div>
                   </div>
 
                   {/* Hover Glow Effect */}

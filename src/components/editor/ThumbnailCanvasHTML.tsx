@@ -278,16 +278,7 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             ctx.stroke();
             break;
             
-          case 'arrow-right':
-            ctx.beginPath();
-            ctx.moveTo(0, h / 2);
-            ctx.lineTo(w * 0.7, h / 2);
-            ctx.lineTo(w * 0.7, 0);
-            ctx.lineTo(w, h / 2);
-            ctx.lineTo(w * 0.7, h);
-            ctx.lineTo(w * 0.7, h / 2);
-            ctx.stroke();
-            break;
+          // Removed arrow-right shape
             
           case 'arrow-double':
             // Skip rendering for double arrow in thumbnail
@@ -338,32 +329,65 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             ctx.stroke();
             break;
             
-          case 'cloud':
-            // Skip rendering for cloud in thumbnail
-            break;
-            
-          case 'heart':
+          case 'octagon':
             ctx.beginPath();
-            const heartX = w / 2;
-            const heartY = h * 0.3;
-            const heartSize = Math.min(w, h) * 0.3;
-            ctx.moveTo(heartX, heartY + heartSize * 0.3);
-            ctx.bezierCurveTo(heartX, heartY, heartX - heartSize * 0.5, heartY, heartX - heartSize * 0.5, heartY + heartSize * 0.3);
-            ctx.bezierCurveTo(heartX - heartSize * 0.5, heartY + heartSize * 0.7, heartX, heartY + heartSize * 0.7, heartX, heartY + heartSize);
-            ctx.bezierCurveTo(heartX, heartY + heartSize * 0.7, heartX + heartSize * 0.5, heartY + heartSize * 0.7, heartX + heartSize * 0.5, heartY + heartSize * 0.3);
-            ctx.bezierCurveTo(heartX + heartSize * 0.5, heartY, heartX, heartY, heartX, heartY + heartSize * 0.3);
+            const octCenterX = w / 2;
+            const octCenterY = h / 2;
+            const octRadius = Math.min(w, h) / 2;
+            for (let i = 0; i < 8; i++) {
+              const angle = (i * Math.PI) / 4 - Math.PI / 2;
+              const x = octCenterX + Math.cos(angle) * octRadius;
+              const y = octCenterY + Math.sin(angle) * octRadius;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
             ctx.fill();
             ctx.stroke();
             break;
             
-          case 'lightning':
+          case 'parallelogram':
             ctx.beginPath();
             ctx.moveTo(w * 0.3, 0);
-            ctx.lineTo(w * 0.7, h * 0.4);
-            ctx.lineTo(w * 0.5, h * 0.4);
-            ctx.lineTo(w * 0.9, h);
-            ctx.lineTo(w * 0.1, h * 0.6);
-            ctx.lineTo(w * 0.3, h * 0.6);
+            ctx.lineTo(w, 0);
+            ctx.lineTo(w * 0.7, h);
+            ctx.lineTo(0, h);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            break;
+            
+          case 'trapezoid':
+            ctx.beginPath();
+            ctx.moveTo(w * 0.2, 0);
+            ctx.lineTo(w * 0.8, 0);
+            ctx.lineTo(w, h);
+            ctx.lineTo(0, h);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            break;
+            
+          case 'cross':
+            // Draw cross using two rectangles
+            const crossWidth = Math.min(w, h) * 0.2;
+            const crossLength = Math.max(w, h) * 0.8;
+            
+            // Horizontal bar
+            ctx.fillRect((w - crossLength) / 2, (h - crossWidth) / 2, crossLength, crossWidth);
+            // Vertical bar
+            ctx.fillRect((w - crossWidth) / 2, (h - crossLength) / 2, crossWidth, crossLength);
+            
+            // Stroke outline
+            ctx.strokeRect((w - crossLength) / 2, (h - crossWidth) / 2, crossLength, crossWidth);
+            ctx.strokeRect((w - crossWidth) / 2, (h - crossLength) / 2, crossWidth, crossLength);
+            break;
+            
+          case 'semicircle':
+            // Draw semicircle (top half)
+            ctx.beginPath();
+            ctx.arc(w / 2, h / 2, Math.min(w, h) / 2, 0, Math.PI, true);
+            ctx.lineTo(w, h / 2);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();

@@ -927,17 +927,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
           </svg>
         );
       
-      case 'arrow-right':
-        return (
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', opacity }}>
-            <polygon
-              points="0,20 60,20 60,0 100,50 60,100 60,80 0,80"
-              fill={fill}
-              stroke={stroke}
-              strokeWidth={strokeWidth}
-            />
-          </svg>
-        );
+      // Removed arrow-right shape
       
       case 'arrow-double':
         return null;
@@ -978,27 +968,77 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
           </svg>
         );
       
-      case 'cloud':
-        return null;
-      
-      case 'heart':
-        return (
-          <svg viewBox="0 0 24 24" preserveAspectRatio="none" style={{ width: '100%', height: '100%', opacity }}>
-            <path d="M12,21.35l-1.45-1.32C5.4,15.36,2,12.28,2,8.5 C2,5.42,4.42,3,7.5,3c1.74,0,3.41,0.81,4.5,2.09C13.09,3.81,14.76,3,16.5,3 C19.58,3,22,5.42,22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
-          </svg>
-        );
-      
-      case 'lightning':
+      case 'octagon':
         return (
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', opacity }}>
             <polygon
-              points="30,0 70,40 50,40 90,100 10,60 30,60"
+              points="30,0 70,0 100,30 100,70 70,100 30,100 0,70 0,30"
               fill={fill}
               stroke={stroke}
               strokeWidth={strokeWidth}
             />
           </svg>
         );
+      
+      case 'parallelogram':
+        return (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', opacity }}>
+            <polygon
+              points="30,0 100,0 70,100 0,100"
+              fill={fill}
+              stroke={stroke}
+              strokeWidth={strokeWidth}
+            />
+          </svg>
+        );
+      
+      case 'trapezoid':
+        return (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', opacity }}>
+            <polygon
+              points="20,0 80,0 100,100 0,100"
+              fill={fill}
+              stroke={stroke}
+              strokeWidth={strokeWidth}
+            />
+          </svg>
+        );
+        
+      case 'semicircle':
+        return (
+          <div 
+            style={{
+              ...baseStyle,
+              width: '100%',
+              height: '50%',
+              background: fill,
+              borderTopLeftRadius: '50%',
+              borderTopRightRadius: '50%',
+              border: `${strokeWidth}px solid ${stroke}`,
+              borderBottom: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+        );
+      
+      case 'cross':
+        return (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', opacity }}>
+            <rect x="0" y="40" width="100" height="20" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            <rect x="40" y="0" width="20" height="100" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+          </svg>
+        );
+      
+      case 'plus':
+        return (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', opacity }}>
+            <rect x="20" y="40" width="60" height="20" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            <rect x="40" y="20" width="20" height="60" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+          </svg>
+        );
+      
+      case 'cloud':
+        return null;
       
       case 'line':
         return null;

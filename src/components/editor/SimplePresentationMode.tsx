@@ -630,10 +630,12 @@ export const SimplePresentationMode = ({
       case 'shape': {
         const fill = element.fill || 'transparent';
         const stroke = element.stroke || '#000000';
-        const strokeWidth = (element.strokeWidth || 0.5) * scale;
-        const opacity = element.opacity || 1;
+        const strokeWidth = (element.strokeWidth || 1) * scale;
+        const opacity = element.opacity ?? 1;
         const width = element.width * scale;
         const height = element.height * scale;
+        const borderRadius = (element.borderRadius || 0) * scale;
+        const rotation = element.rotation || 0;
         
         const baseStyle = {
           position: 'absolute' as const,
@@ -642,18 +644,29 @@ export const SimplePresentationMode = ({
           width,
           height,
           opacity,
+          transform: rotation ? `rotate(${rotation}deg)` : undefined,
+          transformOrigin: 'center center',
+          boxSizing: 'border-box' as const,
+        };
+
+        // Common shape properties
+        const shapeProps = {
+          style: {
+            ...baseStyle,
+            backgroundColor: fill,
+            border: `${strokeWidth}px solid ${stroke}`,
+          },
+          key: element.id,
         };
 
         switch (element.shapeType) {
           case 'rectangle':
             return (
               <div 
-                key={element.id}
+                {...shapeProps}
                 style={{
-                  ...baseStyle,
-                  backgroundColor: fill,
-                  border: `${strokeWidth}px solid ${stroke}`,
-                  borderRadius: 0,
+                  ...shapeProps.style,
+                  borderRadius: borderRadius,
                 }}
               />
             );
@@ -661,12 +674,10 @@ export const SimplePresentationMode = ({
           case 'rounded-rectangle':
             return (
               <div 
-                key={element.id}
+                {...shapeProps}
                 style={{
-                  ...baseStyle,
-                  backgroundColor: fill,
-                  border: `${strokeWidth}px solid ${stroke}`,
-                  borderRadius: 8,
+                  ...shapeProps.style,
+                  borderRadius: Math.min(width, height) * 0.1, // 10% of the smallest dimension
                 }}
               />
             );
@@ -674,12 +685,23 @@ export const SimplePresentationMode = ({
           case 'circle':
             return (
               <div 
-                key={element.id}
+                {...shapeProps}
                 style={{
-                  ...baseStyle,
-                  backgroundColor: fill,
-                  border: `${strokeWidth}px solid ${stroke}`,
+                  ...shapeProps.style,
                   borderRadius: '50%',
+                }}
+              />
+            );
+            
+          case 'ellipse':
+            return (
+              <div 
+                {...shapeProps}
+                style={{
+                  ...shapeProps.style,
+                  borderRadius: '50%',
+                  width: width,
+                  height: height,
                 }}
               />
             );
@@ -696,7 +718,91 @@ export const SimplePresentationMode = ({
                   borderRight: `${width / 2}px solid transparent`,
                   borderBottom: `${height}px solid ${fill}`,
                   backgroundColor: 'transparent',
+                  border: 'none',
+                }}
+              />
+            );
+            
+          case 'right-arrow':
+            return (
+              <div 
+                key={element.id}
+                style={{
+                  ...baseStyle,
+                  position: 'relative',
+                  width: width,
+                  height: height,
+                  backgroundColor: 'transparent',
+                }}
+              >
+                <div style={{
                   position: 'absolute',
+                  top: '50%',
+                  left: 0,
+                  right: height / 2,
+                  height: height / 4,
+                  backgroundColor: fill,
+                  transform: 'translateY(-50%)',
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  width: height / 2 * Math.SQRT2,
+                  height: '100%',
+                  backgroundColor: 'transparent',
+                  borderTop: `${height / 2}px solid transparent`,
+                  borderBottom: `${height / 2}px solid transparent`,
+                  borderLeft: `${height / 2}px solid ${fill}`,
+                }} />
+              </div>
+            );
+            
+          case 'star':
+            // Simple star implementation using unicode character
+            return (
+              <div 
+                key={element.id}
+                style={{
+                  ...baseStyle,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: Math.min(width, height) * 0.8,
+                  lineHeight: 1,
+                  color: fill,
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                }}
+              >
+                ★
+              </div>
+            );
+            
+          case 'line':
+            const angle = Math.atan2(
+              (element.y2 || 0) - element.y,
+              (element.x2 || element.width) - (element.x || 0)
+            ) * (180 / Math.PI);
+            
+            const lineLength = Math.sqrt(
+              Math.pow(((element.x2 || element.width) - (element.x || 0)) * scale, 2) +
+              Math.pow(((element.y2 || 0) - element.y) * scale, 2)
+            );
+            
+            return (
+              <div 
+                key={element.id}
+                style={{
+                  position: 'absolute',
+                  left: element.x * scale,
+                  top: element.y * scale,
+                  width: lineLength,
+                  height: strokeWidth,
+                  backgroundColor: stroke,
+                  transformOrigin: '0 0',
+                  transform: `rotate(${angle}deg)`,
+                  opacity,
                 }}
               />
             );
@@ -717,6 +823,145 @@ export const SimplePresentationMode = ({
                 }}
               />
             );
+            
+          case 'pentagon':
+            return (
+              <div 
+                key={element.id}
+                style={{
+                  ...baseStyle,
+                  width: `${width}px`,
+                  height: `${height}px`,
+                  background: fill,
+                  position: 'absolute',
+                  clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)',
+                  border: `${strokeWidth}px solid ${stroke}`,
+                  boxSizing: 'border-box',
+                }}
+              />
+            );
+            
+          case 'hexagon':
+            return (
+              <div 
+                key={element.id}
+                style={{
+                  ...baseStyle,
+                  width: width,
+                  height: height,
+                  background: fill,
+                  position: 'relative',
+                  borderColor: stroke,
+                  borderWidth: strokeWidth,
+                  borderStyle: 'solid',
+                  clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+                }}
+              />
+            );
+            
+          case 'octagon':
+            return (
+              <div 
+                key={element.id}
+                style={{
+                  ...baseStyle,
+                  width: width,
+                  height: height,
+                  background: fill,
+                  position: 'relative',
+                  border: `${strokeWidth}px solid ${stroke}`,
+                  clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
+                  boxSizing: 'border-box',
+                }}
+              />
+            );
+            
+          case 'parallelogram':
+            return (
+              <div 
+                key={element.id}
+                style={{
+                  ...baseStyle,
+                  width: width,
+                  height: height,
+                  background: fill,
+                  position: 'relative',
+                  border: `${strokeWidth}px solid ${stroke}`,
+                  transform: 'skew(-20deg)',
+                  boxSizing: 'border-box',
+                }}
+              />
+            );
+            
+          case 'trapezoid':
+            return (
+              <div 
+                key={element.id}
+                style={{
+                  ...baseStyle,
+                  width: width,
+                  height: height,
+                  background: fill,
+                  position: 'relative',
+                  border: `${strokeWidth}px solid ${stroke}`,
+                  clipPath: 'polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%)',
+                  boxSizing: 'border-box',
+                }}
+              />
+            );
+            
+          case 'semicircle':
+            return (
+              <div 
+                key={element.id}
+                style={{
+                  ...baseStyle,
+                  width: width,
+                  height: height / 2,
+                  background: fill,
+                  position: 'relative',
+                  border: `${strokeWidth}px solid ${stroke}`,
+                  borderBottom: 'none',
+                  borderBottomLeftRadius: 0,
+                  borderBottomRightRadius: 0,
+                  borderTopLeftRadius: '50%',
+                  borderTopRightRadius: '50%',
+                  boxSizing: 'border-box',
+                }}
+              />
+            );
+            
+          case 'right-triangle':
+            return (
+              <div 
+                key={element.id}
+                style={{
+                  ...baseStyle,
+                  width: 0,
+                  height: 0,
+                  borderLeft: `${width}px solid transparent`,
+                  borderBottom: `${height}px solid ${fill}`,
+                  position: 'relative',
+                  background: 'transparent',
+                  border: 'none',
+                }}
+              >
+                <div 
+                  style={{
+                    position: 'absolute',
+                    width: 0,
+                    height: 0,
+                    borderLeft: `${width - strokeWidth * 2}px solid transparent`,
+                    borderBottom: `${height - strokeWidth * 2}px solid ${fill}`,
+                    top: strokeWidth,
+                    left: -width + strokeWidth,
+                  }}
+                />
+              </div>
+            );
+            
+          case 'lightning':
+            return null;
             
           default:
             return (
