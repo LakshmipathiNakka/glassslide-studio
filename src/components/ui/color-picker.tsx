@@ -20,18 +20,41 @@ const predefinedColors = [
 ];
 
 const gradientPresets = [
+  // Vibrant Gradients
   { name: 'Sunset', gradient: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)' },
-  { name: 'Ocean', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-  { name: 'Forest', gradient: 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)' },
-  { name: 'Fire', gradient: 'linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)' },
-  { name: 'Purple', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-  { name: 'Blue', gradient: 'linear-gradient(135deg, #2196F3 0%, #21CBF3 100%)' },
-  { name: 'Green', gradient: 'linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%)' },
-  { name: 'Orange', gradient: 'linear-gradient(135deg, #FF9800 0%, #FF5722 100%)' },
-  { name: 'Pink', gradient: 'linear-gradient(135deg, #E91E63 0%, #F06292 100%)' },
-  { name: 'Teal', gradient: 'linear-gradient(135deg, #009688 0%, #4DB6AC 100%)' },
-  { name: 'Indigo', gradient: 'linear-gradient(135deg, #3F51B5 0%, #7986CB 100%)' },
-  { name: 'Cyan', gradient: 'linear-gradient(135deg, #00BCD4 0%, #4DD0E1 100%)' }
+  { name: 'Ocean', gradient: 'linear-gradient(135deg, #00c6fb 0%, #005bea 100%)' },
+  { name: 'Forest', gradient: 'linear-gradient(135deg, #0f9b0f 0%, #96e6a1 100%)' },
+  { name: 'Fire', gradient: 'linear-gradient(135deg, #f46b45 0%, #eea849 100%)' },
+  
+  // Professional Gradients
+  { name: 'Deep Blue', gradient: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' },
+  { name: 'Royal', gradient: 'linear-gradient(135deg, #141e30 0%, #243b55 100%)' },
+  { name: 'Mild', gradient: 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)' },
+  { name: 'Sunny', gradient: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)' },
+  
+  // Modern Gradients
+  { name: 'Aurora', gradient: 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%)' },
+  { name: 'Frost', gradient: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)' },
+  { name: 'Peach', gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' },
+  { name: 'Twilight', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+  
+  // Dark Mode Gradients
+  { name: 'Midnight', gradient: 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)' },
+  { name: 'Deep Space', gradient: 'linear-gradient(135deg, #000000 0%, #434343 100%)' },
+  { name: 'Neon', gradient: 'linear-gradient(135deg, #f43b47 0%, #453a94 100%)' },
+  { name: 'Galaxy', gradient: 'linear-gradient(135deg, #3a1c71 0%, #d76d77 50%, #ffaf7b 100%)' },
+  
+  // Pastel Gradients
+  { name: 'Cotton Candy', gradient: 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)' },
+  { name: 'Mint', gradient: 'linear-gradient(135deg, #a1ffce 0%, #faffd1 100%)' },
+  { name: 'Lavender', gradient: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)' },
+  { name: 'Peach', gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' },
+  
+  // Duotone Gradients
+  { name: 'Purple Haze', gradient: 'linear-gradient(135deg, #b8cbb8 0%, #b8cbb8 0%, #b465da 0%, #cf6cc9 33%, #ee609c 66%, #ee609c 100%)' },
+  { name: 'Blue Raspberry', gradient: 'linear-gradient(135deg, #00b4db 0%, #0083b0 100%)' },
+  { name: 'Sunset Glow', gradient: 'linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%)' },
+  { name: 'Emerald', gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' }
 ];
 
 export const ColorPicker: React.FC<ColorPickerProps> = ({
@@ -162,27 +185,20 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
     // Don't apply to slide until Done is clicked
   };
 
-  // Optimized slider renderer to prevent lag
+  // Optimized slider renderer with Keynote-style design
   const renderSlider = (label: string, value: number, slider: 'hue' | 'saturation' | 'lightness') => (
-    <div>
-      <label className="text-xs text-gray-600 mb-1 block">
-        {label}: {value}{slider === 'hue' ? '°' : '%'}
-      </label>
-      <div className="relative">
-        <input
-          type="range"
-          min="0"
-          max={slider === 'hue' ? 360 : 100}
-          step="1"
-          value={value}
-          onChange={(e) => {
-            const newValue = Number(e.target.value);
-            if (slider === 'hue') setHue(newValue);
-            else if (slider === 'saturation') setSaturation(newValue);
-            else setLightness(newValue);
-          }}
-          onPointerUp={() => handleHslChange()} // update only when user releases
-          className="w-full appearance-none cursor-pointer h-3 rounded-lg outline-none"
+    <div className="space-y-1.5">
+      <div className="flex justify-between items-center">
+        <label className="text-[11px] text-gray-500">
+          {label}
+        </label>
+        <span className="text-xs font-mono text-gray-700">
+          {Math.round(value)}{slider === 'hue' ? '°' : '%'}
+        </span>
+      </div>
+      <div className="relative h-6 flex items-center">
+        <div 
+          className="absolute inset-0 flex items-center"
           style={{
             background:
               slider === 'hue'
@@ -195,18 +211,41 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                     hsl(300, 100%, 50%), 
                     hsl(360, 100%, 50%))`
                 : slider === 'saturation'
-                ? `linear-gradient(to right, hsl(${hue}, 0%, 50%), hsl(${hue}, 100%, 50%))`
-                : `linear-gradient(to right, hsl(${hue}, ${saturation}%, 0%), hsl(${hue}, ${saturation}%, 50%), hsl(${hue}, ${saturation}%, 100%))`,
-            WebkitAppearance: 'none',
-            appearance: 'none',
-            height: '20px',
-            borderRadius: '10px',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
-            cursor: 'pointer',
-            outline: 'none'
+                ? `linear-gradient(to right, 
+                    hsl(${hue}, 0%, 50%), 
+                    hsl(${hue}, 100%, 50%))`
+                : `linear-gradient(to right, 
+                    hsl(${hue}, ${saturation}%, 0%), 
+                    hsl(${hue}, ${saturation}%, 50%), 
+                    hsl(${hue}, ${saturation}%, 100%))`,
+            borderRadius: '4px',
+            height: '6px',
+            width: '100%'
           }}
-        />
+        >
+          <input
+            type="range"
+            min="0"
+            max={slider === 'hue' ? 360 : 100}
+            step="1"
+            value={value}
+            onChange={(e) => {
+              const newValue = Number(e.target.value);
+              if (slider === 'hue') setHue(newValue);
+              else if (slider === 'saturation') setSaturation(newValue);
+              else setLightness(newValue);
+            }}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+          <div 
+            className="absolute top-1/2 -mt-1.5 w-3 h-3 bg-white rounded-full shadow-sm border border-gray-300"
+            style={{
+              left: `${(value / (slider === 'hue' ? 360 : 100)) * 100}%`,
+              transform: 'translateX(-50%)',
+              pointerEvents: 'none'
+            }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -220,144 +259,159 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
 
   if (!isOpen) return null;
 
+  // Calculate position to ensure it stays within viewport
+  const [x, y] = [
+    Math.min(position.x, window.innerWidth - 400 - 16), // 400 is the width of the picker
+    Math.min(position.y, window.innerHeight - 500 - 16) // 500 is the max height
+  ];
+
   return (
     <motion.div
-        initial={{ scale: 0.8, opacity: 0, y: 10 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.8, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="fixed z-[99999] bg-white/70 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/30 p-4"
+      initial={{ scale: 0.9, opacity: 0, y: 8 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      exit={{ scale: 0.9, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.5 }}
+      className="fixed z-[99999] bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-200/50 overflow-hidden"
       style={{
-        left: position.x,
-        top: position.y,
-        maxWidth: '400px',
-        width: '400px',
-        maxHeight: '80vh'
+        left: `${x}px`,
+        top: `${y}px`,
+        width: '280px',
+        maxWidth: 'calc(100vw - 32px)',
+        maxHeight: 'calc(100vh - 32px)',
+        boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.15)',
+        border: '1px solid rgba(0, 0, 0, 0.08)'
       }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-700">Adjust Color</h3>
-        <Button
-          variant="ghost"
-          size="sm"
+      <div className="p-3 border-b border-gray-100 flex items-center justify-between">
+        <div className="text-sm font-medium text-gray-800">Colors</div>
+        <button
           onClick={handleCancel}
-          className="h-6 w-6 p-0 hover:bg-gray-200/50"
+          className="text-gray-400 hover:text-gray-600 transition-colors p-1 -mr-1"
+          aria-label="Close"
         >
           <X className="h-4 w-4" />
-        </Button>
+        </button>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex mb-4 border-b border-gray-200">
+      <div className="flex border-b border-gray-100 px-2">
         <button
           onClick={() => setActiveTab('solid')}
-          className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
             activeTab === 'solid'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'text-blue-600 border-b-2 border-blue-500'
+              : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          <Droplets className="h-4 w-4" />
-          Solid Colors
+          Color
         </button>
         <button
           onClick={() => setActiveTab('gradient')}
-          className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
             activeTab === 'gradient'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'text-blue-600 border-b-2 border-blue-500'
+              : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          <Layers className="h-4 w-4" />
-          Gradients
+          Gradient
         </button>
       </div>
 
       {/* Scrollable Content Container */}
-      <div className="relative">
-        <div className="overflow-y-auto max-h-96 scroll-smooth" style={{
+      <div className="relative overflow-hidden">
+        <div className="overflow-y-auto max-h-[360px] scroll-smooth px-3 py-3" style={{
           scrollbarWidth: 'thin',
-          scrollbarColor: '#cbd5e1 #f1f5f9'
+          scrollbarColor: 'rgba(0,0,0,0.1) transparent',
+          WebkitOverflowScrolling: 'touch'
         }}>
         {/* Tab Content */}
         {activeTab === 'solid' && (
           <div className="space-y-4 pr-2">
           {/* Predefined Colors */}
-          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-            <p className="text-xs text-gray-600 mb-3 font-medium">Predefined Colors</p>
-            <div className="grid grid-cols-8 gap-2">
+          <div className="mb-4">
+            <div className="grid grid-cols-8 gap-1.5">
               {predefinedColors.map((color, index) => (
                 <button
                   key={`predefined-${index}`}
-                  className={`w-8 h-8 rounded-lg border-2 transition-all hover:scale-110 hover:shadow-md ${
-                    previewColor === color ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
+                  className={`w-6 h-6 rounded-full transition-all hover:scale-110 ${
+                    previewColor === color ? 'ring-2 ring-offset-1 ring-blue-500' : 'hover:ring-1 hover:ring-gray-300'
                   }`}
                   style={{ backgroundColor: color }}
                   onClick={() => handleColorSelect(color)}
+                  title={color}
                 >
                   {previewColor === color && (
-                    <Check className="w-4 h-4 text-white mx-auto drop-shadow-sm" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Check className="w-3 h-3 text-white drop-shadow-sm" />
+                    </div>
                   )}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Advanced Color Picker */}
-          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-            <p className="text-xs text-gray-600 mb-3 font-medium">Advanced Color Picker</p>
-            <div className="space-y-3">
+          {/* Color Sliders */}
+          <div className="mt-4 space-y-3">
+            <div className="text-[11px] text-gray-500 font-medium mb-1">Color</div>
+            <div className="space-y-2">
               {renderSlider('Hue', hue, 'hue')}
               {renderSlider('Saturation', saturation, 'saturation')}
               {renderSlider('Lightness', lightness, 'lightness')}
             </div>
             
-            {/* Live Preview */}
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-12 h-12 rounded-lg border-2 border-gray-300 shadow-sm"
-                  style={{ backgroundColor: hslToHex(hue, saturation, lightness) }}
+            {/* Color Preview */}
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-[11px] text-gray-500 font-medium">Preview</div>
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-6 h-6 rounded border border-gray-300"
+                  style={{ backgroundColor: previewColor }}
                 />
-                <div className="flex-1">
-                  <div className="text-xs text-gray-600 font-medium">Live Preview</div>
-                  <div className="text-sm font-mono text-gray-800">
-                    {hslToHex(hue, saturation, lightness)}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    HSL({hue}°, {saturation}%, {lightness}%)
-                  </div>
+                <div className="text-xs font-mono text-gray-700">
+                  {previewColor.startsWith('#') ? previewColor.toUpperCase() : 'Gradient'}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Custom Color Input */}
-          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-            <p className="text-xs text-gray-600 mb-3 font-medium">Custom Color</p>
-            <div className="flex gap-2">
-              <input
-                type="color"
-                value={previewColor}
-                onChange={(e) => {
-                  setPreviewColor(e.target.value);
-                  // Apply color live when user selects from color picker
-                }}
-                className="w-8 h-8 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-300 transition-colors"
-              />
-              <input
-                type="text"
-                value={previewColor}
-                onChange={(e) => {
-                  setPreviewColor(e.target.value);
-                  // Apply color live as user types
-                  if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-                    setPreviewColor(e.target.value);
-                  }
-                }}
-                placeholder="#ffffff"
-                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
+          {/* Color Input */}
+          <div className="mt-4">
+            <div className="text-[11px] text-gray-500 font-medium mb-1.5">Hex Color</div>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <input
+                  type="color"
+                  value={previewColor.startsWith('#') ? previewColor : '#ffffff'}
+                  onChange={(e) => setPreviewColor(e.target.value)}
+                  className="w-8 h-8 rounded-md border border-gray-300 cursor-pointer appearance-none p-0 bg-transparent"
+                  style={{
+                    WebkitAppearance: 'none',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: '4px'
+                  }}
+                />
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <Palette className="w-3.5 h-3.5 text-gray-400" />
+                </div>
+              </div>
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  value={previewColor.startsWith('#') ? previewColor.toUpperCase() : ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || /^#[0-9A-F]{0,6}$/i.test(value)) {
+                      setPreviewColor(value);
+                    }
+                  }}
+                  placeholder="#FFFFFF"
+                  className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  style={{
+                    height: '32px',
+                    lineHeight: '1'
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -401,42 +455,21 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
       </div>
 
-      {/* Live Preview and Commit/Cancel */}
-      <div className="mt-4 pt-4 border-t border-gray-200/50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-full border-2 border-gray-300 shadow-sm"
-            style={{ 
-                background: previewColor.startsWith('linear-gradient') 
-                  ? previewColor 
-                  : previewColor 
-              }}
-            />
-            <div className="text-xs text-gray-600">
-              <div className="font-mono text-sm font-medium">
-                {previewColor.startsWith('linear-gradient') ? 'Gradient' : previewColor}
-              </div>
-              <div className="text-gray-500">Live Preview</div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleCancel}
-              className="px-3 py-1 text-sm rounded-lg bg-gray-200/50 hover:bg-gray-300/50 transition-colors border-gray-300/50"
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleDone}
-              className="px-3 py-1 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              Done
-            </Button>
-          </div>
+      {/* Action Buttons */}
+      <div className="border-t border-gray-100 px-3 py-2.5 bg-gray-50">
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={handleCancel}
+            className="px-4 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDone}
+            className="px-4 py-1.5 text-xs font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          >
+            Done
+          </button>
         </div>
       </div>
     </motion.div>

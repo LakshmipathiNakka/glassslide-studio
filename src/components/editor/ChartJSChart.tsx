@@ -441,16 +441,16 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
               />
             </div>
              {/* Custom responsive legend */}
-             <div className="flex flex-wrap justify-center gap-3 p-3 bg-gray-50/50 rounded-b-lg">
+             <div className="flex flex-wrap justify-center gap-4 p-3 bg-gray-50/50 rounded-b-lg text-sm">
                {chartData.datasets.map((dataset: any, index: number) => {
                  const color = dataset.colorIdentity?.solid || dataset.backgroundColor;
                  return (
                    <div 
                      key={index} 
-                     className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg text-sm font-medium shadow-sm border border-gray-200 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                     className="flex items-center gap-2"
                    >
                      <div 
-                       className="w-3 h-3 rounded-full"
+                       className="w-3 h-3 rounded-full flex-shrink-0"
                        style={{ backgroundColor: color }}
                      />
                      <span style={{ color: color }}>
@@ -509,16 +509,16 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
               />
             </div>
              {/* Custom responsive legend */}
-             <div className="flex flex-wrap justify-center gap-3 p-3 bg-gray-50/50 rounded-b-lg">
+             <div className="flex flex-wrap justify-center gap-4 p-3 bg-gray-50/50 rounded-b-lg text-sm">
                {chartData.datasets.map((dataset: any, index: number) => {
                  const color = dataset.colorIdentity?.solid || dataset.backgroundColor;
                  return (
                    <div 
                      key={index} 
-                     className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg text-sm font-medium shadow-sm border border-gray-200 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                     className="flex items-center gap-2"
                    >
                      <div 
-                       className="w-3 h-3 rounded-full"
+                       className="w-3 h-3 rounded-full flex-shrink-0"
                        style={{ backgroundColor: color }}
                      />
                      <span style={{ color: color }}>

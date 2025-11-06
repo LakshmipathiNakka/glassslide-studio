@@ -34,12 +34,15 @@ export interface SlideContextMenuProps {
   totalSlides: number;
   onClose: () => void;
   onAction: (action: SlideAction, slide: Slide, index: number) => void;
+  anchorElement?: HTMLElement | null;
 }
 
 export type SlideAction = 
-  | 'add-new'
+  | 'add'
   | 'duplicate'
   | 'delete'
+  | 'theme'
+  | 'layout'
   | 'change-background'
   | 'rename';
 

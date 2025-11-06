@@ -7,6 +7,7 @@ import React, {
   useLayoutEffect
 } from "react";
 import { Move } from "lucide-react";
+import "./RotationHandle.css";
 import { Element } from "@/hooks/use-action-manager";
 import { ChartJSChart } from "@/components/editor/ChartJSChart";
 import { TABLE_THEMES } from "@/constants/tableThemes";
@@ -130,23 +131,65 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     };
   }, [isEditingText, saveSelection]);
 
-  // responsive scale: compute scale to fit container
+  // Responsive scale calculation with aspect ratio preservation
   const [scale, setScale] = useState<number>(1);
-  useLayoutEffect(() => {
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  
+  // Update scale when container or window size changes
+  const updateScale = useCallback(() => {
     if (!containerRef.current) return;
-    const obs = new ResizeObserver(() => {
-      const rect = containerRef.current!.getBoundingClientRect();
-      // Prioritize horizontal fill: remove side padding, keep small top/bottom gap
-      const hPad = 0;   // no side margin inside container
-      const vPad = 12;  // keep ~12px vertical breathing room
-      const sx = (rect.width - hPad * 2) / slideWidth;
-      const sy = (rect.height - vPad * 2) / slideHeight;
-      const s = Math.min(sx, sy);
-      setScale(Math.max(s, 0.2)); // Minimum scale of 0.2 for very small screens
-    });
-    obs.observe(containerRef.current);
-    return () => obs.disconnect();
+    
+    const container = containerRef.current;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    
+    // Calculate scale to fit container while maintaining aspect ratio
+    const scaleX = (containerWidth - 40) / slideWidth; // 20px padding on each side
+    const scaleY = (containerHeight - 40) / slideHeight; // 20px padding top/bottom
+    const newScale = Math.min(scaleX, scaleY);
+    
+    // Apply minimum and maximum scale limits
+    const boundedScale = Math.min(Math.max(newScale, 0.2), 2); // Min 20%, Max 200%
+    
+    setScale(boundedScale);
   }, [slideWidth, slideHeight]);
+  
+  // Handle window resize and fullscreen changes
+  useEffect(() => {
+    const handleResize = () => {
+      updateScale();
+    };
+    
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      // Small delay to ensure DOM has updated
+      setTimeout(updateScale, 100);
+    };
+    
+    // Initial scale calculation
+    updateScale();
+    
+    // Add event listeners
+    window.addEventListener('resize', handleResize, { passive: true });
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, [updateScale]);
+  
+  // Recalculate scale when slide dimensions change
+  useEffect(() => {
+    updateScale();
+  }, [slideWidth, slideHeight, updateScale]);
 
   // Handle canvas click to deselect
   const handleCanvasClick = useCallback(() => {
@@ -164,12 +207,9 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     const width = el.width ?? 100;
     const height = el.height ?? 60;
     
-    // With transformOrigin: "center", we need to offset by half width/height
-    const centerX = tx + width / 2;
-    const centerY = ty + height / 2;
-    
-    // Translate to center, rotate, then translate back
-    return `translate(${centerX}px, ${centerY}px) rotate(${rotate}deg) translate(-${width/2}px, -${height/2}px) ${extra}`;
+    // For rotation around center, we need to set transform-origin to center
+    // and apply the rotation directly with the position
+    return `translate(${tx}px, ${ty}px) rotate(${rotate}deg) ${extra}`;
   }, []);
 
   // Custom drag handlers inspired by reference code
@@ -332,80 +372,114 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
   const startRotation = useCallback((e: React.MouseEvent, element: SlideElement) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!slideRef.current) return;
+    
+    // Get the element's bounding rect
+    const elementRect = (e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect();
+    if (!elementRect) return;
 
-    const rect = (e.currentTarget as HTMLElement).parentElement!.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+    // Calculate center point of the element
+    const centerX = elementRect.left + elementRect.width / 2;
+    const centerY = elementRect.top + elementRect.height / 2;
+    
+    // Calculate initial angle from center to mouse position (in radians)
+    const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+    
+    // Convert current rotation to radians for calculations
+    const initialRotation = (element.rotation || 0) * (Math.PI / 180);
 
     setRotationStart({
       angle: startAngle,
       centerX,
       centerY,
-      initialRotation: element.rotation || 0,
+      initialRotation,
     });
     setRotatingElement(element);
     setRotationAngle(element.rotation || 0);
+    
+    // Add active class to body for cursor styling
+    document.body.classList.add('rotating-element');
   }, []);
 
   const handleRotationMove = useCallback((e: MouseEvent) => {
     if (!rotatingElement || !rotationStart) return;
-
+    
     const { centerX, centerY, angle: startAngle, initialRotation } = rotationStart;
-    const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
-    let newRotation = initialRotation + (currentAngle - startAngle);
-
-    // Normalize to -180..180 for snapping
-    while (newRotation > 180) newRotation -= 360;
-    while (newRotation < -180) newRotation += 360;
-
-    if ((e as any).shiftKey) {
-      const step = 15;
-      newRotation = Math.round(newRotation / step) * step;
+    
+    // Calculate current angle from center to mouse position (in radians)
+    const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+    
+    // Calculate rotation in radians
+    let rotation = currentAngle - startAngle + initialRotation;
+    
+    // Convert to degrees for display and snapping
+    let degrees = (rotation * 180) / Math.PI;
+    
+    // Snap to 15° increments when Shift is held
+    if (e.shiftKey) {
+      const snapAngle = 15; // Degrees to snap to
+      degrees = Math.round(degrees / snapAngle) * snapAngle;
     } else {
-      const snap = 45;
-      const remainder = newRotation % snap;
-      if (Math.abs(remainder) < 2) newRotation = newRotation - remainder;
+      // Optional: Add subtle snapping without Shift
+      const snapAngle = 5; // Smaller snap angle when not holding shift
+      degrees = Math.round(degrees / snapAngle) * snapAngle;
     }
-
-    const displayAngle = ((newRotation % 360) + 360) % 360;
-    setRotationAngle(displayAngle);
-    // Live-only rotation update for smoothness
+    
+    // Normalize to 0-360 range for display
+    const normalizedDegrees = ((degrees % 360) + 360) % 360;
+    
+    setRotationAngle(normalizedDegrees);
+    
+    // Update the element's rotation with smooth transition
     setLiveUpdates(prev => ({
       ...prev,
-      [rotatingElement.id]: { rotation: displayAngle },
+      [rotatingElement.id]: { 
+        ...prev[rotatingElement.id],
+        rotation: normalizedDegrees 
+      },
     }));
-    // Emit rAF-throttled live preview during rotation
+    
+    // Emit live updates for preview
     scheduleEmitLive();
-  }, [rotatingElement, rotationStart]);
+  }, [rotatingElement, rotationStart, scheduleEmitLive]);
 
   const stopRotation = useCallback(() => {
+    // Remove active rotation class from body
+    document.body.classList.remove('rotating-element');
+    
     if (rotatingElement && onElementUpdate) {
       const patch = liveUpdates[rotatingElement.id];
       if (patch) {
-        onElementUpdate({ ...rotatingElement, ...patch } as SlideElement);
+        // Commit the final rotation
+        onElementUpdate({ 
+          ...rotatingElement, 
+          ...patch,
+          rotation: rotationAngle // Use the exact angle we were showing
+        } as SlideElement);
       }
-      // clear live patch
+      
+      // Clear live patch for this element
       setLiveUpdates(prev => {
-        const next = { ...prev } as Record<string, Partial<SlideElement>>;
+        const next = { ...prev };
         delete next[rotatingElement.id];
         return next;
       });
     }
+    
+    // Reset rotation state
     setRotatingElement(null);
     setRotationStart(null);
-    setRotationAngle(0);
-    // Clear live rAF and snapshot
+    
+    // Clear any pending live updates
     if (rafIdRef.current != null) {
       cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     }
+    
+    // Clear live elements snapshot
     if (typeof onLiveElementsChange === 'function') {
       onLiveElementsChange(null);
     }
-  }, [rotatingElement, liveUpdates, onElementUpdate]);
+  }, [rotatingElement, liveUpdates, onElementUpdate, rotationAngle, onLiveElementsChange]);
 
   // Rotation event listeners
   useEffect(() => {
@@ -506,31 +580,62 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         <div
           className="rotation-handle"
           onMouseDown={(e) => startRotation(e, element)}
-        style={{
-            position: "absolute",
-            top: "-40px", // Position above the drag handle
-            left: "50%",
-            transform: "translateX(-50%)",
+          style={{
+            position: 'absolute',
+            top: '-40px',
+            left: '50%',
+            transform: 'translateX(-50%)',
             zIndex: 1002,
-            width: "20px",
-            height: "20px",
-            backgroundColor: rotatingElement?.id === element.id ? "#106ebe" : "#0078d4",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            width: '24px',
+            height: '24px',
+            backgroundColor: rotatingElement?.id === element.id ? '#106ebe' : '#0078d4',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             userSelect: 'none',
-            fontSize: '14px',
             color: 'white',
             fontWeight: 'bold',
             boxShadow: rotatingElement?.id === element.id 
-              ? "0 4px 12px rgba(0, 120, 212, 0.4)" 
-              : "0 2px 6px rgba(0, 0, 0, 0.2)",
-            border: "2px solid white",
+              ? '0 4px 16px rgba(0, 120, 212, 0.5)' 
+              : '0 2px 8px rgba(0, 0, 0, 0.2)',
+            border: '2px solid white',
+            cursor: 'grab',
+            transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+            transformOrigin: 'center center',
+            willChange: 'transform, box-shadow',
           }}
-          title="Rotate element"
+          onMouseEnter={(e) => {
+            if (e.currentTarget) {
+              e.currentTarget.style.transform = 'translateX(-50%) scale(1.1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 120, 212, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (e.currentTarget && rotatingElement?.id !== element.id) {
+              e.currentTarget.style.transform = 'translateX(-50%)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+            }
+          }}
+          title="Rotate (hold Shift for 15° steps)"
         >
-          ⟳
+          <svg 
+            width="16" 
+            height="16" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            style={{
+              transition: 'transform 0.2s ease',
+              transform: rotatingElement?.id === element.id ? 'rotate(180deg)' : 'rotate(0)'
+            }}
+          >
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+          </svg>
         </div>
 
         {/* Rotation Angle Tooltip */}
@@ -1069,12 +1174,16 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         >
           <span
             style={{
-              overflow: 'visible', // 👈 ensures text itself doesn't clip
-              display: 'inline-block',
+              overflow: 'visible',
+              display: 'flex',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               width: '100%',
-              color: el.placeholder ? '#000000' : 'inherit' // Set black color for placeholders
+              minHeight: '100%',
+              color: isEmpty ? '#9ca3af' : 'inherit', 
+              textAlign: isEmpty ? 'center' : (el.textAlign || 'left'),
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             {displayText}
@@ -1345,61 +1454,75 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         height: "100%",
         display: "flex",
         alignItems: "center",
-        justifyContent: "flex-end",
-        padding: 0, // Remove padding here, let parent handle spacing
-        minHeight: "100%",
+        justifyContent: "center",
+        padding: "20px",
         boxSizing: "border-box",
+        overflow: "hidden",
+        position: "relative",
       }}
       onClick={handleCanvasClick}
     >
-      {/* scaled slide area */}
+      {/* Wrapper for centering */}
       <div
-        ref={slideRef}
-        className="ppt-slide"
         style={{
-          width: slideWidth,
-          height: slideHeight,
-          background,
-          boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
-          borderRadius: 8,
-          overflow: "visible",
-          transform: `scale(${scale * (zoom || 1)})`,
-          transformOrigin: "center center",
-          position: "relative",
-          margin: "0 auto", // Center horizontally
-          display: "block", // Ensure it's a block element for proper centering
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
-        {/* elements in slide-space */}
-        {elements.map((raw) => {
-          const el = applyLive(raw);
-          return (
-          <div
-            id={`element-${el.id}`}
-            key={el.id}
-            style={{
-              ...buildElementStyle(el),
-              overflow: el.type === 'text' ? 'visible' : (selectedElement?.id === el.id ? 'visible' : 'hidden'), // Text never clips; others clip when not selected
-            }}
-            onClick={(ev) => handleElementClick(el, ev)}
-            onDoubleClick={(ev) => {
-              // For all elements, just select them
-              ev.stopPropagation();
-              setSelectedElement(el);
-              onElementSelect?.(el);
-            }}
-            onMouseDown={(e) => {
-              // All elements use their drag handle for dragging
-              // This prevents accidental dragging when clicking on element content
-            }}
-            data-slide-id={el.id}
-            className={selectedElement?.id === el.id ? 'ring-2 ring-blue-400' : ''}
-          >
-            {renderElementContent(el)}
-            {renderElementControls(el)}
-            {renderResizeHandles(el)}
-          </div>
-        );})}
+        {/* Scaled slide area */}
+        <div
+          ref={slideRef}
+          className="ppt-slide"
+          style={{
+            width: slideWidth,
+            height: slideHeight,
+            background,
+            boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
+            borderRadius: 8,
+            overflow: "visible",
+            transform: `scale(${scale * (zoom || 1)})`,
+            transformOrigin: "center center",
+            position: "relative",
+            transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            flexShrink: 0,
+            willChange: 'transform'
+          }}
+        >
+          {/* elements in slide-space */}
+          {elements.map((raw) => {
+            const el = applyLive(raw);
+            return (
+              <div
+                key={el.id}
+                id={`element-${el.id}`}
+                style={{
+                  ...buildElementStyle(el),
+                  overflow: el.type === 'text' ? 'visible' : (selectedElement?.id === el.id ? 'visible' : 'hidden'),
+                }}
+                onClick={(ev) => handleElementClick(el, ev)}
+                onDoubleClick={(ev) => {
+                  ev.stopPropagation();
+                  setSelectedElement(el);
+                  onElementSelect?.(el);
+                }}
+                onMouseDown={(e) => {
+                  // Prevent accidental dragging when clicking on element content
+                }}
+                data-slide-id={el.id}
+                className={selectedElement?.id === el.id ? 'ring-2 ring-blue-400' : ''}
+              >
+                {renderElementContent(el)}
+                {renderElementControls(el)}
+                {renderResizeHandles(el)}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

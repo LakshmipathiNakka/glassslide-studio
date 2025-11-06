@@ -21,7 +21,7 @@ const DraggableThumbnailItem: React.FC<{
   onDragStart: (e: React.DragEvent, index: number) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, index: number) => void;
-  onDelete: (slideId: string) => void;
+  onDelete: (index: number) => void;
   overrideElements?: any[] | null;
 }> = ({ slide, index, isActive, isDragging, isCollapsed, onSelect, onContextMenu, onDragStart, onDragOver, onDrop, onDelete, overrideElements }) => {
   const dragHandleRef = useRef<HTMLDivElement>(null);
@@ -375,27 +375,28 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
     [draggedIndex, slides, currentSlide, onReorderSlides]
   );
 
+  // Track the anchor element for the context menu
+  const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null);
+
   const handleContextMenu = useCallback((event: React.MouseEvent, slide: Slide, index: number) => {
     event.preventDefault();
+    setAnchorElement(event.currentTarget as HTMLElement);
     setContextMenu({ slide, index, x: event.clientX, y: event.clientY });
   }, []);
 
-  const handleCloseContextMenu = useCallback(() => setContextMenu(null), []);
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu(null);
+    // Small delay to allow click events to process before removing the anchor
+    setTimeout(() => setAnchorElement(null), 100);
+  }, []);
 
   const handleContextAction = useCallback(
     (action: SlideAction, slide: Slide, index: number) => {
-    onContextMenuAction(action, slide, index);
-    setContextMenu(null);
+      onContextMenuAction(action, slide, index);
+      setContextMenu(null);
     },
     [onContextMenuAction]
   );
-
-  // Close context menu on outside click
-  useEffect(() => {
-    const handleClickOutside = () => contextMenu && setContextMenu(null);
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [contextMenu]);
 
   return (
     <div 
@@ -508,37 +509,15 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
       {/* Context Menu */}
       <AnimatePresence>
         {contextMenu && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed z-50"
-            style={{
-              left: `${contextMenu.x}px`,
-              top: `${contextMenu.y}px`,
-              transformOrigin: 'top left',
-              // Ensure it doesn't go off-screen
-              maxHeight: 'calc(100vh - 20px)',
-              overflowY: 'auto',
-              WebkitOverflowScrolling: 'touch',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <SlideContextMenu
-              slide={contextMenu.slide}
-              index={contextMenu.index}
-              position={{ x: 0, y: 0 }}
-              totalSlides={slides.length}
-              onClose={() => setContextMenu(null)}
-              onAction={(action) => {
-                if (onContextMenuAction) {
-                  onContextMenuAction(action, contextMenu.slide, contextMenu.index);
-                }
-                setContextMenu(null);
-              }}
-            />
-          </motion.div>
+          <SlideContextMenu
+            slide={contextMenu.slide}
+            index={contextMenu.index}
+            position={{ x: contextMenu.x, y: contextMenu.y }}
+            totalSlides={slides.length}
+            onClose={handleCloseContextMenu}
+            onAction={handleContextAction}
+            anchorElement={anchorElement}
+          />
         )}
       </AnimatePresence>
     </div>

@@ -17,16 +17,20 @@ import { AnimatePresence } from "framer-motion";
 
 // Predefined color palette for chart datasets
 const CHART_COLOR_PALETTE = [
+  '#000000', // Black
   '#3b82f6', // Blue
   '#ef4444', // Red
   '#10b981', // Green
-  '#f59e0b', // Yellow
-  '#8b5cf6', // Purple
+  '#f59e0b', // Amber
+  '#8b5cf6', // Violet
+  '#ec4899', // Pink
   '#06b6d4', // Cyan
   '#f97316', // Orange
-  '#ec4899', // Pink
+  '#14b8a6', // Teal
+  '#a855f7', // Purple
+  '#f43f5e', // Rose
   '#84cc16', // Lime
-  '#6366f1', // Indigo
+  '#0ea5e9'  // Sky Blue
 ];
 
 // System UI full stack (canonical default for all text)
@@ -102,9 +106,21 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
   const [labelCount, setLabelCount] = useState(0);
   const [dataCounts, setDataCounts] = useState<number[]>([]);
   const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
-  // Removed showTableProperties state - no longer needed with accordion approach
 
-  // Removed handleTextScopeChange - no longer needed
+  // Update labelCount and dataCounts when chart data changes
+  useEffect(() => {
+    if (selectedElement?.chartData) {
+      // Update label count
+      const labels = selectedElement.chartData.labels || [];
+      setLabelCount(labels.length);
+
+      // Update data counts for each dataset
+      const counts = selectedElement.chartData.datasets?.map(dataset => 
+        Array.isArray(dataset.data) ? dataset.data.length : 0
+      ) || [];
+      setDataCounts(counts);
+    }
+  }, [selectedElement?.chartData]);
 
   useEffect(() => {
     if (selectedElement) {
@@ -1523,58 +1539,65 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                         className="rounded-xl border border-gray-200 p-4 bg-white/80 shadow-sm backdrop-blur-sm hover:shadow-md transition-all duration-200"
                       >
                         <div className="flex justify-between items-center mb-3">
-                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                             <div 
-                              className="w-3 h-3 rounded-full" 
+                              className="w-3 h-3 rounded-full flex-shrink-0" 
                               style={{ backgroundColor: dataset.backgroundColor || '#3b82f6' }}
                             />
-                          Dataset {datasetIndex + 1}
-                          {(() => {
-                            const hasMismatch = dataCounts[datasetIndex] !== labelCount && labelCount > 0;
-                            if (datasetIndex === 0) {
-                              // console.log('Dataset 1 mismatch check:', {
-                              //   dataCount: dataCounts[datasetIndex],
-                              //   labelCount,
-                              //   hasMismatch
-                              // });
-                            }
-                            return hasMismatch;
-                          })() && (
-                            <div className="flex items-center gap-1">
-                              <AlertTriangle className="w-4 h-4 text-yellow-500 animate-pulse" />
-                              <span className="text-xs text-yellow-600 font-medium">
-                                {dataCounts[datasetIndex] || 0}/{labelCount}
-                              </span>
-                            </div>
-                          )}
-                          </h4>
-                          {dataCounts[datasetIndex] !== labelCount && labelCount > 0 && (
-                            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                              <div className="text-xs text-yellow-800">
-                                <div className="font-semibold mb-1">⚠️ Data Mismatch</div>
-                                <div>Labels: {labelCount} | Data values: {dataCounts[datasetIndex] || 0}</div>
-                                <div className="text-yellow-700 mt-1">
-                                  {getDataCountWarning(datasetIndex)}
+                            <h4 className="font-semibold text-sm whitespace-nowrap">
+                              Dataset {datasetIndex + 1}
+                            </h4>
+                            {dataCounts[datasetIndex] !== labelCount && labelCount > 0 && (
+                              <div className="relative group">
+                                <AlertTriangle className="w-4 h-4 text-yellow-500 cursor-help" />
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-[9999] w-32 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                  <motion.div 
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="relative bg-white rounded-lg p-3 shadow-lg ring-1 ring-black/5"
+                                  >
+                                    <div className="absolute left-1/2 -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 bg-white border-t border-r border-gray-200"></div>
+                                    <div className="text-xs text-gray-900">
+                                      <div className="font-semibold mb-1.5 flex items-center">
+                                        <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-yellow-500" />
+                                        Data Mismatch
+                                      </div>
+                                      <div className="mb-1.5">
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-600">Labels:</span>
+                                          <span className="font-medium">{labelCount}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-600">Data values:</span>
+                                          <span className="font-medium">{dataCounts[datasetIndex] || 0}</span>
+                                        </div>
+                                      </div>
+                                      <div className="bg-yellow-50 border-l-2 border-yellow-400 pl-2 py-1 text-yellow-700 rounded-sm">
+                                        {getDataCountWarning(datasetIndex)}
+                                      </div>
+                                    </div>
+                                  </motion.div>
                                 </div>
                               </div>
-                            </div>
-                          )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            const newDatasets = selectedElement.chartData.datasets.filter((_: any, i: number) => i !== datasetIndex);
-                            handlePropertyChange('chartData', {
-                              ...selectedElement.chartData,
-                              datasets: newDatasets
-                            });
-                          }}
-                          className="h-6 w-6 p-0 text-red-600 hover:bg-red-600 hover:text-white transition-colors duration-200"
-                          disabled={selectedElement.chartData.datasets.length <= 1}
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newDatasets = selectedElement.chartData.datasets.filter((_: any, i: number) => i !== datasetIndex);
+                              handlePropertyChange('chartData', {
+                                ...selectedElement.chartData,
+                                datasets: newDatasets
+                              });
+                            }}
+                            className="h-6 w-6 p-0 text-red-600 hover:bg-red-600 hover:text-white transition-colors duration-200"
+                            disabled={selectedElement.chartData.datasets.length <= 1}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
                       
                       <div className="space-y-3">
         <div>
@@ -1621,7 +1644,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                             </Button>
                           </div>
                           
-                          <div className="space-y-1">
+                          <div className="relative" style={{ position: 'static' }}>
                             {dataset.data?.map((value: number, valueIndex: number) => (
                               <div key={valueIndex} className="flex items-center gap-2">
                 <Input
@@ -1668,43 +1691,92 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                           <Label className="text-xs text-gray-500 mb-2 block">Color</Label>
                           <div className="grid grid-cols-5 gap-2">
                             {CHART_COLOR_PALETTE.map((color, colorIndex) => {
-                              // Check if this color is used by other datasets
-                              const isUsedByOtherDataset = selectedElement.chartData?.datasets?.some((otherDataset: any, otherIndex: number) => 
-                                otherIndex !== datasetIndex && (otherDataset.backgroundColor === color || otherDataset.borderColor === color)
+                              // Find which dataset is using this color
+                              const usedByDataset = selectedElement.chartData?.datasets?.find((d: any, idx: number) => 
+                                idx !== datasetIndex && (d.backgroundColor === color || d.borderColor === color)
                               );
+                              
                               const isCurrentColor = (dataset.backgroundColor || '#3b82f6') === color;
+                              const isUsedByOtherDataset = !!usedByDataset;
                               const isDisabled = isUsedByOtherDataset && !isCurrentColor;
                               
+                              // Get the dataset name or index for the tooltip
+                              const datasetName = usedByDataset?.label || 
+                                `Dataset ${selectedElement.chartData?.datasets?.indexOf(usedByDataset) + 1 || ''}`;
+                              
                               return (
-                                <button
-                                  key={colorIndex}
-                                  onClick={() => {
-                                    if (isDisabled) return;
-                                    const newDatasets = [...(selectedElement.chartData?.datasets || [])];
-                                    newDatasets[datasetIndex] = { 
-                                      ...newDatasets[datasetIndex], 
-                                      backgroundColor: color,
-                                      borderColor: color
-                                    };
-                                    handlePropertyChange('chartData', {
-                                      ...selectedElement.chartData,
-                                      datasets: newDatasets
-                                    });
-                                  }}
-                                  disabled={isDisabled}
-                                  className={`w-8 h-8 rounded-lg border-2 transition-all duration-200 ${
-                                    isDisabled 
-                                      ? 'opacity-30 cursor-not-allowed border-gray-200' 
-                                      : isCurrentColor
-                                        ? 'border-gray-800 shadow-lg hover:scale-110'
-                                        : 'border-gray-300 hover:border-gray-500 hover:scale-110'
-                                  }`}
-                                  style={{ 
-                                    backgroundColor: color,
-                                    ...(isDisabled && { filter: 'grayscale(100%)' })
-                                  }}
-                                  title={isDisabled ? `${color} (Used by another dataset)` : color}
-                                />
+                                <div key={colorIndex} className="relative group">
+                                  <div className="relative">
+                                    <button
+                                      onClick={() => {
+                                        if (isDisabled) return;
+                                        const newDatasets = [...(selectedElement.chartData?.datasets || [])];
+                                        newDatasets[datasetIndex] = { 
+                                          ...newDatasets[datasetIndex], 
+                                          backgroundColor: color,
+                                          borderColor: color
+                                        };
+                                        handlePropertyChange('chartData', {
+                                          ...selectedElement.chartData,
+                                          datasets: newDatasets
+                                        });
+                                      }}
+                                      disabled={isDisabled}
+                                      className={`w-8 h-8 rounded-lg border-2 transition-all duration-200 ${
+                                        isDisabled 
+                                          ? 'opacity-70 cursor-not-allowed border-gray-200' 
+                                          : isCurrentColor
+                                            ? 'border-gray-800 shadow-lg hover:scale-110'
+                                            : 'border-gray-300 hover:border-gray-500 hover:scale-110'
+                                      }`}
+                                      style={{ 
+                                        backgroundColor: color,
+                                        ...(isDisabled && { 
+                                          filter: 'saturate(0.5) brightness(1.1)',
+                                          position: 'relative',
+                                          zIndex: 1
+                                        })
+                                      }}
+                                      aria-label={isDisabled ? `Color used by ${datasetName}` : `Select ${color}`}
+                                    />
+                                    {isUsedByOtherDataset && !isCurrentColor && (
+                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <svg 
+                                          className="w-4 h-4 text-gray-700 opacity-80" 
+                                          viewBox="0 0 20 20" 
+                                          fill="currentColor"
+                                        >
+                                          <path 
+                                            fillRule="evenodd" 
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" 
+                                            clipRule="evenodd" 
+                                          />
+                                        </svg>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Tooltip for disabled colors */}
+                                  {isDisabled && (
+                                    <div className="absolute z-50 hidden group-hover:block">
+                                      <div className="relative
+                                        bg-black/80 text-white text-xs rounded py-1.5 px-3 whitespace-nowrap
+                                        shadow-lg transform -translate-x-1/2 left-1/2 -top-10
+                                        before:absolute before:border-4 before:border-transparent before:border-t-black/80
+                                        before:bottom-[-7px] before:left-1/2 before:-translate-x-1/2
+                                        transition-opacity duration-150"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <div 
+                                            className="w-3 h-3 rounded-full flex-shrink-0"
+                                            style={{ backgroundColor: color }}
+                                          />
+                                          <span>Used by {datasetName}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>
@@ -1727,11 +1799,19 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     <Button
                       variant="outline"
                       onClick={() => {
+                        // Get all currently used colors
+                        const usedColors = new Set(
+                          selectedElement.chartData?.datasets?.map(d => d.backgroundColor) || []
+                        );
+                        
+                        // Find the first available color in the palette
+                        const nextColor = CHART_COLOR_PALETTE.find(color => !usedColors.has(color)) || CHART_COLOR_PALETTE[0];
+                        
                         const newDataset = {
                           label: `Dataset ${(selectedElement.chartData?.datasets?.length || 0) + 1}`,
-                          data: selectedElement.chartData?.labels?.map(() => 0) || [0],
-                          backgroundColor: '#3b82f6',
-                          borderColor: '#3b82f6'
+                          data: selectedElement.chartData?.labels?.map(() => 50) || [50],
+                          backgroundColor: nextColor,
+                          borderColor: nextColor
                         };
                         const newDatasets = [...(selectedElement.chartData?.datasets || []), newDataset];
                         handlePropertyChange('chartData', {

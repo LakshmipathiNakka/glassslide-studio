@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MoreVertical,
@@ -9,12 +9,15 @@ import {
   Eye,
   EyeOff,
   Lock,
-  Unlock
+  Unlock,
+  Check,
+  X
 } from 'lucide-react';
 import { SlideThumbnailProps, SlideCategory } from '@/types/slide-thumbnails';
 import SlideRenderer from '@/components/shared/SlideRenderer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 const slideCategories: SlideCategory[] = [
   { id: 'intro', name: 'Intro', icon: Eye, color: '#3b82f6' },
@@ -40,6 +43,10 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
   const [showNotes, setShowNotes] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [tempName, setTempName] = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const nameContainerRef = useRef<HTMLDivElement>(null);
   // Removed dragStartPos ref as we're using native HTML5 drag and drop
 
   // Removed custom drag handlers to avoid conflict with native HTML5 drag and drop
@@ -51,13 +58,60 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    onContextMenu(e, slide, index);
-  }, [slide, index, onContextMenu]);
+    // Prevent context menu if renaming
+    if (isRenaming) return;
+    
+    // Get the three-dot button element
+    const menuButton = e.currentTarget.closest('.slide-thumbnail-actions')?.querySelector('.menu-button');
+    onContextMenu(e, slide, index, menuButton || undefined);
+  }, [slide, index, onContextMenu, isRenaming]);
 
-  const handleDoubleClick = useCallback(() => {
-    // Toggle notes preview
-    setShowNotes(!showNotes);
-  }, [showNotes]);
+  const startRenaming = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setTempName(slide.name || `Slide ${index + 1}`);
+    setIsRenaming(true);
+  }, [slide.name, index]);
+
+  const handleRename = useCallback(() => {
+    if (tempName.trim() && tempName !== slide.name) {
+      onRename?.(index, tempName.trim());
+    }
+    setIsRenaming(false);
+  }, [tempName, slide.name, index, onRename]);
+
+  const cancelRename = useCallback(() => {
+    setIsRenaming(false);
+  }, []);
+
+  // Handle click outside to save the name
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (nameContainerRef.current && !nameContainerRef.current.contains(e.target as Node)) {
+        handleRename();
+      }
+    };
+
+    if (isRenaming) {
+      document.addEventListener('mousedown', handleClickOutside);
+      // Focus the input when renaming starts
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+        nameInputRef.current?.select();
+      }, 0);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isRenaming, handleRename]);
+
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Start renaming on double click
+    if (!isRenaming) {
+      startRenaming(e);
+    }
+  }, [isRenaming, startRenaming]);
 
   const category = slideCategories.find(cat => cat.id === slide.category) || slideCategories[4];
   const CategoryIcon = category.icon;
@@ -80,7 +134,6 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
       className={`relative group cursor-pointer select-none ${
         isDragging ? 'z-[100]' : 'z-[10]'
       }`}
-      // Removed mouse event handlers to avoid conflict with native HTML5 drag and drop
       onMouseEnter={() => setIsHoveredLocal(true)}
       onMouseLeave={() => setIsHoveredLocal(false)}
       onClick={handleClick}
@@ -136,8 +189,9 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
         <div className="absolute top-2 right-2">
           <Badge
             variant="secondary"
-            className="text-xs px-2 py-1 bg-white/90 backdrop-blur-sm border-0"
-            style={{ color: category.color }}
+            className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 backdrop-blur-sm shadow-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors z-10 menu-button"
+            onClick={handleContextMenu}
+            aria-label="Slide options"
           >
             <CategoryIcon className="w-3 h-3 mr-1" />
             {category.name}
@@ -145,17 +199,15 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
         </div>
 
         {/* Slide Number */}
-        <div className="absolute bottom-2 right-2">
-          <div className="px-2 py-1 bg-black/20 backdrop-blur-sm rounded-md">
-            <span className="text-white text-xs font-medium">
-              {index + 1}
-            </span>
-          </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity z-10 slide-thumbnail-actions">
+          <span className="text-white text-xs font-medium">
+            {index + 1}
+          </span>
         </div>
 
         {/* Animation Duration Indicator */}
         {slide.animationDuration && slide.animationDuration > 0 && (
-          <div className="absolute bottom-2 left-2">
+          <div className="absolute bottom-2 left-2 right-2">
             <div className="flex items-center gap-1 px-2 py-1 bg-black/20 backdrop-blur-sm rounded-md">
               <Play className="w-3 h-3 text-white" />
               <span className="text-white text-xs">
@@ -164,6 +216,60 @@ const SlideThumbnail: React.FC<SlideThumbnailProps> = ({
             </div>
           </div>
         )}
+
+        {/* Slide Title */}
+        <div 
+          ref={nameContainerRef}
+          className="flex items-center justify-between px-2 py-1 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg min-h-8"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {isRenaming ? (
+            <div className="flex-1 flex items-center space-x-1">
+              <Input
+                ref={nameInputRef}
+                type="text"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleRename();
+                  else if (e.key === 'Escape') cancelRename();
+                }}
+                className="h-6 text-xs px-1.5 py-0.5 flex-1 min-w-0"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 text-green-500 hover:bg-green-500/10"
+                onClick={handleRename}
+              >
+                <Check className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 text-red-500 hover:bg-red-500/10"
+                onClick={cancelRename}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <span 
+                className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate flex-1 cursor-text"
+                onClick={startRenaming}
+              >
+                {slide.name || `Slide ${index + 1}`}
+              </span>
+              <div className="flex items-center space-x-1">
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-5">
+                  {index + 1}
+                </Badge>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Notes Indicator */}
         {slide.notes && (

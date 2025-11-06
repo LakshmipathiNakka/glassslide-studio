@@ -855,6 +855,13 @@ export const useSlideThumbnails = ({
         setCurrentSlideForSettings({ slide, index });
         setShowColorPicker(true);
         break;
+      case 'theme':
+        // For now, we'll use the same color picker as 'change-background'
+        // In a future update, we can add a dedicated theme picker UI
+        setColorPickerPosition({ x: 300, y: 200 });
+        setCurrentSlideForSettings({ slide, index });
+        setShowColorPicker(true);
+        break;
       case 'rename':
         setCurrentSlideForRename({ slide, index });
         setShowTitleDialog(true);
