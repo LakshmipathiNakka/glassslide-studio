@@ -49,6 +49,7 @@
     "@types/fabric": "^5.3.10",
     "@types/js-cookie": "^3.0.6",
     "@types/react-draft-wysiwyg": "^1.13.8",
+    "@types/uuid": "^11.0.0",
     "active-table-react": "^1.1.7",
     "chart.js": "^4.5.0",
     "class-variance-authority": "^0.7.1",
@@ -86,6 +87,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^13.0.0",
     "vaul": "^0.9.9",
     "zod": "^3.25.76",
     "zustand": "^5.0.8"

@@ -11,16 +11,12 @@ import LayoutSectionDemo from "./pages/LayoutSectionDemo";
 import SmartSidebarDemo from "./pages/SmartSidebarDemo";
 import FabricDemo from "./pages/FabricDemo";
 import NotFound from "./pages/NotFound";
-import Login from "@/components/auth/Login";
-import { AuthProvider } from "@/auth/AuthProvider";
-import { RequireAuth } from "@/auth/RequireAuth";
-import { RequirePermission } from "@/auth/RequirePermission";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
-      cacheTime: 10 * 60 * 1000,
+      gcTime: 10 * 60 * 1000, // Replaced cacheTime with gcTime
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
@@ -35,27 +31,16 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <RequireAuth>
-                  <Index />
-                </RequireAuth>
-              }
-            />
-            <Route path="/editor" element={<Editor />} />
-            <Route path="/present/:deckId" element={<PresentationMode />} />
-            <Route path="/test" element={<TestPage />} />
-            <Route path="/demo/layout" element={<LayoutSectionDemo />} />
-            <Route path="/demo/sidebar" element={<SmartSidebarDemo />} />
-            <Route path="/demo/fabric" element={<FabricDemo />} />
-            {/* Redirect unknown routes to login if not authed, else 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/editor" element={<Editor />} />
+          <Route path="/present/:deckId" element={<PresentationMode />} />
+          <Route path="/test" element={<TestPage />} />
+          <Route path="/demo/layout" element={<LayoutSectionDemo />} />
+          <Route path="/demo/sidebar" element={<SmartSidebarDemo />} />
+          <Route path="/demo/fabric" element={<FabricDemo />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

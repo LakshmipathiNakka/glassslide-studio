@@ -3,12 +3,9 @@ import { ArrowRight, Play, Sparkles } from "lucide-react";
 import { Logo } from "./Logo";
 import { useNavigate } from "react-router-dom";
 import { useScrollAnimation, useParallax } from "@/hooks/use-scroll-animations";
-import { useAuth } from "@/auth/AuthProvider";
-import { UserMenuLanding } from "@/components/landing/UserMenuLanding";
 
 export const Hero = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
   const { scrollY, isVisible, elementRef } = useScrollAnimation();
   const parallaxSlow = useParallax(0.3);
   const parallaxMedium = useParallax(0.5);
@@ -95,56 +92,26 @@ export const Hero = () => {
             
             {/* Desktop Action Buttons */}
             <div className="hidden lg:flex items-center space-fluid-sm">
-              {isAuthenticated ? (
-                <UserMenuLanding />
-              ) : (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="touch-button bg-transparent text-gray-600 hover:bg-gray-200 hover:text-black transition-all duration-300"
-                    aria-label="Login to your account"
-                    onClick={() => navigate('/login')}
-                  >
-                    Login
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => navigate('/editor')}
-                    className="touch-button bg-black text-white hover:bg-gray-800 transition-all duration-300"
-                    aria-label="Try the demo editor"
-                  >
-                    Try Demo
-                  </Button>
-                </>
-              )}
+              <Button 
+                size="sm" 
+                onClick={() => navigate('/editor')}
+                className="touch-button bg-black text-white hover:bg-gray-800 transition-all duration-300"
+                aria-label="Open the editor"
+              >
+                Open Editor
+              </Button>
             </div>
             
             {/* Mobile Action Buttons */}
             <div className="lg:hidden flex items-center space-fluid-xs">
-              {isAuthenticated ? (
-                <UserMenuLanding />
-              ) : (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="touch-button bg-transparent text-gray-600 hover:bg-gray-200 hover:text-black transition-all duration-300"
-                    aria-label="Login to your account"
-                    onClick={() => navigate('/login')}
-                  >
-                    Login
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => navigate('/editor')}
-                    className="touch-button bg-black text-white hover:bg-gray-800 transition-all duration-300"
-                    aria-label="Try the demo editor"
-                  >
-                    Try
-                  </Button>
-                </>
-              )}
+              <Button 
+                size="sm" 
+                onClick={() => navigate('/editor')}
+                className="touch-button bg-black text-white hover:bg-gray-800 transition-all duration-300"
+                aria-label="Open the editor"
+              >
+                Open Editor
+              </Button>
             </div>
           </div>
         </div>

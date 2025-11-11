@@ -372,7 +372,7 @@ const EnhancedEditor = () => {
       />
 
       {/* Main Content */}
-      <main id="main-content" className="flex-1 flex flex-col lg:flex-row overflow-hidden" role="main">
+      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden" role="main">
         {/* Mobile: Slide Thumbnails at top */}
         <aside className="lg:hidden" role="complementary" aria-label="Slide thumbnails">
           <SlideThumbnails

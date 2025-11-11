@@ -5,7 +5,6 @@ import { Pricing } from "@/components/landing/Pricing";
 import { CTA } from "@/components/landing/CTA";
 import { Footer } from "@/components/landing/Footer";
 import { Logo } from "@/components/landing/Logo";
-import { UserMenuLanding } from "@/components/landing/UserMenuLanding";
 
 const Index = () => {
   return (
@@ -14,12 +13,9 @@ const Index = () => {
       <header className="glass-toolbar border-b sticky top-0 z-40">
         <div className="container-fluid py-2 sm:py-3">
           <div className="flex-modern justify-between items-center">
-            <div className="flex-modern min-w-0 flex-1">
+            <div className="flex-modern min-w-0 flex-1 justify-between">
               <Logo />
             </div>
-            <nav aria-label="User menu" className="flex items-center">
-              <UserMenuLanding />
-            </nav>
           </div>
         </div>
       </header>
