@@ -28,6 +28,10 @@ try {
   useKonva = false;
 }
 
+// Force HTML canvas for thumbnails to ensure CSS gradients match editor canvas exactly
+// This also avoids discrepancies from Konva not supporting CSS gradient strings out of the box
+useKonva = false;
+
 const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
   slide,
   width,

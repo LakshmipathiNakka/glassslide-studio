@@ -20,16 +20,68 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
   // Helper function to parse CSS gradients and create canvas gradients
   const parseGradient = (gradientString: string, width: number, height: number, ctx: CanvasRenderingContext2D): CanvasGradient | null => {
     try {
-      
-      // More flexible regex to handle various gradient formats
-      const match = gradientString.match(/linear-gradient\s*\(\s*([-\d.]+)deg\s*,\s*(.+)\s*\)/i);
+      const str = gradientString.trim();
+      // Radial gradient: radial-gradient(<rx>px <ry>px at <x>% <y>%, color stops...)
+      if (/^radial-gradient/i.test(str)) {
+        // Extract radii and center if provided
+        // Matches: radial-gradient(1200px 700px at 50% 40%, ...)
+        const m = str.match(/radial-gradient\s*\(\s*(?:(\d+)px\s+(\d+)px\s+at\s+([\d.]+)%\s+([\d.]+)%|at\s+([\d.]+)%\s+([\d.]+)%)\s*,\s*(.+)\)$/i);
+        let rx: number | null = null;
+        let ry: number | null = null;
+        let cx = 50;
+        let cy = 50;
+        let stopsStr = '';
+        if (m) {
+          if (m[1] && m[2] && m[3] && m[4]) {
+            rx = parseFloat(m[1]);
+            ry = parseFloat(m[2]);
+            cx = parseFloat(m[3]);
+            cy = parseFloat(m[4]);
+            stopsStr = m[7] || '';
+          } else {
+            cx = parseFloat(m[5] || '50');
+            cy = parseFloat(m[6] || '50');
+            stopsStr = m[7] || '';
+          }
+        } else {
+          // Fallback: try to split at first ')' to get stops
+          const idx = str.indexOf('(');
+          const close = str.lastIndexOf(')');
+          stopsStr = idx >= 0 && close > idx ? str.slice(idx + 1, close) : '';
+        }
+        // Default radii: cover canvas
+        const r = Math.hypot(width, height) / 2;
+        const radX = rx ?? r;
+        const radY = ry ?? r;
+        // Build elliptical radial by scaling context
+        const centerX = (cx / 100) * width;
+        const centerY = (cy / 100) * height;
+        // Create a temporary gradient in unit circle space, we'll scale when filling
+        const g = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.max(radX, radY));
+        const colorStops = (stopsStr || '').split(/,(?![^()]*\))/).map(s => s.trim()).filter(Boolean);
+        colorStops.forEach((stop, i) => {
+          const parts = stop.match(/(#[a-fA-F0-9]{3,8}|rgba?\([^)]*\)|[a-zA-Z]+)\s*(\d+%?)?/);
+          if (parts) {
+            const color = parts[1];
+            let pos = i / Math.max(1, colorStops.length - 1);
+            if (parts[2]) {
+              pos = parts[2].endsWith('%') ? parseFloat(parts[2]) / 100 : parseFloat(parts[2]);
+            }
+            g.addColorStop(Math.min(1, Math.max(0, pos)), color);
+          }
+        });
+        return g;
+      }
+
+      // Linear gradient: linear-gradient(angle[, stops])
+      const match = str.match(/linear-gradient\s*\(\s*([-\d.]+)deg\s*,\s*(.+)\s*\)/i);
       if (!match) {
         // Try without deg
-        const altMatch = gradientString.match(/linear-gradient\s*\(\s*([-\d.]+)\s*,\s*(.+)\s*\)/i);
+        const altMatch = str.match(/linear-gradient\s*\(\s*([-\d.]+)\s*,\s*(.+)\s*\)/i);
         if (altMatch) {
           const angle = parseFloat(altMatch[1]);
           const colorStopsString = altMatch[2];
-          const colorStops = colorStopsString.split(/,(?![^(]*\))/).map(stop => stop.trim());
+          const colorStops = colorStopsString.split(/,(?![^()]*\))/).map(stop => stop.trim());
 
           const angleRad = (angle % 360) * Math.PI / 180;
           const x0 = width/2 - Math.cos(angleRad) * width/2;
@@ -60,7 +112,7 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
 
       const angle = parseFloat(match[1]);
       const colorStopsString = match[2];
-      const colorStops = colorStopsString.split(/,(?![^(]*\))/).map(stop => stop.trim());
+      const colorStops = colorStopsString.split(/,(?![^()]*\))/).map(stop => stop.trim());
 
       // Calculate gradient direction (CSS 0deg = top to bottom, 90deg = left to right)
       const angleRad = (angle % 360) * Math.PI / 180;
@@ -412,7 +464,12 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
       case 'image': {
         const borderRadius = (element as any).borderRadius || 0;
         const hasRadius = borderRadius > 0;
-        const src = element.imageUrl || '';
+        const primary = element.imageUrl || '';
+        const fallbacks: string[] = [];
+        const extra = (element as any).imageUrls as string[] | undefined;
+        if (Array.isArray(extra)) fallbacks.push(...extra);
+        const sources = [primary, ...fallbacks].filter(Boolean);
+
         const drawLoaded = (img: HTMLImageElement) => {
           // Re-apply transform here because onload is async and previous ctx state was restored
           ctx.save();
@@ -447,17 +504,8 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
           ctx.restore();
         };
 
-        const cached = IMAGE_CACHE.get(src);
-        if (cached && cached.complete) {
-          drawLoaded(cached);
-        } else if (src) {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            IMAGE_CACHE.set(src, img);
-            drawLoaded(img);
-          };
-          img.onerror = () => {
+        const tryLoad = (i: number) => {
+          if (i >= sources.length) {
             // Draw placeholder at transformed position to avoid top-left pinning
             ctx.save();
             const angle = ((element.rotation || 0) * Math.PI) / 180;
@@ -481,8 +529,26 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             ctx.textBaseline = 'middle';
             ctx.fillText('📷', w / 2, h / 2);
             ctx.restore();
+            return;
+          }
+          const src = sources[i];
+          const cached = src ? IMAGE_CACHE.get(src) : null;
+          if (cached && cached.complete) {
+            drawLoaded(cached);
+            return;
+          }
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            IMAGE_CACHE.set(src, img);
+            drawLoaded(img);
           };
+          img.onerror = () => tryLoad(i + 1);
           img.src = src;
+        };
+
+        if (sources.length > 0) {
+          tryLoad(0);
         }
         break;
       }
@@ -771,7 +837,7 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
     // Draw background with gradient support
     const backgroundValue = typeof slide.background === 'string' ? slide.background : (slide.background as any)?.background || '#ffffff';
     
-    if (backgroundValue && backgroundValue.startsWith('linear-gradient')) {
+    if (backgroundValue && /^linear-gradient/i.test(backgroundValue)) {
       // Handle gradient backgrounds
       // Test with a known good gradient first
       const testGradientString = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
@@ -791,6 +857,17 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
         fallbackGradient.addColorStop(1, '#45b7d1');
         ctx.fillStyle = fallbackGradient;
       }
+    } else if (backgroundValue && /^radial-gradient/i.test(backgroundValue)) {
+      const gradient = parseGradient(backgroundValue, width, height, ctx);
+      if (gradient) {
+        ctx.fillStyle = gradient;
+      } else {
+        // Fallback radial-like gradient
+        const g = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, Math.hypot(width, height)/2);
+        g.addColorStop(0, '#1f3a93');
+        g.addColorStop(1, '#0b132b');
+        ctx.fillStyle = g;
+      }
     } else {
       // Handle solid color backgrounds
       ctx.fillStyle = backgroundValue;
@@ -803,10 +880,16 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
     });
 
     // Generate data URL for caching
-    const dataURL = canvas.toDataURL('image/png', 0.8);
+    let dataURL: string | null = null;
+    try {
+      dataURL = canvas.toDataURL('image/png', 0.8);
+    } catch (e) {
+      // Canvas may be tainted if remote images lack CORS; ignore caching in that case
+      dataURL = null;
+    }
     
     // Update slide thumbnail if it has changed
-    if (slide.thumbnail !== dataURL) {
+    if (dataURL && slide.thumbnail !== dataURL) {
       // This would typically be handled by the parent component
       // For now, we just render the preview
     }

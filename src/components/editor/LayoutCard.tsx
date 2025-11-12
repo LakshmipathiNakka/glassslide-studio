@@ -8,13 +8,13 @@ import { motion } from 'framer-motion';
 import { Check, BarChart3, Table as TableIcon, Images, Quote, Shapes, Layout } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LayoutPreview, PreviewElement } from '@/data/premiumLayouts';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface LayoutCardProps {
   layout: LayoutPreview;
   isSelected?: boolean;
   onSelect: (layoutId: string) => void;
-  index: number;
+  index: number; // used for animation order
+  serialNumber?: number; // stable number shown on the card
 }
 
 // Responsive text size utility mapping for preview tokens
@@ -140,8 +140,8 @@ const PreviewElementRenderer: React.FC<{ element: PreviewElement; computeFontSiz
           className={cn(
             baseClasses,
             'h-px w-full',
-            'bg-gray-400', // Darker line for better visibility
-            'shadow-[0_0_0_1px_rgba(0,0,0,0.05)]' // Add subtle outline
+            element.style?.backgroundColor || 'bg-gray-400', // Use provided color if any
+            'shadow-[0_0_0_1px_rgba(0,0,0,0.05)]'
           )}
           style={elementStyle}
         />
@@ -185,43 +185,69 @@ const PreviewElementRenderer: React.FC<{ element: PreviewElement; computeFontSiz
         />
       );
 
-    case 'chart':
+    case 'chart': {
+      const type = element.style?.chartType || 'bar';
+      if (type === 'pie') {
+        const pieStyle: React.CSSProperties = {
+          background: 'conic-gradient(#60a5fa 0deg 120deg, #34d399 120deg 210deg, #f59e0b 210deg 270deg, #ef4444 270deg 320deg, #a78bfa 320deg 360deg)'
+        };
+        return (
+          <div
+            className={cn(
+              baseClasses,
+              'bg-white/90 border border-slate-300 rounded-sm overflow-hidden',
+              'shadow-sm flex items-center justify-center p-2',
+              'hover:shadow-md hover:border-blue-200 transition-all duration-200 ring-1 ring-black/5'
+            )}
+            style={elementStyle}
+          >
+            <div className="relative" style={{ width: '70%', aspectRatio: '1 / 1' }}>
+              <div className="absolute inset-0 rounded-full" style={pieStyle} />
+              <div className="absolute inset-[18%] bg-white/95 rounded-full" />
+            </div>
+          </div>
+        );
+      }
+      if (type === 'line') {
+        return (
+          <div
+            className={cn(
+              baseClasses,
+              'bg-white/90 border border-slate-300 rounded-sm overflow-hidden',
+              'shadow-sm flex flex-col p-1.5',
+              'hover:shadow-md hover:border-blue-200 transition-all duration-200 ring-1 ring-black/5'
+            )}
+            style={elementStyle}
+          >
+            <div className="flex-1 relative">
+              {[25, 50, 75].map((y) => (
+                <div key={y} className="absolute left-0 right-0 h-px bg-slate-100" style={{ top: `${y}%` }} />
+              ))}
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <polyline fill="none" stroke="#3b82f6" strokeWidth="1.5" points="5,70 25,55 45,62 65,40 85,48" />
+                {['#3b82f6', '#10b981'].map((c, i) => (
+                  <circle key={i} cx={5 + i*40} cy={70 - i*15} r="1.8" fill={c} />
+                ))}
+              </svg>
+            </div>
+          </div>
+        );
+      }
+      // default: bar
       return (
         <div
           className={cn(
             baseClasses,
-            'bg-white/80 border border-slate-300 rounded-sm overflow-hidden',
-            'shadow-sm',
-            'flex flex-col',
-            'p-1.5',
-            'hover:shadow-md hover:border-blue-200',
-            'transition-all duration-200',
-            'ring-1 ring-black/5' // Add subtle inner ring
+            'bg-white/90 border border-slate-300 rounded-sm overflow-hidden',
+            'shadow-sm flex flex-col p-1.5',
+            'hover:shadow-md hover:border-blue-200 transition-all duration-200 ring-1 ring-black/5'
           )}
           style={elementStyle}
         >
-          {/* Chart header */}
-          <div className="flex items-center justify-between px-1.5 py-1 border-b border-slate-100">
-            <span className="text-[9px] font-medium text-slate-600">Chart</span>
-            <div className="flex space-x-1">
-              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <div className="w-2 h-2 rounded-full bg-red-500"></div>
-            </div>
-          </div>
-          
-          {/* Chart content */}
-          <div className="flex-1 relative p-1.5">
-            {/* Grid lines */}
+          <div className="flex-1 relative">
             {[25, 50, 75].map((y) => (
-              <div 
-                key={y} 
-                className="absolute left-0 right-0 h-px bg-slate-100" 
-                style={{ top: `${y}%` }} 
-              />
+              <div key={y} className="absolute left-0 right-0 h-px bg-slate-100" style={{ top: `${y}%` }} />
             ))}
-            
-            {/* Bars */}
             <div className="absolute bottom-0 left-0 right-0 h-full flex items-end justify-around px-2">
               <div className="w-3 bg-blue-500/80 rounded-t-sm" style={{ height: '35%' }}></div>
               <div className="w-3 bg-green-500/80 rounded-t-sm" style={{ height: '55%' }}></div>
@@ -229,16 +255,10 @@ const PreviewElementRenderer: React.FC<{ element: PreviewElement; computeFontSiz
               <div className="w-3 bg-yellow-500/80 rounded-t-sm" style={{ height: '30%' }}></div>
               <div className="w-3 bg-red-500/80 rounded-t-sm" style={{ height: '65%' }}></div>
             </div>
-            
-            {/* X-axis labels */}
-            <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1">
-              {['A', 'B', 'C', 'D', 'E'].map((label, i) => (
-                <span key={i} className="text-[8px] text-slate-500">{label}</span>
-              ))}
-            </div>
           </div>
         </div>
       );
+    }
     case 'table':
       return (
         <div 
@@ -246,7 +266,7 @@ const PreviewElementRenderer: React.FC<{ element: PreviewElement; computeFontSiz
             baseClasses, 
             'bg-white/80 border border-gray-300 rounded-md overflow-hidden',
             'flex flex-col',
-            'ring-1 ring-black/5' // Add subtle inner ring
+            'ring-1 ring-black/5'
           )} 
           style={elementStyle}
         >
@@ -274,6 +294,22 @@ const PreviewElementRenderer: React.FC<{ element: PreviewElement; computeFontSiz
           ))}
         </div>
       );
+    case 'triangle':
+      return (
+        <div
+          className={cn(baseClasses)}
+          style={{ ...elementStyle, backgroundColor: 'transparent' }}
+        >
+          <div
+            className={cn(element.style?.backgroundColor || 'bg-blue-200')}
+            style={{
+              width: '100%',
+              height: '100%',
+              clipPath: 'polygon(50% 0, 100% 100%, 0 100%)',
+            }}
+          />
+        </div>
+      );
     default:
       return null;
   }
@@ -284,6 +320,7 @@ export const LayoutCard: React.FC<LayoutCardProps> = ({
   isSelected = false,
   onSelect,
   index,
+  serialNumber,
 }) => {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [baseSize, setBaseSize] = useState<number>(160);
@@ -324,115 +361,97 @@ export const LayoutCard: React.FC<LayoutCardProps> = ({
   }, [baseSize]);
   const icon = getLayoutIcon(layout.id);
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <motion.div
-          ref={cardRef}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: index * 0.05, ease: [0.0, 0.0, 0.2, 1] }}
-          onClick={() => onSelect(layout.id)}
-          className={cn(
-            'relative group cursor-pointer z-0',
-            'w-full', // Full width of container
-            'mb-3 last:mb-0', // Reduced bottom margin from mb-5 to mb-3
-            'rounded-xl overflow-hidden',
-            'transition-all duration-200 ease-in-out',
-            'bg-gray-50/95 backdrop-blur-sm',
-            'border border-slate-100',
-            isSelected 
-              ? 'ring-2 ring-blue-500/30 shadow-md' 
-              : 'hover:ring-1 hover:ring-slate-200 hover:shadow-sm',
-            'flex flex-col h-auto min-h-[180px]', // Reduced minimum height from 200px to 180px
-            'transform hover:-translate-y-0.5' // Subtle lift on hover
-          )}
-          role="button"
-          aria-label={`Select ${layout.name} layout`}
-          aria-pressed={isSelected}
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onSelect(layout.id);
-            }
-          }}
-        >
-          {/* Selection Glow */}
-          {isSelected && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-blue-500/5 pointer-events-none" />
-          )}
+    <div className="w-full">
+      <motion.div
+        ref={cardRef}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: index * 0.05, ease: [0.0, 0.0, 0.2, 1] }}
+        onClick={() => onSelect(layout.id)}
+        className={cn(
+          'relative group cursor-pointer z-0',
+          'w-full',
+          'rounded-xl overflow-hidden',
+          'transition-all duration-200 ease-in-out',
+          'bg-white dark:bg-gray-800',
+          'border border-gray-200 dark:border-gray-700',
+          isSelected
+            ? 'ring-2 ring-blue-500/30 shadow-md'
+            : 'hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-600 hover:shadow-sm',
+          'shadow-sm',
+          'flex flex-col h-auto min-h-[180px]',
+          'transform hover:-translate-y-0.5'
+        )}
+        role="button"
+        aria-label={`Select ${layout.name} layout`}
+        aria-pressed={isSelected}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect(layout.id);
+          }
+        }}
+      >
+        {/* Selection Glow */}
+        {isSelected && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-blue-500/5 pointer-events-none" />
+        )}
 
-          {/* Apple Keynote-style Slide Preview - Adjusted for more space */}
-          <div className="aspect-video bg-gradient-to-br from-slate-100 to-slate-200">
-            <div className="absolute inset-0 p-1.5">
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                className={cn(
-                  'relative w-full h-full',
-                  'bg-gray-50 rounded',
-                  'shadow-[0_1px_4px_rgba(0,0,0,0.05)]',
-                  'border border-slate-200/80',
-                  'overflow-hidden',
-                  'flex flex-col',
-                  'text-[0.6rem]' // Base font size for the entire card
-                )}
-              >
-                {/* Preview Header - Made more compact */}
-                <div className="h-5 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-slate-100 flex items-center px-1.5">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                  </div>
-                  <div className="mx-auto text-[9px] text-slate-500 font-medium truncate px-1">
-                    {layout.name}
-                  </div>
-                </div>
-
-                {/* Preview Content - Tighter spacing */}
-                <div className="flex-1 relative bg-gray-50">
-                  <div className="absolute inset-0 p-0.5">
-                    <div className="w-full h-full relative scale-90">
-                      {layout.preview.elements.map((element, idx) => (
-                        <PreviewElementRenderer 
-                          key={idx} 
-                          element={element} 
-                          computeFontSize={computeFontSize} 
-                        />
-                      ))}
-                    </div>
+        {/* Slide Preview */}
+        <div className="aspect-video bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-800">
+          <div className="absolute inset-0 p-1.5">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              className={cn(
+                'relative w-full h-full',
+                'bg-white dark:bg-gray-900 rounded',
+                'shadow-[0_1px_4px_rgba(0,0,0,0.05)]',
+                'border border-slate-200/80 dark:border-gray-800/80',
+                'overflow-hidden',
+                'flex flex-col'
+              )}
+            >
+              {/* Slide Preview Content */}
+              <div className="flex-1 relative bg-gray-50">
+                <div className="absolute inset-0 p-0.5">
+                  <div className="w-full h-full relative scale-90">
+                    {layout.preview.elements.map((element, idx) => (
+                      <PreviewElementRenderer 
+                        key={idx} 
+                        element={element} 
+                        computeFontSize={computeFontSize} 
+                      />
+                    ))}
                   </div>
                 </div>
+              </div>
 
-                {/* Slide Number - Made smaller */}
-                <div className="absolute bottom-0.5 right-1 text-[8px] text-slate-400 font-medium">
-                  {index + 1}
+              {/* Slide Number (stable serial) */}
+              <div className="absolute bottom-0.5 right-1 text-[8px] text-slate-400 font-medium">
+                {serialNumber ?? index + 1}
+              </div>
+
+              {/* Corner Icon */}
+              {icon && (
+                <div className="absolute top-6 left-1 p-1 rounded-sm bg-gray-50/90 shadow-sm border border-slate-200">
+                  {React.cloneElement(icon, { className: 'w-3 h-3 text-slate-700' })}
                 </div>
-
-                {/* Corner Icon - Made smaller */}
-                {icon && (
-                  <div className="absolute top-6 left-1 p-1 rounded-sm bg-gray-50/90 shadow-sm border border-slate-200">
-                    {React.cloneElement(icon, { className: 'w-3 h-3 text-slate-700' })}
-                  </div>
-                )}
-              </motion.div>
-            </div>
+              )}
+            </motion.div>
           </div>
+        </div>
 
-          {/* Title Footer - Made more compact */}
-          <div className="px-1.5 py-1 border-t border-slate-200/60 bg-gray-50/80">
-            <div className="w-full text-center truncate text-xs font-medium text-slate-700">
-              {layout.name}
-            </div>
-          </div>
+        {/* Hover Overlay */}
+        <div className="absolute inset-0 rounded-xl pointer-events-none ring-2 ring-inset ring-transparent transition-all duration-300 group-hover:ring-blue-500/20" />
+      </motion.div>
 
-          {/* Hover Overlay */}
-          <div className="absolute inset-0 rounded-xl pointer-events-none ring-2 ring-inset ring-transparent transition-all duration-300 group-hover:ring-blue-500/20" />
-        </motion.div>
-      </TooltipTrigger>
-      <TooltipContent>{layout.name}</TooltipContent>
-    </Tooltip>
+      {/* Responsive caption below card */}
+      <div className="mt-1 px-1.5 w-full text-center truncate text-[10px] sm:text-xs md:text-[11px] font-medium text-slate-700 dark:text-slate-300">
+        {layout.name}
+      </div>
+    </div>
   );
 };
 

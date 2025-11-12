@@ -54,6 +54,7 @@ export function generateElementsForLayout(
     if (el.type === 'text') {
       const fontSize = resolveFontSize(el.style?.fontSize);
       const align = (el.style?.textAlign as any) || 'center';
+      const color = mapTailwindTextColor(el.style?.color) || '#1c1c1e';
       return {
         id: `layout-text-${idx}`,
         type: 'text',
@@ -66,12 +67,13 @@ export function generateElementsForLayout(
         fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', Inter, system-ui, sans-serif",
         fontWeight: (el.style?.fontWeight as any) || 'bold',
         textAlign: align,
-        color: '#1c1c1e',
+        color,
         backgroundColor: 'transparent',
       } satisfies SlideElement;
     }
 
     if (el.type === 'line') {
+      const lineColor = el.style?.backgroundColor ? mapTailwindColor(el.style.backgroundColor) : '#e5e7eb';
       return {
         id: `layout-line-${idx}`,
         type: 'shape',
@@ -80,8 +82,8 @@ export function generateElementsForLayout(
         width, height: Math.max(2, Math.min(height, 6)),
         rotation: 0,
         zIndex: nextZ(),
-        fill: '#e5e7eb',
-        stroke: '#e5e7eb',
+        fill: lineColor,
+        stroke: lineColor,
         strokeWidth: 0,
       } satisfies SlideElement;
     }
@@ -92,6 +94,9 @@ export function generateElementsForLayout(
       const chartHeight = Math.min(height, 300);
       const chartX = x + (width - chartWidth) / 2; // Center the chart
       const chartY = y + (height - chartHeight) / 2;
+      const dsColor = el.style?.backgroundColor ? mapTailwindColor(el.style.backgroundColor) : '#007AFF';
+      const chartType = (el.style?.chartType as any) || 'bar';
+      const piePalette = ['#007AFF','#34C759','#FF9500','#AF52DE','#FF3B30'];
       
       return {
         id: `layout-chart-${idx}`,
@@ -102,15 +107,10 @@ export function generateElementsForLayout(
         height: chartHeight,
         rotation: 0,
         zIndex: nextZ(),
-        chartType: (el.style?.chartType as any) || 'bar',
-        chartData: { 
-          labels: ['A','B','C'], 
-          datasets: [{ 
-            label: 'Series', 
-            data: [10,20,15], 
-            backgroundColor: '#007AFF' 
-          }] 
-        },
+        chartType,
+        chartData: chartType === 'pie'
+          ? { labels: ['A','B','C','D','E'], datasets: [{ data: [30,20,15,20,15], backgroundColor: piePalette }] }
+          : { labels: ['A','B','C'], datasets: [{ label: 'Series', data: [10,20,15], backgroundColor: dsColor }] },
         chartOptions: {
           maintainAspectRatio: false,
           responsive: true,
@@ -124,7 +124,7 @@ export function generateElementsForLayout(
               }
             }
           },
-          scales: {
+          scales: chartType === 'pie' ? {} : {
             x: {
               ticks: {
                 font: {
@@ -183,33 +183,76 @@ export function generateElementsForLayout(
       } as SlideElement;
     }
 
-    // box or gradient -> rectangle shape block
+    // triangle -> triangle shape block
+    if ((el as any).type === 'triangle') {
+      return {
+        id: `layout-triangle-${idx}`,
+        type: 'shape',
+        shapeType: 'triangle' as any,
+        x, y, width, height,
+        rotation: 0,
+        zIndex: nextZ(),
+        fill: el.style?.backgroundColor ? mapTailwindColor(el.style.backgroundColor) : '#dbeafe',
+        stroke: el.style?.backgroundColor ? mapTailwindColor(el.style.backgroundColor) : '#dbeafe',
+        strokeWidth: 0,
+        opacity: el.style?.opacity ?? 1,
+      } as SlideElement;
+    }
+
+    // box or gradient -> rectangle/circle/rounded-rectangle
+    const fill = el.type === 'gradient' ? mapGradient(el.style?.gradient) : (el.style?.backgroundColor ? mapTailwindColor(el.style.backgroundColor) : '#f8fafc');
+    const br = mapBorderRadius(el.style?.borderRadius);
+    const isCircle = (el.style?.borderRadius === 'rounded-full') || Math.abs(width - height) < 2;
+    const shapeType = isCircle ? ('circle' as any) : (br > 6 ? ('rounded-rectangle' as any) : 'rectangle');
+
     return {
       id: `layout-box-${idx}`,
       type: 'shape',
-      shapeType: 'rectangle',
+      shapeType,
       x, y, width, height,
       rotation: 0,
       zIndex: nextZ(),
-      fill: el.type === 'gradient' ? mapGradient(el.style?.gradient) : (el.style?.backgroundColor ? mapTailwindColor(el.style.backgroundColor) : '#f8fafc'),
+      fill,
       stroke: '#e5e7eb',
       strokeWidth: 0,
-      borderRadius: el.style?.borderRadius === 'rounded-xl' ? 16 : el.style?.borderRadius === 'rounded-lg' ? 12 : 6,
+      borderRadius: br,
       opacity: el.style?.opacity ?? 1,
     } as SlideElement;
   });
 }
 
 function mapTailwindColor(cls: string): string {
-  // Minimal mapping for common classes used in previews
+  // Mapping for common Tailwind background utility colors used in previews
   const map: Record<string, string> = {
+    'bg-gray-50': '#f9fafb',
     'bg-gray-100': '#f3f4f6',
     'bg-gray-200': '#e5e7eb',
+    'bg-blue-50': '#eff6ff',
     'bg-blue-100': '#dbeafe',
-    'bg-purple-100': '#ede9fe',
     'bg-blue-400': '#60a5fa',
+    'bg-sky-100': '#e0f2fe',
+    'bg-indigo-100': '#e0e7ff',
+    'bg-purple-100': '#ede9fe',
+    'bg-emerald-100': '#d1fae5',
+    'bg-green-100': '#dcfce7',
+    'bg-amber-100': '#fef3c7',
+    'bg-red-100': '#fee2e2',
   };
   return map[cls] || '#e5e7eb';
+}
+
+function mapTailwindTextColor(cls?: string): string | undefined {
+  if (!cls) return undefined;
+  const map: Record<string, string> = {
+    'text-gray-900': '#111827',
+    'text-gray-700': '#374151',
+    'text-slate-800': '#1e293b',
+    'text-blue-700': '#1d4ed8',
+    'text-emerald-700': '#047857',
+    'text-amber-700': '#b45309',
+    'text-purple-700': '#6d28d9',
+  };
+  return map[cls] || undefined;
 }
 
 function mapGradient(grad?: string): string {
@@ -218,4 +261,23 @@ function mapGradient(grad?: string): string {
   if (grad.includes('from-white') && grad.includes('to-[#f8fafc]')) return '#f8fafc';
   if (grad.includes('from-slate-100')) return '#f1f5f9';
   return '#f8fafc';
+}
+
+function mapBorderRadius(token?: string): number {
+  switch (token) {
+    case 'rounded-full':
+      return 9999;
+    case 'rounded-2xl':
+      return 20;
+    case 'rounded-xl':
+      return 16;
+    case 'rounded-lg':
+      return 12;
+    case 'rounded-md':
+      return 8;
+    case 'rounded-sm':
+      return 4;
+    default:
+      return 6;
+  }
 }

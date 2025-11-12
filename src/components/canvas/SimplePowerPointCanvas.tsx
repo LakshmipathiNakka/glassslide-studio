@@ -1296,41 +1296,30 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
               opacity: (el as any).opacity ?? 1
             }}
             onError={(e) => {
-              // Handle error by showing error state
-              const target = e.target as HTMLImageElement;
-              const parent = target.parentElement;
-              if (parent && !parent.querySelector('.image-error-placeholder')) {
-                target.style.display = 'none';
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'image-error-placeholder';
-                errorDiv.style.cssText = `
-                  width: 100%;
-                  height: 100%;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  background-color: #f5f5f5;
-                  border: 2px dashed #ccc;
-                  border-radius: 8px;
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                `;
-                errorDiv.innerHTML = '<span style="color: #999; font-size: 14px;">Failed to load image</span>';
-                parent.appendChild(errorDiv);
+              const target = e.currentTarget as HTMLImageElement;
+              const fallbacks: string[] = [];
+              const arr = (el as any).imageUrls as string[] | undefined;
+              if (Array.isArray(arr)) fallbacks.push(...arr);
+              // As a last resort, use a minimal inline SVG placeholder
+              const inlineFallback = 'data:image/svg+xml;utf8,' + encodeURIComponent(`\
+                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"960\" height=\"540\">\
+                  <defs>\
+                    <linearGradient id=\"g\" x1=\"0\" x2=\"1\">\
+                      <stop offset=\"0\" stop-color=\"#EAF2FF\"/>\
+                      <stop offset=\"1\" stop-color=\"#DCEBFF\"/>\
+                    </linearGradient>\
+                  </defs>\
+                  <rect width=\"100%\" height=\"100%\" fill=\"url(#g)\"/>\
+                  <text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#6b7280\" font-family=\"Inter, Arial\" font-size=\"24\">Image unavailable</text>\
+                </svg>`);
+              let idx = Number(target.dataset.fallbackIndex || '0');
+              if (idx < fallbacks.length) {
+                target.dataset.fallbackIndex = String(idx + 1);
+                target.src = fallbacks[idx];
+                return;
               }
-            }}
-            onLoad={(e) => {
-              // Hide any error placeholder when image loads successfully
-              const target = e.target as HTMLImageElement;
-              const parent = target.parentElement;
-              if (parent) {
-                const errorDiv = parent.querySelector('.image-error-placeholder');
-                if (errorDiv) {
-                  errorDiv.remove();
-                }
-                target.style.display = 'block';
-              }
+              // No more fallbacks; show graceful inline placeholder
+              target.src = inlineFallback;
             }}
           />
         </div>

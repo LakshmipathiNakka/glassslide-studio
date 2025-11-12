@@ -11,9 +11,9 @@
  * - Apple HIG spacing and shadows
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Layout, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Layout, X, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PREMIUM_LAYOUTS } from '@/data/premiumLayouts';
 import { LayoutCard } from './LayoutCard';
@@ -36,7 +36,23 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
   const [selectedLayout, setSelectedLayout] = useState(currentLayoutId || 'title-slide');
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const layoutsWithSerial = useMemo(() => PREMIUM_LAYOUTS.map((l, i) => ({ layout: l, serial: i + 1 })), []);
+
+  const filteredLayouts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return layoutsWithSerial;
+    // Match by visible name (caption) or serial number
+    const qNum = Number(q);
+    const isNum = !Number.isNaN(qNum) && qNum > 0;
+    return layoutsWithSerial.filter(({ layout, serial }) => {
+      const nameMatch = layout.name.toLowerCase().includes(q);
+      const serialMatch = isNum ? serial === Math.floor(qNum) : serial.toString().startsWith(q);
+      return nameMatch || serialMatch;
+    });
+  }, [searchQuery, layoutsWithSerial]);
 
   // Update selected layout when currentLayoutId changes
   useEffect(() => {
@@ -144,8 +160,23 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
         </div>
       </motion.div>
 
+      {/* Search bar */}
+      <div className="px-4 sm:px-6 py-3 bg-[#F5F5F5] dark:bg-gray-900/80 border-b border-gray-200/70 dark:border-gray-800/60">
+        <div className="relative max-w-2xl mx-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search layouts..."
+            autoFocus
+            className="w-full pl-9 pr-3 py-2 rounded-md bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
       {/* Scrollable layouts container */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative overflow-hidden bg-[#F5F5F5] dark:bg-gray-900/80">
         {/* Left scroll indicator */}
         <AnimatePresence>
               {canScrollLeft && (
@@ -218,19 +249,24 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
                 'scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent',
                 // Single column layout with responsive cards
                 'flex flex-col space-y-4',
-                'w-full max-w-2xl mx-auto'  // Limit max width for better readability
+                'w-full max-w-2xl mx-auto'
               )}
               style={{ scrollBehavior: 'smooth' }}
             >
-              {PREMIUM_LAYOUTS.map((layout, index) => (
-                <LayoutCard
-                  key={layout.id}
-                  layout={layout}
-                  isSelected={selectedLayout === layout.id}
-                  onSelect={handleLayoutSelect}
-                  index={index}
-                />
-              ))}
+              {filteredLayouts.length === 0 ? (
+                <div className="w-full text-center text-sm text-gray-500 py-8">No layouts found</div>
+              ) : (
+                filteredLayouts.map(({ layout, serial }, index) => (
+                  <LayoutCard
+                    key={layout.id}
+                    layout={layout}
+                    isSelected={selectedLayout === layout.id}
+                    onSelect={handleLayoutSelect}
+                    index={index}
+                    serialNumber={serial}
+                  />
+                ))
+              )}
             </div>
           </div>
 

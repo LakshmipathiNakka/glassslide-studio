@@ -1,10 +1,11 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { X, Trash2, FileText, RefreshCw, FolderOpen } from 'lucide-react';
+import { X, Trash2, FileText, RefreshCw, FolderOpen, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getUserProjects, deleteUserProject, GSlideProject } from '@/utils/userProjectStorage';
 import { format } from 'date-fns';
+import { presentationThemes, PresentationTheme } from '@/utils/presentationThemes';
 
 interface OpenFileModalProps {
   open: boolean;
@@ -22,6 +23,7 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
   const [projects, setProjects] = useState<GSlideProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'saved' | 'themes'>('saved');
 
   const loadProjects = useCallback(() => {
     try {
@@ -39,10 +41,10 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
   }, [currentUsername]);
 
   React.useEffect(() => {
-    if (open) {
+    if (open && activeTab === 'saved') {
       loadProjects();
     }
-  }, [open, loadProjects]);
+  }, [open, activeTab, loadProjects]);
 
   const handleDelete = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
@@ -55,6 +57,19 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
         setError('Failed to delete project. Please try again.');
       }
     }
+  };
+
+  const handleOpenTheme = (theme: PresentationTheme) => {
+    const themeProject: GSlideProject = {
+      id: `theme-${theme.id}-${Date.now()}`,
+      name: theme.name,
+      slides: theme.slides,
+      createdAt: Date.now(),
+      lastModified: Date.now(),
+      description: theme.description,
+    } as any;
+    onOpenProject(themeProject);
+    onOpenChange(false);
   };
 
   if (!open) return null;
@@ -114,19 +129,30 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
 
             {/* Tabs */}
             <div className="flex flex-col flex-1 overflow-hidden">
-              <div className="flex justify-center mb-6">
-                <div className="inline-flex bg-gray-100/60 dark:bg-gray-700/40 rounded-xl p-1">
-                  <div className="keynote-tab active">
-                    <FolderOpen className="w-4 h-4" />
-                    <span className="hidden sm:inline">Saved Presentations</span>
-                  </div>
-                </div>
+            <div className="flex justify-center mb-6">
+              <div className="inline-flex bg-gray-100/60 dark:bg-gray-700/40 rounded-xl p-1">
+                <button
+                  className={`keynote-tab ${activeTab === 'saved' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('saved')}
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  <span className="hidden sm:inline">Saved</span>
+                </button>
+                <button
+                  className={`keynote-tab ${activeTab === 'themes' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('themes')}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden sm:inline">Themes</span>
+                </button>
               </div>
+            </div>
 
-              {/* Tab Content */}
-              <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-                  <>
-                    {isLoading ? (
+            {/* Tab Content */}
+            <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+              {activeTab === 'saved' ? (
+                <>
+                  {isLoading ? (
                       <div className="flex flex-col items-center justify-center p-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                         <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Loading projects...</p>
@@ -191,7 +217,32 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
                       </div>
                     )}
                   </>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pr-2">
+                  {presentationThemes.map((theme) => (
+                    <div key={theme.id} className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-white/60 dark:bg-gray-800/40 hover:shadow-lg transition-all">
+                      <div className="h-28 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/40 dark:to-gray-800/20">
+                        <div className="text-center">
+                          <Sparkles className="w-7 h-7 mx-auto mb-1 text-blue-500" />
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100">{theme.name}</h3>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{theme.description}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">{theme.slides.length} slides</p>
+                        <Button className="w-full" onClick={() => handleOpenTheme(theme)}>Use This Theme</Button>
+                      </div>
+                    </div>
+                  ))}
+                  {presentationThemes.length === 0 && (
+                    <div className="text-center p-8 text-gray-500 dark:text-gray-400 col-span-2">
+                      <p>No themes available yet</p>
+                      <p className="text-sm">Ask the assistant to add professional themes with 10 slides each.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             </div>
           </motion.div>
         </motion.div>

@@ -71,16 +71,15 @@ const DraggableThumbnailItem: React.FC<{
         isActive ? 'active' : '',
         isDragging ? 'dragging' : '',
         isCollapsed ? 'collapsed' : '',
-        "hover:bg-gray-50/80 dark:hover:bg-gray-800/50",
-        isActive ? 'bg-blue-50/50 dark:bg-blue-900/20' : 'bg-white/80 dark:bg-gray-900/80',
+        "hover:bg-gray-50 dark:hover:bg-gray-800/70",
+        isActive ? 'bg-blue-50/60 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800',
         !isCollapsed && 'rounded-xl p-2',
-        'backdrop-blur-sm',
-        'border border-gray-200/70 dark:border-gray-700/70',
+        'border border-gray-200 dark:border-gray-700',
         'shadow-sm',
-        isActive && !isCollapsed && 'ring-2 ring-blue-500/80 ring-offset-2 ring-offset-white/50 dark:ring-offset-gray-900/50',
+        isActive && !isCollapsed && 'ring-2 ring-blue-500/80 ring-offset-2 ring-offset-[#F5F5F5]/50 dark:ring-offset-gray-900/50',
         isCollapsed ? 'w-16 h-16' : 'w-full',
         'overflow-hidden',
-        'transform-gpu' // Better performance for transforms
+        'transform-gpu'
       )}
       style={{
         // Subtle 3D tilt effect on hover
@@ -402,11 +401,11 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
     <div 
       ref={scrollRootRef}
       className={cn(
-        "h-full flex flex-col bg-white/80 dark:bg-gray-950/80 backdrop-blur-md",
+        "h-full flex flex-col bg-[#F5F5F5] dark:bg-gray-900/80",
         "border-r border-gray-200/70 dark:border-gray-800/70",
         "transition-all duration-300 ease-in-out overflow-hidden",
         isCollapsed ? 'w-20' : 'w-72',
-        'relative' // For absolute positioning of children
+        'relative'
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -415,7 +414,7 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
       {showScrollHint && (
         <div 
           className={cn(
-            "absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/90 to-transparent dark:from-gray-950/90",
+            "absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#F5F5F5]/90 to-transparent dark:from-gray-900/90",
             "flex items-end justify-center pb-2 pointer-events-none",
             "transition-opacity duration-300",
             isHovered ? 'opacity-100' : 'opacity-0'

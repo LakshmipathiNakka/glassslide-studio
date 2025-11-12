@@ -185,145 +185,60 @@ const Editor = () => {
   const handleApplyTemplate = async (templateName: string) => {
     try {
       let newSlides: Slide[] = [];
-      const now = Date.now();
-      
-      if (templateName === 'Business') {
-        // Title Slide
-        newSlides.push({
-          id: `slide-${now}-1`,
-          elements: [
-            // Title
-            {
-              id: `title-${now}-1`,
-              type: 'text',
-              x: 100,
-              y: 150,
-              width: 760,
-              height: 80,
-              text: 'Business Strategy 2025',
-              fontSize: 64,
-              fontWeight: 'bold',
-              fontFamily: 'Arial, sans-serif',
-              textAlign: 'center',
-              fill: '#1a365d',
-              lineHeight: 1.2,
-            },
-            // Subtitle
-            {
-              id: `subtitle-${now}-1`,
-              type: 'text',
-              x: 100,
-              y: 250,
-              width: 760,
-              height: 40,
-              text: 'Presented by [Your Company Name]',
-              fontSize: 28,
-              fontFamily: 'Arial, sans-serif',
-              textAlign: 'center',
-              fill: '#4a5568',
-            },
-            // Date
-            {
-              id: `date-${now}-1`,
-              type: 'text',
-              x: 100,
-              y: 450,
-              width: 760,
-              height: 30,
-              text: new Date().toLocaleDateString(),
-              fontSize: 18,
-              fontFamily: 'Arial, sans-serif',
-              textAlign: 'center',
-              fill: '#718096',
-            }
-          ],
-          background: '#ffffff',
-          createdAt: new Date(),
-          lastUpdated: Date.now()
-        });
 
-        // Agenda Slide
-        newSlides.push({
-          id: `slide-${now}-2`,
-          elements: [
-            // Title
-            {
-              id: `title-${now}-2`,
-              type: 'text',
-              x: 100,
-              y: 80,
-              width: 760,
-              height: 60,
-              text: 'Agenda',
-              fontSize: 48,
-              fontWeight: 'bold',
-              fontFamily: 'Arial, sans-serif',
-              textAlign: 'left',
-              fill: '#1a365d',
-            },
-            // Agenda Items
-            {
-              id: `agenda-${now}-1`,
-              type: 'text',
-              x: 150,
-              y: 180,
-              width: 700,
-              height: 300,
-              text: '1. Executive Summary\n2. Market Analysis\n3. Business Strategy\n4. Financial Projections\n5. Implementation Plan\n6. Team Overview\n7. Competitive Analysis\n8. Risk Assessment\n9. Timeline',
-              fontSize: 24,
-              fontFamily: 'Arial, sans-serif',
-              textAlign: 'left',
-              fill: '#374151',
-              lineHeight: 2.5,
-            }
-          ],
-          background: '#ffffff',
-          createdAt: new Date(),
-          lastUpdated: Date.now()
-        });
-
-        // Add more slides for the business template here...
-        // For brevity, I'm only including 2 slides, but you would add all 10
-
-      } else if (templateName === 'Education') {
-        // Education template slides would go here
-        // Similar structure to the Business template
+      // Support themes from the registry (THEME:<id>) and by name
+      if (templateName.startsWith('THEME:')) {
+        const { presentationThemes } = await import('@/utils/presentationThemes');
+        const id = templateName.substring('THEME:'.length);
+        const theme = presentationThemes.find(t => t.id === id);
+        if (!theme) throw new Error(`Theme not found: ${id}`);
+        newSlides = theme.slides;
       } else {
-        // Default blank slide
-        newSlides.push({
-          id: Date.now().toString(),
-          elements: [
-            {
-              id: `title-${now}`,
-              type: 'text',
-              x: 100,
-              y: 200,
-              width: 760,
-              height: 80,
-              text: 'New Presentation',
-              fontSize: 48,
-              fontWeight: 'bold',
-              fontFamily: 'Arial, sans-serif',
-              textAlign: 'center',
-              fill: '#2d3748',
-            }
-          ],
-          background: '#ffffff',
-          createdAt: new Date(),
-          lastUpdated: Date.now()
-        });
+        // Fallback by theme name (with Education alias)
+        const { presentationThemes } = await import('@/utils/presentationThemes');
+        let matched = presentationThemes.find(t => t.name.toLowerCase() === templateName.toLowerCase());
+        if (!matched && templateName.toLowerCase() === 'education') {
+          matched = presentationThemes.find(t => t.id === 'education-pro' || t.name.toLowerCase().includes('education'));
+        }
+        if (matched) {
+          newSlides = matched.slides;
+        } else {
+          // Default blank slide
+          newSlides.push({
+            id: Date.now().toString(),
+            elements: [
+              {
+                id: `title-${Date.now()}`,
+                type: 'text',
+                x: 100,
+                y: 200,
+                width: 760,
+                height: 80,
+                text: 'New Presentation',
+                fontSize: 48,
+                fontWeight: 'bold',
+                fontFamily: 'Arial, sans-serif',
+                textAlign: 'center',
+                color: '#2d3748',
+              } as any
+            ],
+            background: '#ffffff',
+            createdAt: new Date(),
+            lastUpdated: Date.now()
+          });
+        }
       }
-      
+
       // Update the slides with the new slides
       const updatedSlides = [...slides, ...newSlides];
       pushSlides(updatedSlides);
       setCurrentSlide(slides.length); // Set to first new slide
-      
+
       toast({
         title: 'Template Applied',
-        description: `Applied ${templateName} template with ${newSlides.length} slides`,
+        description: `Applied ${templateName.replace('THEME:', '')} with ${newSlides.length} slides`,
       });
-      
+
     } catch (error) {
       console.error('Error applying template:', error);
       toast({
@@ -1091,6 +1006,8 @@ const Editor = () => {
             onDeleteSlide={handleDeleteSlide}
             onRenameSlide={handleRenameSlide}
             onChangeSlideBackground={handleChangeSlideBackground}
+            liveElements={liveElements || undefined}
+            liveSlideIndex={currentSlide}
           />
         </aside>
 

@@ -1,7 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, FolderOpen, Palette } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { presentationThemes } from "@/utils/presentationThemes";
+import SimplePowerPointCanvas from "@/components/canvas/SimplePowerPointCanvas";
 
 interface TemplateModalProps {
   onClose: () => void;
@@ -33,6 +35,31 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
 
   // Create portal target
   const [mounted, setMounted] = useState(false);
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const hiddenRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const setHiddenRef = (id: string) => (el: HTMLDivElement | null) => { hiddenRefs.current[id] = el; };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!mounted) return;
+      try {
+        const { default: html2canvas } = await import('html2canvas');
+        for (const t of presentationThemes) {
+          if (previews[t.id]) continue;
+          const el = hiddenRefs.current[t.id];
+          if (el) {
+            const canvas = await html2canvas(el, { backgroundColor: null, scale: 1, useCORS: true });
+            if (cancelled) return;
+            setPreviews((p) => ({ ...p, [t.id]: canvas.toDataURL('image/png') }));
+          }
+        }
+      } catch (e) {
+        console.warn('Thumbnail generation skipped:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [mounted]);
 
   useEffect(() => {
     setMounted(true);
@@ -93,6 +120,25 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
             </button>
           </div>
 
+          {/* Hidden preview render targets for thumbnails */}
+          <div style={{ position: 'absolute', left: -9999, top: -9999 }} aria-hidden>
+            {presentationThemes.map((t) => {
+              const slide = t.slides?.[0];
+              if (!slide) return null;
+              return (
+                <div key={`hidden-${t.id}`} ref={setHiddenRef(t.id)} style={{ width: 240, height: 135 }}>
+                  <SimplePowerPointCanvas
+                    elements={slide.elements as any}
+                    background={slide.background}
+                    slideWidth={960}
+                    slideHeight={540}
+                    zoom={240 / 960}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
           {/* Tab Content */}
           <div className="flex-1 overflow-y-auto pr-1 -mr-2 space-y-3">
             {/* Demo Presentations */}
@@ -104,36 +150,23 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                 transition={{ duration: 0.2 }}
                 className="grid sm:grid-cols-2 gap-4"
               >
-                {[
-                  {
-                    title: "Business",
-                    desc: "3 slides featuring charts, shapes, and corporate design",
-                    preview:
-                      "https://via.placeholder.com/300x180/edf2f7/111?text=Business+Template",
-                  },
-                  {
-                    title: "Education",
-                    desc: "3 slides with vibrant color schemes and table layouts",
-                    preview:
-                      "https://via.placeholder.com/300x180/faf3dd/111?text=Education+Template",
-                  },
-                ].map((item) => (
+                {presentationThemes.map((t) => (
                   <div
-                    key={item.title}
+                    key={t.id}
                     className="group cursor-pointer rounded-2xl overflow-hidden bg-white/60 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all"
-                    onClick={() => handleApplyTemplate(item.title)}
+                    onClick={() => handleApplyTemplate(`THEME:${t.id}`)}
                   >
                     <img
-                      src={item.preview}
-                      alt={item.title}
+                      src={previews[t.id] || t.thumbnail || `https://via.placeholder.com/300x180/2e86de/fff?text=${encodeURIComponent(t.name)}`}
+                      alt={t.name}
                       className="w-full h-36 object-cover transition-transform group-hover:scale-[1.02]"
                     />
                     <div className="p-4">
                       <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                        {item.title}
+                        {t.name}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {item.desc}
+                        {t.description}
                       </p>
                     </div>
                   </div>
