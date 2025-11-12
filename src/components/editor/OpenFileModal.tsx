@@ -5,7 +5,6 @@ import { X, Trash2, FileText, RefreshCw, FolderOpen, Sparkles } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { getUserProjects, deleteUserProject, GSlideProject } from '@/utils/userProjectStorage';
 import { format } from 'date-fns';
-import { presentationThemes, PresentationTheme } from '@/utils/presentationThemes';
 
 interface OpenFileModalProps {
   open: boolean;
@@ -59,18 +58,6 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
     }
   };
 
-  const handleOpenTheme = (theme: PresentationTheme) => {
-    const themeProject: GSlideProject = {
-      id: `theme-${theme.id}-${Date.now()}`,
-      name: theme.name,
-      slides: theme.slides,
-      createdAt: Date.now(),
-      lastModified: Date.now(),
-      description: theme.description,
-    } as any;
-    onOpenProject(themeProject);
-    onOpenChange(false);
-  };
 
   if (!open) return null;
 
@@ -138,110 +125,78 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
                   <FolderOpen className="w-4 h-4" />
                   <span className="hidden sm:inline">Saved</span>
                 </button>
-                <button
-                  className={`keynote-tab ${activeTab === 'themes' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('themes')}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span className="hidden sm:inline">Themes</span>
-                </button>
               </div>
             </div>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-              {activeTab === 'saved' ? (
-                <>
-                  {isLoading ? (
-                      <div className="flex flex-col items-center justify-center p-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Loading projects...</p>
-                      </div>
-                    ) : error ? (
-                      <div className="text-center p-6">
-                        <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
-                        <Button 
-                          variant="outline"
-                          onClick={loadProjects}
-                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
-                        >
-                          Retry
-                        </Button>
-                      </div>
-                    ) : projects.length === 0 ? (
-                      <div className="text-center p-8 text-gray-500 dark:text-gray-400">
-                        <FileText className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
-                        <p className="text-base font-medium">No saved projects found</p>
-                        <p className="text-sm mt-1">Create a new project and save it to see it here</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {projects.map((project) => (
-                          <div
-                            key={project.id}
-                            className="
-                              border border-gray-200 dark:border-gray-700
-                              rounded-2xl p-4
-                              bg-white/50 dark:bg-gray-800/40
-                              hover:bg-gray-50/70 dark:hover:bg-gray-700/50
-                              transition-all duration-200
-                              cursor-pointer group
-                            "
-                            onClick={() => {
-                              onOpenProject(project);
-                              onOpenChange(false);
-                            }}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                                  {project.name}
-                                </h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                  Last modified: {format(new Date(project.lastModified), 'MMM d, yyyy h:mm a')}
-                                </p>
-                              </div>
-                              <button
-                                className="keynote-delete-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(e, project.id);
-                                }}
-                                title="Delete project"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pr-2">
-                  {presentationThemes.map((theme) => (
-                    <div key={theme.id} className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-white/60 dark:bg-gray-800/40 hover:shadow-lg transition-all">
-                      <div className="h-28 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/40 dark:to-gray-800/20">
-                        <div className="text-center">
-                          <Sparkles className="w-7 h-7 mx-auto mb-1 text-blue-500" />
-                          <h3 className="font-medium text-gray-900 dark:text-gray-100">{theme.name}</h3>
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{theme.description}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">{theme.slides.length} slides</p>
-                        <Button className="w-full" onClick={() => handleOpenTheme(theme)}>Use This Theme</Button>
-                      </div>
+              {/* Saved projects list (themes removed from Open modal) */}
+              <>
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center p-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                      <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Loading projects...</p>
                     </div>
-                  ))}
-                  {presentationThemes.length === 0 && (
-                    <div className="text-center p-8 text-gray-500 dark:text-gray-400 col-span-2">
-                      <p>No themes available yet</p>
-                      <p className="text-sm">Ask the assistant to add professional themes with 10 slides each.</p>
+                  ) : error ? (
+                    <div className="text-center p-6">
+                      <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
+                      <Button 
+                        variant="outline"
+                        onClick={loadProjects}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  ) : projects.length === 0 ? (
+                    <div className="text-center p-8 text-gray-500 dark:text-gray-400">
+                      <FileText className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
+                      <p className="text-base font-medium">No saved projects found</p>
+                      <p className="text-sm mt-1">Create a new project and save it to see it here</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {projects.map((project) => (
+                        <div
+                          key={project.id}
+                          className="
+                            border border-gray-200 dark:border-gray-700
+                            rounded-2xl p-4
+                            bg-white/50 dark:bg-gray-800/40
+                            hover:bg-gray-50/70 dark:hover:bg-gray-700/50
+                            transition-all duration-200
+                            cursor-pointer group
+                          "
+                          onClick={() => {
+                            onOpenProject(project);
+                            onOpenChange(false);
+                          }}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                                {project.name}
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Last modified: {format(new Date(project.lastModified), 'MMM d, yyyy h:mm a')}
+                              </p>
+                            </div>
+                            <button
+                              className="keynote-delete-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(e, project.id);
+                              }}
+                              title="Delete project"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
-                </div>
-              )}
+                </>
             </div>
             </div>
           </motion.div>

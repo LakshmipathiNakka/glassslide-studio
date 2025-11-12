@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { ThumbnailCanvasProps } from '@/types/slide-thumbnails';
 import { Element } from '@/hooks/use-action-manager';
 import { TABLE_THEMES } from '@/constants/tableThemes';
@@ -16,6 +16,7 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
   overrideElements,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [imgTick, setImgTick] = useState(0); // force redraw after async image load
 
   // Helper function to parse CSS gradients and create canvas gradients
   const parseGradient = (gradientString: string, width: number, height: number, ctx: CanvasRenderingContext2D): CanvasGradient | null => {
@@ -464,14 +465,14 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
       case 'image': {
         const borderRadius = (element as any).borderRadius || 0;
         const hasRadius = borderRadius > 0;
-        const primary = element.imageUrl || '';
+        const primary = (element as any).imageUrl || (element as any).src || (element as any).content || '';
         const fallbacks: string[] = [];
         const extra = (element as any).imageUrls as string[] | undefined;
         if (Array.isArray(extra)) fallbacks.push(...extra);
         const sources = [primary, ...fallbacks].filter(Boolean);
 
         const drawLoaded = (img: HTMLImageElement) => {
-          // Re-apply transform here because onload is async and previous ctx state was restored
+          // Re-apply transform for safety
           ctx.save();
           const angle = ((element.rotation || 0) * Math.PI) / 180;
           if (element.rotation) {
@@ -481,7 +482,20 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
           } else {
             ctx.translate(x, y);
           }
-          // Clip to rounded rect if needed
+          // Clear background (transparent)
+          // Draw image with contain fit
+          const sRatio = img.width / img.height;
+          const dRatio = w / h;
+          let dw = w, dh = h, dx = 0, dy = 0;
+          if (sRatio > dRatio) {
+            dw = w;
+            dh = w / sRatio;
+            dx = 0; dy = (h - dh) / 2;
+          } else {
+            dh = h;
+            dw = h * sRatio;
+            dx = (w - dw) / 2; dy = 0;
+          }
           if (hasRadius) {
             const r = borderRadius * scale;
             ctx.beginPath();
@@ -494,43 +508,12 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             ctx.closePath();
             ctx.clip();
           }
-          drawImageCover(ctx, img, 0, 0, w, h);
-          // Border
-          if (element.borderColor && element.borderWidth) {
-            ctx.strokeStyle = element.borderColor;
-            ctx.lineWidth = (element.borderWidth || 1) * scale;
-            ctx.strokeRect(0, 0, w, h);
-          }
+          ctx.drawImage(img, dx, dy, dw, dh);
           ctx.restore();
         };
 
         const tryLoad = (i: number) => {
-          if (i >= sources.length) {
-            // Draw placeholder at transformed position to avoid top-left pinning
-            ctx.save();
-            const angle = ((element.rotation || 0) * Math.PI) / 180;
-            if (element.rotation) {
-              ctx.translate(x + w / 2, y + h / 2);
-              ctx.rotate(angle);
-              ctx.translate(-w / 2, -h / 2);
-            } else {
-              ctx.translate(x, y);
-            }
-            ctx.fillStyle = '#f0f0f0';
-            ctx.fillRect(0, 0, w, h);
-            ctx.strokeStyle = '#d0d0d0';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([5, 5]);
-            ctx.strokeRect(0, 0, w, h);
-            ctx.setLineDash([]);
-            ctx.fillStyle = '#999';
-            ctx.font = `${12 * scale}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('📷', w / 2, h / 2);
-            ctx.restore();
-            return;
-          }
+          if (i >= sources.length) return;
           const src = sources[i];
           const cached = src ? IMAGE_CACHE.get(src) : null;
           if (cached && cached.complete) {
@@ -538,7 +521,7 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             return;
           }
           const img = new Image();
-          img.crossOrigin = 'anonymous';
+          if (/^https?:/i.test(src)) img.crossOrigin = 'anonymous';
           img.onload = () => {
             IMAGE_CACHE.set(src, img);
             drawLoaded(img);
@@ -547,18 +530,25 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
           img.src = src;
         };
 
-        if (sources.length > 0) {
-          tryLoad(0);
+        // Immediate placeholder (transparent bg)
+        if ((element as any).backgroundColor) {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.fillStyle = (element as any).backgroundColor as string;
+          ctx.fillRect(0, 0, w, h);
+          ctx.restore();
         }
+
+        if (sources.length > 0) tryLoad(0);
         break;
       }
 
       case 'chart':
-        // Background
-        ctx.fillStyle = element.backgroundColor || '#f8f9fa';
-        ctx.fillRect(0, 0, w, h);
+        // Transparent chart background in thumbnails to match editor
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        // No background fillRect to preserve slide background
         
-        // Border
+        // Border (optional)
         if (element.borderColor && element.borderWidth) {
           ctx.strokeStyle = element.borderColor;
           ctx.lineWidth = (element.borderWidth || 2) * scale;
@@ -874,9 +864,10 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
     }
     ctx.fillRect(0, 0, width, height);
 
-    // Draw elements
-    slide.elements.forEach(element => {
-      renderElement(ctx, element);
+    // Draw elements in zIndex order (lower first)
+    const ordered = [...slide.elements].sort((a: any, b: any) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+    ordered.forEach(element => {
+      renderElement(ctx, element as any);
     });
 
     // Generate data URL for caching
@@ -893,7 +884,7 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
       // This would typically be handled by the parent component
       // For now, we just render the preview
     }
-  }, [slide.elements, slide.background, slide.lastUpdated, width, height, scale]);
+  }, [slide.elements, slide.background, slide.lastUpdated, width, height, scale, imgTick]);
 
   return (
     <div className={`thumbnail-canvas ${className}`} style={responsive ? { width: '100%', height: '100%' } : { width, height }}>

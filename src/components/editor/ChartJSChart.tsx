@@ -125,6 +125,7 @@ interface ChartJSChartProps {
   onUpdate: (updates: Partial<Element>) => void;
   onDelete: () => void;
   onSelect: () => void;
+  scale?: number; // visual scale multiplier for thumbnails/presentations
 }
 
 export const ChartJSChart: React.FC<ChartJSChartProps> = ({
@@ -133,6 +134,7 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
   onUpdate,
   onDelete,
   onSelect,
+  scale = 1,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -190,7 +192,7 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
           data: [1],
           backgroundColor: 'rgba(128, 128, 128, 0.5)',
           borderColor: 'rgba(128, 128, 128, 1)',
-          borderWidth: 1,
+          borderWidth: 1 * scale,
         }]
       };
     }
@@ -198,41 +200,62 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
     return {
       labels,
       datasets: datasets.map((dataset: any, index: number) => {
-        // Get base color from dataset or assign from palette
-        const baseColor = dataset.backgroundColor || dataset.borderColor || colorPalette[index % colorPalette.length];
-        const alphaVariants = createAlphaVariants(baseColor);
-        
-        // Create consistent color identity across chart types
-        const colorIdentity = {
-          solid: baseColor,
-          light: alphaVariants.light,
-          medium: alphaVariants.medium,
-          dark: alphaVariants.dark,
-          text: getTextColor(baseColor)
-        };
+        const userBackground = dataset.backgroundColor;
+        const userBorder = dataset.borderColor;
+
+        const fallbackColor = (() => {
+          if (typeof userBorder === 'string') return userBorder;
+          if (typeof userBackground === 'string') return userBackground;
+          if (Array.isArray(userBorder) && userBorder.length) return userBorder[0];
+          if (Array.isArray(userBackground) && userBackground.length) return userBackground[0];
+          return colorPalette[index % colorPalette.length];
+        })();
+
+        const alphaVariants = typeof fallbackColor === 'string'
+          ? createAlphaVariants(fallbackColor)
+          : { light: fallbackColor, medium: fallbackColor, dark: fallbackColor, solid: fallbackColor };
+
+        const colorIdentity = typeof fallbackColor === 'string'
+          ? {
+              solid: fallbackColor,
+              light: alphaVariants.light,
+              medium: alphaVariants.medium,
+              dark: alphaVariants.dark,
+              text: getTextColor(fallbackColor)
+            }
+          : undefined;
+
+        const resolvedBackground =
+          userBackground ??
+          (chart.chartType === 'line'
+            ? (typeof fallbackColor === 'string' ? alphaVariants.medium : fallbackColor)
+            : (typeof fallbackColor === 'string' ? alphaVariants.dark : fallbackColor));
+
+        const resolvedBorder =
+          userBorder ??
+          (typeof fallbackColor === 'string' ? fallbackColor : (Array.isArray(fallbackColor) ? fallbackColor[0] : fallbackColor));
 
         return {
           label: dataset.label || `Dataset ${index + 1}`,
           data: Array.isArray(dataset.data) ? dataset.data : [],
-          backgroundColor: chart.chartType === 'line' ? alphaVariants.medium : alphaVariants.dark,
-          borderColor: baseColor,
-          borderWidth: chart.chartType === 'line' ? 3 : 2,
-          pointBackgroundColor: baseColor,
-          pointBorderColor: baseColor,
-          pointHoverBackgroundColor: baseColor,
-          pointHoverBorderColor: '#ffffff',
-          pointRadius: chart.chartType === 'line' ? 4 : 0,
-          pointHoverRadius: chart.chartType === 'line' ? 6 : 0,
-          fill: chart.chartType === 'line' ? false : true,
-          tension: chart.chartType === 'line' ? 0.4 : 0,
-          hoverBackgroundColor: baseColor,
-          hoverBorderColor: baseColor,
-          // Store color identity for tooltips and legends
+          backgroundColor: resolvedBackground,
+          borderColor: resolvedBorder,
+          borderWidth: (dataset.borderWidth ?? (chart.chartType === 'line' ? 3 : 2)) * scale,
+          pointBackgroundColor: dataset.pointBackgroundColor ?? (typeof resolvedBorder === 'string' ? resolvedBorder : undefined),
+          pointBorderColor: dataset.pointBorderColor ?? (typeof resolvedBorder === 'string' ? resolvedBorder : undefined),
+          pointHoverBackgroundColor: dataset.pointHoverBackgroundColor ?? (typeof resolvedBorder === 'string' ? resolvedBorder : undefined),
+          pointHoverBorderColor: dataset.pointHoverBorderColor ?? '#ffffff',
+          pointRadius: (dataset.pointRadius ?? (chart.chartType === 'line' ? 4 : 0)) * scale,
+          pointHoverRadius: (dataset.pointHoverRadius ?? (chart.chartType === 'line' ? 6 : 0)) * scale,
+          fill: dataset.fill ?? (chart.chartType === 'line' ? false : true),
+          tension: dataset.tension ?? (chart.chartType === 'line' ? 0.4 : 0),
+          hoverBackgroundColor: dataset.hoverBackgroundColor ?? resolvedBackground,
+          hoverBorderColor: dataset.hoverBorderColor ?? resolvedBorder,
           colorIdentity
         };
       })
     };
-  }, [chart.chartData, chart.chartType, colorPalette]);
+  }, [chart.chartData, chart.chartType, colorPalette, scale]);
 
   // Common options with intelligent color system
   const commonOptions = useMemo(() => ({
@@ -253,13 +276,13 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
     },
     plugins: {
       legend: {
-        display: false, // We'll use custom legend below charts
+        display: false, // We'll use custom legend below charts (hidden in thumbnails)
         position: 'bottom' as const,
         labels: {
           usePointStyle: true,
-          padding: 20,
+          padding: 20 * scale,
           font: {
-            size: 12,
+            size: 12 * scale,
             weight: 'normal' as const
           },
           generateLabels: (chart: any) => {
@@ -315,16 +338,16 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
             return 'rgba(255, 255, 255, 0.1)';
           }
         },
-        borderWidth: 2,
-        cornerRadius: 12,
+        borderWidth: 2 * scale,
+        cornerRadius: 12 * scale,
         displayColors: true,
-        padding: 12,
+        padding: 12 * scale,
         titleFont: {
-          size: 13,
+          size: 13 * scale,
           weight: 'bold' as const
         },
         bodyFont: {
-          size: 12,
+          size: 12 * scale,
           weight: 'normal' as const
         },
         callbacks: {
@@ -358,15 +381,15 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
         grid: {
           color: 'rgba(0, 0, 0, 0.05)',
           drawBorder: false,
-          lineWidth: 1
+          lineWidth: 1 * scale
         },
         ticks: {
           color: 'rgba(0, 0, 0, 0.6)',
           font: {
-            size: 11,
+            size: 11 * scale,
             weight: 'normal' as const
           },
-          padding: 8
+          padding: 8 * scale
         }
       },
       y: {
@@ -374,22 +397,22 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
         grid: {
           color: 'rgba(0, 0, 0, 0.05)',
           drawBorder: false,
-          lineWidth: 1
+          lineWidth: 1 * scale
         },
         ticks: {
           color: 'rgba(0, 0, 0, 0.6)',
           font: {
-            size: 11,
+            size: 11 * scale,
             weight: 'normal' as const
           },
-          padding: 8,
+          padding: 8 * scale,
           callback: (value: any) => {
             return typeof value === 'number' ? value.toLocaleString() : value;
           }
         }
       }
     } : undefined
-  }), [chartData, chart.chartType]);
+  }), [chartData, chart.chartType, scale]);
 
   const renderChart = () => {
     if (!chart.chartType || !chart.chartData) {
@@ -410,12 +433,12 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Title (read-only; editable in Properties Panel) */}
             {chart.chartData?.title && (
-              <div style={{ marginBottom: '16px', padding: '0 8px' }}>
+              <div style={{ marginBottom: 16 * scale, padding: `${0}px ${8 * scale}px` }}>
                 <div
                   style={{
-                    borderRadius: '4px',
-                    padding: '4px 8px',
-                    fontSize: `${chart.chartData?.titleFontSize || 18}px`,
+                    borderRadius: 4 * scale,
+                    padding: `${4 * scale}px ${8 * scale}px`,
+                    fontSize: `${(chart.chartData?.titleFontSize || 18) * scale}px`,
                     fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
                     fontWeight: chart.chartData?.titleFontWeight || 'bold',
                     color: chart.chartData?.titleColor || '#000000',
@@ -440,26 +463,28 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
                 }} 
               />
             </div>
-             {/* Custom responsive legend */}
-             <div className="flex flex-wrap justify-center gap-4 p-3 bg-gray-50/50 rounded-b-lg text-sm">
-               {chartData.datasets.map((dataset: any, index: number) => {
-                 const color = dataset.colorIdentity?.solid || dataset.backgroundColor;
-                 return (
-                   <div 
-                     key={index} 
-                     className="flex items-center gap-2"
-                   >
+             {/* Hide custom legend in thumbnails to avoid oversized DOM text */}
+             {scale >= 1 && (
+               <div className="flex flex-wrap justify-center gap-4 p-3 bg-gray-50/50 rounded-b-lg text-sm">
+                 {chartData.datasets.map((dataset: any, index: number) => {
+                   const color = dataset.colorIdentity?.solid || dataset.backgroundColor;
+                   return (
                      <div 
-                       className="w-3 h-3 rounded-full flex-shrink-0"
-                       style={{ backgroundColor: color }}
-                     />
-                     <span style={{ color: color }}>
-                       {dataset.label}
-                     </span>
-                   </div>
-                 );
-               })}
-             </div>
+                       key={index} 
+                       className="flex items-center gap-2"
+                     >
+                       <div 
+                         className="w-3 h-3 rounded-full flex-shrink-0"
+                         style={{ backgroundColor: color }}
+                       />
+                       <span style={{ color: color }}>
+                         {dataset.label}
+                       </span>
+                     </div>
+                   );
+                 })}
+               </div>
+             )}
           </div>
         );
       
@@ -468,12 +493,12 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Title (read-only; editable in Properties Panel) */}
             {chart.chartData?.title && (
-              <div style={{ marginBottom: '16px', padding: '0 8px' }}>
+              <div style={{ marginBottom: 16 * scale, padding: `${0}px ${8 * scale}px` }}>
                 <div
                   style={{
-                    borderRadius: '4px',
-                    padding: '4px 8px',
-                    fontSize: `${chart.chartData?.titleFontSize || 18}px`,
+                    borderRadius: 4 * scale,
+                    padding: `${4 * scale}px ${8 * scale}px`,
+                    fontSize: `${(chart.chartData?.titleFontSize || 18) * scale}px`,
                     fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
                     fontWeight: chart.chartData?.titleFontWeight || 'bold',
                     color: chart.chartData?.titleColor || '#000000',
@@ -508,26 +533,27 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
                 }} 
               />
             </div>
-             {/* Custom responsive legend */}
-             <div className="flex flex-wrap justify-center gap-4 p-3 bg-gray-50/50 rounded-b-lg text-sm">
-               {chartData.datasets.map((dataset: any, index: number) => {
-                 const color = dataset.colorIdentity?.solid || dataset.backgroundColor;
-                 return (
-                   <div 
-                     key={index} 
-                     className="flex items-center gap-2"
-                   >
+             {scale >= 1 && (
+               <div className="flex flex-wrap justify-center gap-4 p-3 bg-gray-50/50 rounded-b-lg text-sm">
+                 {chartData.datasets.map((dataset: any, index: number) => {
+                   const color = dataset.colorIdentity?.solid || dataset.backgroundColor;
+                   return (
                      <div 
-                       className="w-3 h-3 rounded-full flex-shrink-0"
-                       style={{ backgroundColor: color }}
-                     />
-                     <span style={{ color: color }}>
-                       {dataset.label}
-                     </span>
-                   </div>
-                 );
-               })}
-             </div>
+                       key={index} 
+                       className="flex items-center gap-2"
+                     >
+                       <div 
+                         className="w-3 h-3 rounded-full flex-shrink-0"
+                         style={{ backgroundColor: color }}
+                       />
+                       <span style={{ color: color }}>
+                         {dataset.label}
+                       </span>
+                     </div>
+                   );
+                 })}
+               </div>
+             )}
           </div>
         );
       
@@ -561,12 +587,12 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
             <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
               {/* Title (read-only; editable in Properties Panel) */}
               {chart.chartData?.title && (
-                <div style={{ marginBottom: '16px', padding: '0 8px' }}>
+                <div style={{ marginBottom: 16 * scale, padding: `${0}px ${8 * scale}px` }}>
                   <div
                     style={{
-                      borderRadius: '4px',
-                      padding: '4px 8px',
-                      fontSize: `${chart.chartData?.titleFontSize || 18}px`,
+                      borderRadius: 4 * scale,
+                      padding: `${4 * scale}px ${8 * scale}px`,
+                      fontSize: `${(chart.chartData?.titleFontSize || 18) * scale}px`,
                       fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
                       fontWeight: chart.chartData?.titleFontWeight || 'bold',
                       color: chart.chartData?.titleColor || '#000000',
@@ -651,11 +677,12 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
             <div className="w-full h-full flex flex-col">
               {/* Title (read-only; editable in Properties Panel) */}
               {chart.chartData?.title && (
-                <div className="mb-4 px-2">
+                <div className="px-2" style={{ marginBottom: 16 * scale }}>
                   <div
-                    className="rounded px-2 py-1"
+                    className="rounded"
                     style={{
-                      fontSize: `${chart.chartData?.titleFontSize || 18}px`,
+                      padding: `${4 * scale}px ${8 * scale}px`,
+                      fontSize: `${(chart.chartData?.titleFontSize || 18) * scale}px`,
                       fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
                       fontWeight: chart.chartData?.titleFontWeight || 'bold',
                       color: chart.chartData?.titleColor || '#000000',
@@ -718,26 +745,28 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
                 />
               </div>
               
-               {/* Custom responsive legend for multiple datasets */}
-               <div className="flex flex-wrap justify-center gap-3 p-3 bg-gray-50/50 rounded-b-lg">
-                 {datasets.map((dataset: any, index: number) => {
-                   const baseColor = dataset.colorIdentity?.solid || dataset.backgroundColor;
-                   return (
-                     <div 
-                       key={index} 
-                       className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg text-sm font-medium shadow-sm border border-gray-200 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                     >
+               {/* Hide custom legend in thumbnails */}
+               {scale >= 1 && (
+                 <div className="flex flex-wrap justify-center gap-3 p-3 bg-gray-50/50 rounded-b-lg">
+                   {datasets.map((dataset: any, index: number) => {
+                     const baseColor = dataset.colorIdentity?.solid || dataset.backgroundColor;
+                     return (
                        <div 
-                         className="w-3 h-3 rounded-full"
-                         style={{ backgroundColor: baseColor }}
-                       />
-                       <span style={{ color: baseColor }}>
-                         {dataset.label}
-                       </span>
-                     </div>
-                   );
-                 })}
-               </div>
+                         key={index} 
+                         className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg text-sm font-medium shadow-sm border border-gray-200 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                       >
+                         <div 
+                           className="w-3 h-3 rounded-full"
+                           style={{ backgroundColor: baseColor }}
+                         />
+                         <span style={{ color: baseColor }}>
+                           {dataset.label}
+                         </span>
+                       </div>
+                     );
+                   })}
+                 </div>
+               )}
             </div>
           );
         }

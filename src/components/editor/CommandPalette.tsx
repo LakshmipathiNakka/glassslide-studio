@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Type, Image, Square, Circle, BarChart3, Table, Plus, FileText, Download, Save, Play, Layout } from 'lucide-react';
+import { Search, Type, Square, Circle, BarChart3, Table, Plus, FileText, Download, Save, Play, Layout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -17,7 +17,6 @@ interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onAddText: () => void;
-  onAddImage: () => void;
   onAddShape: (shape: 'rectangle' | 'circle') => void;
   onAddChart: () => void;
   onAddTable: () => void;
@@ -32,7 +31,6 @@ export const CommandPalette = ({
   isOpen,
   onClose,
   onAddText,
-  onAddImage,
   onAddShape,
   onAddChart,
   onAddTable,
@@ -56,15 +54,6 @@ export const CommandPalette = ({
       icon: <Type className="w-4 h-4" />,
       action: onAddText,
       keywords: ['text', 'type', 'write', 'add text'],
-      category: 'content',
-    },
-    {
-      id: 'add-image',
-      title: 'Add Image',
-      description: 'Insert an image element',
-      icon: <Image className="w-4 h-4" />,
-      action: onAddImage,
-      keywords: ['image', 'photo', 'picture', 'add image'],
       category: 'content',
     },
     {

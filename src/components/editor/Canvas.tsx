@@ -28,7 +28,6 @@ interface CanvasProps {
   onEditChart?: (element: Element) => void;
   onDeleteElement?: (elementId: string) => void;
   onAddText?: () => void;
-  onAddImage?: () => void;
   onAddShape?: (shapeType: 'rectangle' | 'circle') => void;
   onAddChart?: () => void;
 }
@@ -66,7 +65,6 @@ export const Canvas: React.FC<CanvasProps> = ({
   onEditChart,
   onDeleteElement,
   onAddText,
-  onAddImage,
   onAddShape,
   onAddChart,
 }) => {
@@ -167,8 +165,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         return;
       } else if (element.content?.includes('text') && onAddText) {
         onAddText();
-      } else if (element.content?.includes('image') && onAddImage) {
-        onAddImage();
       } else if (element.content?.includes('shape') && onAddShape) {
         onAddShape('rectangle');
       } else if (element.content?.includes('chart') && onAddChart) {

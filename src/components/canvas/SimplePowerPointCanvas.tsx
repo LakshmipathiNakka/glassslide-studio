@@ -1256,13 +1256,13 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "#f5f5f5",
+              backgroundColor: "transparent",
               border: "2px dashed #ccc",
               borderRadius: "8px",
             }}
           >
             <span style={{ color: "#999", fontSize: "14px" }}>
-              No image
+              Insert an image
             </span>
           </div>
         );
@@ -1272,7 +1272,6 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         <div 
           style={{ width: "100%", height: "100%", position: "relative" }}
           onMouseDown={(e) => {
-            // Prevent content from initiating drag; use drag handle like tables
             e.stopPropagation();
           }}
         >
@@ -1284,42 +1283,16 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
             style={{
               width: "100%",
               height: "100%",
-              objectFit: "cover",
+              objectFit: "contain",
+              backgroundColor: 'transparent',
               borderRadius: el.borderRadius || 0,
-              // Apply border properties from element
               borderWidth: (el.borderWidth ?? 0),
               borderStyle: (el.borderWidth ?? 0) > 0 ? ((el as any).borderStyle || 'solid') : 'none',
               borderColor: (el.borderColor || '#000000'),
               display: "block",
               userSelect: 'none',
-              pointerEvents: 'none', // ensure handles receive events cleanly
+              pointerEvents: 'none',
               opacity: (el as any).opacity ?? 1
-            }}
-            onError={(e) => {
-              const target = e.currentTarget as HTMLImageElement;
-              const fallbacks: string[] = [];
-              const arr = (el as any).imageUrls as string[] | undefined;
-              if (Array.isArray(arr)) fallbacks.push(...arr);
-              // As a last resort, use a minimal inline SVG placeholder
-              const inlineFallback = 'data:image/svg+xml;utf8,' + encodeURIComponent(`\
-                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"960\" height=\"540\">\
-                  <defs>\
-                    <linearGradient id=\"g\" x1=\"0\" x2=\"1\">\
-                      <stop offset=\"0\" stop-color=\"#EAF2FF\"/>\
-                      <stop offset=\"1\" stop-color=\"#DCEBFF\"/>\
-                    </linearGradient>\
-                  </defs>\
-                  <rect width=\"100%\" height=\"100%\" fill=\"url(#g)\"/>\
-                  <text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#6b7280\" font-family=\"Inter, Arial\" font-size=\"24\">Image unavailable</text>\
-                </svg>`);
-              let idx = Number(target.dataset.fallbackIndex || '0');
-              if (idx < fallbacks.length) {
-                target.dataset.fallbackIndex = String(idx + 1);
-                target.src = fallbacks[idx];
-                return;
-              }
-              // No more fallbacks; show graceful inline placeholder
-              target.src = inlineFallback;
             }}
           />
         </div>

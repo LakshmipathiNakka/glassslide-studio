@@ -3,7 +3,8 @@ import { X, FolderOpen, Palette } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { presentationThemes } from "@/utils/presentationThemes";
-import SimplePowerPointCanvas from "@/components/canvas/SimplePowerPointCanvas";
+import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 
 interface TemplateModalProps {
   onClose: () => void;
@@ -11,7 +12,7 @@ interface TemplateModalProps {
 }
 
 export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModalProps) {
-  const [activeTab, setActiveTab] = useState<"demo" | "themes">("demo");
+  const [activeTab, setActiveTab] = useState<"demos" | "themes">("demos");
 
   const handleApplyTemplate = (templateName: string) => {
     try {
@@ -35,31 +36,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
 
   // Create portal target
   const [mounted, setMounted] = useState(false);
-  const [previews, setPreviews] = useState<Record<string, string>>({});
-  const hiddenRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const setHiddenRef = (id: string) => (el: HTMLDivElement | null) => { hiddenRefs.current[id] = el; };
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!mounted) return;
-      try {
-        const { default: html2canvas } = await import('html2canvas');
-        for (const t of presentationThemes) {
-          if (previews[t.id]) continue;
-          const el = hiddenRefs.current[t.id];
-          if (el) {
-            const canvas = await html2canvas(el, { backgroundColor: null, scale: 1, useCORS: true });
-            if (cancelled) return;
-            setPreviews((p) => ({ ...p, [t.id]: canvas.toDataURL('image/png') }));
-          }
-        }
-      } catch (e) {
-        console.warn('Thumbnail generation skipped:', e);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [mounted]);
+// No demo previews generated — placeholder content only.
 
   useEffect(() => {
     setMounted(true);
@@ -102,14 +79,14 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
             </button>
           </div>
 
-          {/* Tabs */}
+{/* Tabs */}
           <div className="grid grid-cols-2 bg-gray-100/70 dark:bg-gray-700/40 rounded-xl p-1 mb-4">
             <button
-              className={`keynote-tab ${activeTab === "demo" ? "active" : ""}`}
-              onClick={() => setActiveTab("demo")}
+              className={`keynote-tab ${activeTab === "demos" ? "active" : ""}`}
+              onClick={() => setActiveTab("demos")}
             >
               <FolderOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">Demo Presentations</span>
+              <span className="hidden sm:inline">Demos</span>
             </button>
             <button
               className={`keynote-tab ${activeTab === "themes" ? "active" : ""}`}
@@ -120,54 +97,33 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
             </button>
           </div>
 
-          {/* Hidden preview render targets for thumbnails */}
-          <div style={{ position: 'absolute', left: -9999, top: -9999 }} aria-hidden>
-            {presentationThemes.map((t) => {
-              const slide = t.slides?.[0];
-              if (!slide) return null;
-              return (
-                <div key={`hidden-${t.id}`} ref={setHiddenRef(t.id)} style={{ width: 240, height: 135 }}>
-                  <SimplePowerPointCanvas
-                    elements={slide.elements as any}
-                    background={slide.background}
-                    slideWidth={960}
-                    slideHeight={540}
-                    zoom={240 / 960}
-                  />
-                </div>
-              );
-            })}
-          </div>
+{/* No hidden preview targets — demos are placeholders */}
 
           {/* Tab Content */}
           <div className="flex-1 overflow-y-auto pr-1 -mr-2 space-y-3">
-            {/* Demo Presentations */}
-            {activeTab === "demo" && (
+{/* Demos (now shows Themes content) */}
+            {activeTab === "demos" && (
               <motion.div
-                key="demo"
+                key="demos"
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.2 }}
                 className="grid sm:grid-cols-2 gap-4"
               >
-                {presentationThemes.map((t) => (
-                  <div
-                    key={t.id}
-                    className="group cursor-pointer rounded-2xl overflow-hidden bg-white/60 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all"
-                    onClick={() => handleApplyTemplate(`THEME:${t.id}`)}
-                  >
-                    <img
-                      src={previews[t.id] || t.thumbnail || `https://via.placeholder.com/300x180/2e86de/fff?text=${encodeURIComponent(t.name)}`}
-                      alt={t.name}
-                      className="w-full h-36 object-cover transition-transform group-hover:scale-[1.02]"
-                    />
+                {presentationThemes
+                  .filter((theme) => theme.id === 'business-strategy')
+                  .map((theme) => (
+                  <div key={theme.id} className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-white/60 dark:bg-gray-800/40 hover:shadow-lg transition-all">
+                    <div className="h-28 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/40 dark:to-gray-800/20">
+                      <div className="text-center">
+                        <Sparkles className="w-7 h-7 mx-auto mb-1 text-blue-500" />
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100">{theme.name}</h3>
+                      </div>
+                    </div>
                     <div className="p-4">
-                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                        {t.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {t.description}
-                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{theme.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">{theme.slides.length} slides</p>
+                      <Button className="w-full" onClick={() => handleApplyTemplate(`THEME:${theme.id}`)}>Use This Theme</Button>
                     </div>
                   </div>
                 ))}

@@ -348,7 +348,352 @@ slides.push({ id:`edu-${now}-10`, elements:[
   return slides;
 }
 
-import buildBusinessStrategySlides from '@/templates/businessStrategy';
+// Theme 4: Premium Business Strategy (10 slides) - Apple Keynote Grade
+const businessStrategyPalette = {
+  primary: '#0A2540',      // Deep navy blue
+  secondary: '#1F4788',     // Medium blue
+  accent: '#00BFA6',        // Teal accent
+  light: '#EAEAEA',         // Light gray
+  white: '#FFFFFF',         // Pure white
+  dark: '#0F172A',          // Almost black
+  gradientStart: '#1F3A93', // Gradient start
+  gradientEnd: '#2E86DE',   // Gradient end
+  glassBg: 'rgba(255,255,255,0.15)', // Glass overlay
+  glassBorder: 'rgba(255,255,255,0.25)', // Glass border
+};
+
+function createPremiumBusinessStrategy(): Slide[] {
+  const now = Date.now();
+  const slides: Slide[] = [];
+  const titleFont = 'SF Pro Display, Inter, -apple-system, sans-serif';
+  const bodyFont = 'SF Pro Text, Inter, -apple-system, sans-serif';
+
+  // 1. Title Slide - Premium with radial gradient, glass overlay, and decorative bubbles
+  slides.push({
+    id: `bs-${now}-1`,
+    elements: [
+      // Decorative bubbles with different colors
+      { id: nowId('bubble1'), type: 'shape', x: 80, y: 80, width: 70, height: 70, shapeType: 'circle', fill: 'rgba(0,191,166,0.3)', stroke: businessStrategyPalette.accent, strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble2'), type: 'shape', x: 850, y: 70, width: 60, height: 60, shapeType: 'circle', fill: 'rgba(31,71,136,0.3)', stroke: businessStrategyPalette.secondary, strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble3'), type: 'shape', x: 60, y: 200, width: 50, height: 50, shapeType: 'circle', fill: 'rgba(255,107,107,0.25)', stroke: '#FF6B6B', strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble4'), type: 'shape', x: 870, y: 250, width: 45, height: 45, shapeType: 'circle', fill: 'rgba(243,156,18,0.25)', stroke: '#F39C12', strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble5'), type: 'shape', x: 100, y: 380, width: 55, height: 55, shapeType: 'circle', fill: 'rgba(0,191,166,0.25)', stroke: businessStrategyPalette.accent, strokeWidth: 2, opacity: 0.7 } as Element,
+      { id: nowId('bubble6'), type: 'shape', x: 820, y: 400, width: 50, height: 50, shapeType: 'circle', fill: 'rgba(31,71,136,0.25)', stroke: businessStrategyPalette.secondary, strokeWidth: 2, opacity: 0.7 } as Element,
+      // Glass overlay container
+      { id: nowId('glass'), type: 'shape', x: M, y: 140, width: W-2*M, height: 260, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 24, opacity: 0.95, shadow: true, shadowBlur: 20 } as Element,
+      // Main title with shadow
+      { id: nowId('title'), type: 'text', x: M+30, y: 180, width: W-2*M-60, height: 90, text: 'Business Strategy', fontSize: 72, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, textAlign: 'center', letterSpacing: 0.5, lineHeight: 1.1, shadow: true, shadowBlur: 8 } as Element,
+      // Subtitle
+      { id: nowId('subtitle'), type: 'text', x: M+30, y: 280, width: W-2*M-60, height: 50, text: 'Strategic Vision & Roadmap 2025', fontSize: 28, fontWeight: '500', fontFamily: bodyFont, color: 'rgba(255,255,255,0.9)', textAlign: 'center', letterSpacing: 0.3 } as Element,
+      // Accent line
+      { id: nowId('accent'), type: 'shape', x: M+280, y: 340, width: 400, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, stroke: 'none', borderRadius: 2 } as Element,
+    ],
+    background: `radial-gradient(1200px 800px at 50% 30%, ${businessStrategyPalette.gradientStart}, ${businessStrategyPalette.gradientEnd})`,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+  });
+
+  // 2. Agenda - Table with glass styling
+  slides.push({
+    id: `bs-${now}-2`,
+    elements: [
+      // Title with underline accent
+      { id: nowId('title'), type: 'text', x: M, y: M, width: W-2*M, height: 60, text: 'Agenda', fontSize: 52, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, letterSpacing: 0.3, shadow: true, shadowBlur: 6, opacity: 0.98 } as Element,
+      { id: nowId('underline'), type: 'shape', x: M, y: M+58, width: 120, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 2 } as Element,
+      // Glass table container
+      { id: nowId('tableGlass'), type: 'shape', x: M, y: 130, width: W-2*M, height: 360, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 16, opacity: 0.9, shadow: true, shadowBlur: 15 } as Element,
+      // Table
+      { id: nowId('table'), type: 'table', x: M+20, y: 160, width: W-2*M-40, height: 320, rows: 6, cols: 2, tableData: [
+        ['Section', 'Focus Area'],
+        ['Market Analysis', 'Industry trends & signals'],
+        ['Strategic Goals', 'Vision 2025 • Key metrics'],
+        ['Financial Overview', 'Revenue forecast • Cost model'],
+        ['Implementation', 'Roadmap milestones • Owners'],
+        ['Next Steps', 'Action plan • Timelines'],
+      ], themeId: 'keynote1', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', backgroundColor: 'transparent', color: businessStrategyPalette.white, header: true, headerBg: businessStrategyPalette.accent, headerTextColor: businessStrategyPalette.white, rowAltBg: 'rgba(255,255,255,0.05)', cellPadding: 16, cellTextAlign: 'left', fontFamily: bodyFont, fontSize: 18 } as Element,
+    ],
+    background: `linear-gradient(135deg, ${businessStrategyPalette.secondary}, ${businessStrategyPalette.primary})`,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+  });
+
+  // 3. Overview / Mission - Two-column with glass cards and decorative bubbles
+  slides.push({
+    id: `bs-${now}-3`,
+    elements: [
+      { id: nowId('title'), type: 'text', x: M, y: M, width: W-2*M, height: 60, text: 'Mission & Vision', fontSize: 52, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, letterSpacing: 0.3, shadow: true, shadowBlur: 6, opacity: 0.98 } as Element,
+      { id: nowId('underline'), type: 'shape', x: M, y: M+58, width: 180, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 2 } as Element,
+      // Decorative bubbles with different colors
+      { id: nowId('bubble1'), type: 'shape', x: 820, y: 60, width: 55, height: 55, shapeType: 'circle', fill: 'rgba(0,191,166,0.3)', stroke: businessStrategyPalette.accent, strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble2'), type: 'shape', x: 890, y: 100, width: 40, height: 40, shapeType: 'circle', fill: 'rgba(31,71,136,0.3)', stroke: businessStrategyPalette.secondary, strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble3'), type: 'shape', x: 850, y: 160, width: 50, height: 50, shapeType: 'circle', fill: 'rgba(255,107,107,0.25)', stroke: '#FF6B6B', strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble4'), type: 'shape', x: 60, y: 100, width: 45, height: 45, shapeType: 'circle', fill: 'rgba(0,191,166,0.25)', stroke: businessStrategyPalette.accent, strokeWidth: 2, opacity: 0.7 } as Element,
+      { id: nowId('bubble5'), type: 'shape', x: 30, y: 180, width: 35, height: 35, shapeType: 'circle', fill: 'rgba(31,71,136,0.25)', stroke: businessStrategyPalette.secondary, strokeWidth: 2, opacity: 0.7 } as Element,
+      // Mission glass card
+      { id: nowId('missionGlass'), type: 'shape', x: M, y: 140, width: 420, height: 320, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 20, opacity: 0.9, shadow: true, shadowBlur: 20 } as Element,
+      { id: nowId('missionTitle'), type: 'text', x: M+30, y: 160, width: 360, height: 50, text: 'Our Mission', fontSize: 36, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, letterSpacing: 0.2 } as Element,
+      { id: nowId('missionText'), type: 'text', x: M+30, y: 220, width: 360, height: 220, text: 'To empower organizations with strategic clarity, driving sustainable growth through innovative solutions and data-driven decision making.', fontSize: 20, fontWeight: '400', fontFamily: bodyFont, color: 'rgba(255,255,255,0.95)', lineHeight: 1.6, textAlign: 'left' } as Element,
+      // Vision glass card
+      { id: nowId('visionGlass'), type: 'shape', x: M+490, y: 140, width: 420, height: 320, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 20, opacity: 0.9, shadow: true, shadowBlur: 20 } as Element,
+      { id: nowId('visionTitle'), type: 'text', x: M+520, y: 160, width: 360, height: 50, text: 'Our Vision', fontSize: 36, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, letterSpacing: 0.2 } as Element,
+      { id: nowId('visionText'), type: 'text', x: M+520, y: 220, width: 360, height: 220, text: 'To become the global leader in strategic consulting, recognized for excellence, innovation, and transformative impact on businesses worldwide.', fontSize: 20, fontWeight: '400', fontFamily: bodyFont, color: 'rgba(255,255,255,0.95)', lineHeight: 1.6, textAlign: 'left' } as Element,
+    ],
+    background: `radial-gradient(1000px 600px at 30% 40%, ${businessStrategyPalette.gradientStart}, ${businessStrategyPalette.primary})`,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+  });
+
+  // 4. Data Chart - Line chart with glass container and decorative bubbles
+  slides.push({
+    id: `bs-${now}-4`,
+    elements: [
+      { id: nowId('title'), type: 'text', x: M, y: M, width: W-2*M, height: 60, text: 'Market Growth Analysis', fontSize: 52, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.primary, letterSpacing: 0.3 } as Element,
+      { id: nowId('underline'), type: 'shape', x: M, y: M+58, width: 280, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 2 } as Element,
+      // Decorative bubbles with different colors
+      { id: nowId('bubble1'), type: 'shape', x: 780, y: 80, width: 60, height: 60, shapeType: 'circle', fill: 'rgba(0,191,166,0.3)', stroke: businessStrategyPalette.accent, strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble2'), type: 'shape', x: 850, y: 120, width: 40, height: 40, shapeType: 'circle', fill: 'rgba(31,71,136,0.3)', stroke: businessStrategyPalette.secondary, strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble3'), type: 'shape', x: 820, y: 180, width: 50, height: 50, shapeType: 'circle', fill: 'rgba(10,37,64,0.2)', stroke: businessStrategyPalette.primary, strokeWidth: 2, opacity: 0.8 } as Element,
+      // Glass chart container
+      { id: nowId('chartGlass'), type: 'shape', x: M, y: 130, width: W-2*M, height: 340, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 20, opacity: 0.9, shadow: true, shadowBlur: 20 } as Element,
+      // Line chart with enhanced color scheme
+      { id: nowId('chart'), type: 'chart', x: M+30, y: 160, width: W-2*M-60, height: 280, chartType: 'line', chartData: {
+        title: 'Revenue Growth (5-Year Projection)',
+        labels: ['2021', '2022', '2023', '2024', '2025', '2026'],
+        datasets: [
+          { label: 'Revenue ($M)', data: [12, 18, 28, 42, 58, 75], borderColor: businessStrategyPalette.accent, backgroundColor: 'rgba(0,191,166,0.15)', tension: 0.4, fill: true, borderWidth: 3, pointRadius: 6, pointBackgroundColor: businessStrategyPalette.accent, pointBorderColor: '#FFFFFF', pointBorderWidth: 2 },
+          { label: 'Market Share (%)', data: [8, 12, 18, 24, 30, 36], borderColor: businessStrategyPalette.secondary, backgroundColor: 'rgba(31,71,136,0.15)', tension: 0.4, fill: true, borderWidth: 3, pointRadius: 6, pointBackgroundColor: businessStrategyPalette.secondary, pointBorderColor: '#FFFFFF', pointBorderWidth: 2 },
+          { label: 'Customer Base (K)', data: [45, 68, 95, 142, 198, 265], borderColor: '#FF6B6B', backgroundColor: 'rgba(255,107,107,0.15)', tension: 0.4, fill: true, borderWidth: 3, pointRadius: 6, pointBackgroundColor: '#FF6B6B', pointBorderColor: '#FFFFFF', pointBorderWidth: 2 },
+        ],
+      } } as Element,
+    ],
+    background: `linear-gradient(180deg, ${businessStrategyPalette.light}, ${businessStrategyPalette.white})`,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+  });
+
+  // 5. Comparison Table - Premium styling with glass and pie chart
+  slides.push({
+    id: `bs-${now}-5`,
+    elements: [
+      { id: nowId('title'), type: 'text', x: M, y: M, width: W-2*M, height: 60, text: 'Market Share & Competitive Analysis', fontSize: 52, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, letterSpacing: 0.3, shadow: true, shadowBlur: 6, opacity: 0.98 } as Element,
+      { id: nowId('underline'), type: 'shape', x: M, y: M+58, width: 380, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 2 } as Element,
+      // Decorative bubbles
+      { id: nowId('bubble1'), type: 'shape', x: 60, y: 100, width: 45, height: 45, shapeType: 'circle', fill: 'rgba(0,191,166,0.25)', stroke: businessStrategyPalette.accent, strokeWidth: 2, opacity: 0.7 } as Element,
+      { id: nowId('bubble2'), type: 'shape', x: 30, y: 160, width: 35, height: 35, shapeType: 'circle', fill: 'rgba(31,71,136,0.25)', stroke: businessStrategyPalette.secondary, strokeWidth: 2, opacity: 0.7 } as Element,
+      // Pie chart with diverse color scheme
+      { id: nowId('pieGlass'), type: 'shape', x: M, y: 130, width: 380, height: 340, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 20, opacity: 0.9, shadow: true, shadowBlur: 20 } as Element,
+      { id: nowId('pieChart'), type: 'chart', x: M+30, y: 160, width: 320, height: 280, chartType: 'pie', chartData: {
+        title: 'Market Share Distribution',
+        labels: ['Our Solution', 'Competitor A', 'Competitor B', 'Others'],
+        datasets: [{
+          label: 'Market Share (%)',
+          data: [38, 28, 22, 12],
+          backgroundColor: [
+            businessStrategyPalette.accent,      // Teal for our solution
+            businessStrategyPalette.secondary,    // Blue for competitor A
+            '#FF6B6B',                           // Red for competitor B
+            '#95A5A6',                           // Gray for others
+          ],
+          borderColor: '#FFFFFF',
+          borderWidth: 3,
+        }],
+      } } as Element,
+      // Comparison table
+      { id: nowId('tableGlass'), type: 'shape', x: M+420, y: 130, width: 490, height: 340, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 20, opacity: 0.9, shadow: true, shadowBlur: 20 } as Element,
+      { id: nowId('table'), type: 'table', x: M+440, y: 150, width: 450, height: 300, rows: 5, cols: 4, tableData: [
+        ['Feature', 'Our Solution', 'Competitor A', 'Competitor B'],
+        ['Analytics', 'Advanced AI', 'Basic', 'Moderate'],
+        ['Integration', 'Seamless', 'Limited', 'Partial'],
+        ['Support', '24/7 Premium', 'Business Hours', 'Email Only'],
+        ['Pricing', 'Value-Based', 'High', 'Medium'],
+      ], themeId: 'keynote1', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', backgroundColor: 'transparent', color: businessStrategyPalette.white, header: true, headerBg: businessStrategyPalette.accent, headerTextColor: businessStrategyPalette.white, rowAltBg: 'rgba(255,255,255,0.05)', cellPadding: 14, cellTextAlign: 'center' } as Element,
+    ],
+    background: `radial-gradient(1000px 600px at 70% 30%, ${businessStrategyPalette.gradientStart}, ${businessStrategyPalette.primary})`,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+  });
+
+  // 6. Financial Tables — multiple tables with varied themes and professional numeric formatting
+  slides.push({
+    id: `bs-${now}-6`,
+    elements: [
+      // Title
+      { id: nowId('title'), type: 'text', x: M, y: M, width: W-2*M, height: 60, text: 'Financial Overview Tables', fontSize: 52, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, letterSpacing: 0.3, shadow: true, shadowBlur: 6 } as Element,
+      { id: nowId('underline'), type: 'shape', x: M, y: M+58, width: 360, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 2 } as Element,
+
+      // Glass container background
+      { id: nowId('glass'), type: 'shape', x: M, y: 120, width: W-2*M, height: 340, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 20, opacity: 0.92, shadow: true, shadowBlur: 20 } as Element,
+
+      // Table 1: Revenue by Region (Keynote Green theme)
+      { id: nowId('table1'), type: 'table', x: M+24, y: 140, width: (W-2*M)/2-36, height: 300, rows: 6, cols: 3, tableData: [
+        ['Region','FY 2023','FY 2024'],
+        ['Americas', '$12,450,000', '$14,900,000'],
+        ['EMEA', '$8,320,000', '$9,780,000'],
+        ['APAC', '$6,110,000', '$7,950,000'],
+        ['LATAM', '$1,980,000', '$2,340,000'],
+        ['Total', '$28,860,000', '$34,970,000'],
+      ], themeId: 'keynote3', header: true, headerBg: '#10B981', headerTextColor: '#FFFFFF', rowAltBg: 'rgba(255,255,255,0.05)', backgroundColor: 'transparent', color: businessStrategyPalette.white, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', cellPadding: 14, cellTextAlign: 'right', fontFamily: bodyFont, fontSize: 18 } as Element,
+
+      // Table 2: KPI Snapshot (Royal Purple theme)
+      { id: nowId('table2'), type: 'table', x: M + (W-2*M)/2 + 12, y: 140, width: (W-2*M)/2-36, height: 300, rows: 6, cols: 3, tableData: [
+        ['Metric','Q3 2024','Change'],
+        ['Gross Margin', '62%', '+3.5%'],
+        ['Net Retention', '118%', '+5.0%'],
+        ['CAC Payback', '7 mo', '−1 mo'],
+        ['NPS', '68', '+6'],
+        ['ARR', '$42,300,000', '+38%'],
+      ], themeId: 'keynote5', header: true, headerBg: '#8B5CF6', headerTextColor: '#FFFFFF', rowAltBg: 'rgba(255,255,255,0.05)', backgroundColor: 'transparent', color: businessStrategyPalette.white, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', cellPadding: 14, cellTextAlign: 'center', fontFamily: bodyFont, fontSize: 18 } as Element,
+    ],
+    background: `radial-gradient(1200px 700px at 50% 50%, ${businessStrategyPalette.gradientStart}, ${businessStrategyPalette.primary})`,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+  });
+
+  // 7. Timeline - Horizontal timeline with glass milestones and decorative bubbles
+  slides.push({
+    id: `bs-${now}-7`,
+    elements: [
+      { id: nowId('title'), type: 'text', x: M, y: M, width: W-2*M, height: 60, text: 'Strategic Roadmap 2025', fontSize: 52, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.primary, letterSpacing: 0.3 } as Element,
+      { id: nowId('underline'), type: 'shape', x: M, y: M+58, width: 300, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 2 } as Element,
+      // Decorative bubbles
+      { id: nowId('bubble1'), type: 'shape', x: 60, y: 100, width: 50, height: 50, shapeType: 'circle', fill: 'rgba(0,191,166,0.25)', stroke: businessStrategyPalette.accent, strokeWidth: 2, opacity: 0.7 } as Element,
+      { id: nowId('bubble2'), type: 'shape', x: 850, y: 80, width: 45, height: 45, shapeType: 'circle', fill: 'rgba(31,71,136,0.25)', stroke: businessStrategyPalette.secondary, strokeWidth: 2, opacity: 0.7 } as Element,
+      { id: nowId('bubble3'), type: 'shape', x: 880, y: 140, width: 40, height: 40, shapeType: 'circle', fill: 'rgba(255,107,107,0.25)', stroke: '#FF6B6B', strokeWidth: 2, opacity: 0.7 } as Element,
+      // Timeline line
+      { id: nowId('timeline'), type: 'shape', x: M+40, y: 280, width: W-2*M-80, height: 6, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 3, shadow: true, shadowBlur: 8 } as Element,
+      // Timeline milestones (4 quarters) with different colored bubbles
+      ...['Q1', 'Q2', 'Q3', 'Q4'].map((q, i) => {
+        const xPos = M+80 + i*220;
+        const milestoneColors = [
+          businessStrategyPalette.accent,      // Teal for Q1
+          businessStrategyPalette.secondary,    // Blue for Q2
+          '#FF6B6B',                          // Red for Q3
+          '#F39C12',                          // Orange for Q4
+        ];
+        return [
+          // Glass circle with colored border
+          { id: nowId(`dot${i}`), type: 'shape', x: xPos-18, y: 262, width: 36, height: 36, shapeType: 'circle', fill: businessStrategyPalette.glassBg, stroke: milestoneColors[i], strokeWidth: 3, opacity: 0.95, shadow: true, shadowBlur: 12 } as Element,
+          // Inner colored dot
+          { id: nowId(`inner${i}`), type: 'shape', x: xPos-8, y: 272, width: 16, height: 16, shapeType: 'circle', fill: milestoneColors[i], stroke: 'none' } as Element,
+          // Label
+          { id: nowId(`label${i}`), type: 'text', x: xPos-60, y: 310, width: 120, height: 50, text: q, fontSize: 24, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.primary, textAlign: 'center' } as Element,
+          // Description
+          { id: nowId(`desc${i}`), type: 'text', x: xPos-60, y: 360, width: 120, height: 60, text: i === 0 ? 'Launch' : i === 1 ? 'Scale' : i === 2 ? 'Optimize' : 'Expand', fontSize: 16, fontWeight: '500', fontFamily: bodyFont, color: businessStrategyPalette.dark, textAlign: 'center', lineHeight: 1.4 } as Element,
+        ];
+      }).flat(),
+    ],
+    background: `linear-gradient(180deg, ${businessStrategyPalette.white}, ${businessStrategyPalette.light})`,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+  });
+
+  // 8. Image Showcase - Gallery with glass cards, images, and decorative bubbles
+  slides.push({
+    id: `bs-${now}-8`,
+    elements: [
+      { id: nowId('title'), type: 'text', x: M, y: M, width: W-2*M, height: 60, text: 'Portfolio Showcase', fontSize: 52, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, letterSpacing: 0.3, shadow: true, shadowBlur: 6, opacity: 0.98 } as Element,
+      { id: nowId('underline'), type: 'shape', x: M, y: M+58, width: 220, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 2 } as Element,
+      // Decorative bubbles around the title
+      { id: nowId('bubble1'), type: 'shape', x: 60, y: 80, width: 50, height: 50, shapeType: 'circle', fill: 'rgba(0,191,166,0.3)', stroke: businessStrategyPalette.accent, strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble2'), type: 'shape', x: 850, y: 70, width: 45, height: 45, shapeType: 'circle', fill: 'rgba(31,71,136,0.3)', stroke: businessStrategyPalette.secondary, strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble3'), type: 'shape', x: 880, y: 120, width: 35, height: 35, shapeType: 'circle', fill: 'rgba(255,107,107,0.25)', stroke: '#FF6B6B', strokeWidth: 2, opacity: 0.8 } as Element,
+      // Three glass showcase cards with image placeholders
+      ...[0, 1, 2].map((i) => {
+        const cardW = (W-2*M-40) / 3;
+        const xPos = M + i*(cardW+20);
+        const imageColors = [
+          { fill: 'rgba(0,191,166,0.25)', stroke: businessStrategyPalette.accent },
+          { fill: 'rgba(31,71,136,0.25)', stroke: businessStrategyPalette.secondary },
+          { fill: 'rgba(255,107,107,0.25)', stroke: '#FF6B6B' },
+        ];
+        return [
+          // Glass card
+          { id: nowId(`card${i}`), type: 'shape', x: xPos, y: 130, width: cardW, height: 300, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 20, opacity: 0.9, shadow: true, shadowBlur: 20 } as Element,
+          // Image placeholder with gradient background
+          { id: nowId(`img${i}`), type: 'shape', x: xPos+15, y: 150, width: cardW-30, height: 180, shapeType: 'rounded-rectangle', fill: imageColors[i].fill, stroke: imageColors[i].stroke, strokeWidth: 2, borderRadius: 12, shadow: true, shadowBlur: 10 } as Element,
+          // Decorative circle inside image area
+          { id: nowId(`imgCircle${i}`), type: 'shape', x: xPos+cardW/2-25, y: 220, width: 50, height: 50, shapeType: 'circle', fill: imageColors[i].stroke, stroke: 'rgba(255,255,255,0.5)', strokeWidth: 2, opacity: 0.6 } as Element,
+          // Title
+          { id: nowId(`title${i}`), type: 'text', x: xPos+15, y: 350, width: cardW-30, height: 30, text: i === 0 ? 'Project Alpha' : i === 1 ? 'Project Beta' : 'Project Gamma', fontSize: 20, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, textAlign: 'center' } as Element,
+          // Description
+          { id: nowId(`desc${i}`), type: 'text', x: xPos+15, y: 385, width: cardW-30, height: 35, text: i === 0 ? 'Strategic Initiative' : i === 1 ? 'Market Expansion' : 'Innovation Lab', fontSize: 14, fontWeight: '400', fontFamily: bodyFont, color: 'rgba(255,255,255,0.8)', textAlign: 'center' } as Element,
+        ];
+      }).flat(),
+    ],
+    background: `radial-gradient(1000px 600px at 50% 50%, ${businessStrategyPalette.gradientStart}, ${businessStrategyPalette.primary})`,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+  });
+
+  // 9. Key Metrics - Cards with glass, decorative bubbles, and enhanced bar chart
+  slides.push({
+    id: `bs-${now}-9`,
+    elements: [
+      { id: nowId('title'), type: 'text', x: M, y: M, width: W-2*M, height: 60, text: 'Key Performance Metrics', fontSize: 52, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, letterSpacing: 0.3, shadow: true, shadowBlur: 8 } as Element,
+      { id: nowId('underline'), type: 'shape', x: M, y: M+58, width: 320, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 2 } as Element,
+      // Decorative bubbles
+      { id: nowId('bubble1'), type: 'shape', x: 60, y: 80, width: 55, height: 55, shapeType: 'circle', fill: 'rgba(0,191,166,0.3)', stroke: businessStrategyPalette.accent, strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble2'), type: 'shape', x: 850, y: 70, width: 50, height: 50, shapeType: 'circle', fill: 'rgba(31,71,136,0.3)', stroke: businessStrategyPalette.secondary, strokeWidth: 2, opacity: 0.8 } as Element,
+      { id: nowId('bubble3'), type: 'shape', x: 880, y: 130, width: 40, height: 40, shapeType: 'circle', fill: 'rgba(255,107,107,0.25)', stroke: '#FF6B6B', strokeWidth: 2, opacity: 0.8 } as Element,
+      // Metric cards (4 cards) with colored bubbles
+      ...[['Revenue', '$42M'], ['Growth', '+38%'], ['Clients', '1,240'], ['Satisfaction', '4.9★']].map((pair, i) => {
+        const cardW = (W-2*M-60) / 4;
+        const xPos = M + i*(cardW+20);
+        const bubbleColors = [
+          businessStrategyPalette.accent,
+          businessStrategyPalette.secondary,
+          '#FF6B6B',
+          '#F39C12',
+        ];
+        return [
+          // Glass metric card
+          { id: nowId(`metricCard${i}`), type: 'shape', x: xPos, y: 130, width: cardW, height: 140, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 16, opacity: 0.9, shadow: true, shadowBlur: 15 } as Element,
+          // Colored bubble indicator
+          { id: nowId(`bubble${i}`), type: 'shape', x: xPos+cardW/2-15, y: 145, width: 30, height: 30, shapeType: 'circle', fill: bubbleColors[i], stroke: 'rgba(255,255,255,0.5)', strokeWidth: 2, opacity: 0.9 } as Element,
+          // Label
+          { id: nowId(`label${i}`), type: 'text', x: xPos+10, y: 150, width: cardW-20, height: 30, text: pair[0], fontSize: 16, fontWeight: '600', fontFamily: bodyFont, color: 'rgba(255,255,255,0.9)', textAlign: 'center' } as Element,
+          // Value
+          { id: nowId(`value${i}`), type: 'text', x: xPos+10, y: 180, width: cardW-20, height: 60, text: pair[1], fontSize: 36, fontWeight: 'bold', fontFamily: titleFont, color: bubbleColors[i], textAlign: 'center', letterSpacing: 0.3 } as Element,
+        ];
+      }).flat(),
+      // Enhanced bar chart in glass container with diverse color scheme
+      { id: nowId('chartGlass'), type: 'shape', x: M, y: 300, width: W-2*M, height: 170, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 1, borderRadius: 20, opacity: 0.9, shadow: true, shadowBlur: 20 } as Element,
+      { id: nowId('chart'), type: 'chart', x: M+30, y: 330, width: W-2*M-60, height: 110, chartType: 'bar', chartData: {
+        title: 'Quarterly Performance',
+        labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+        datasets: [
+          { label: 'Revenue ($M)', data: [8.5, 10.2, 12.8, 15.3], backgroundColor: businessStrategyPalette.accent, borderColor: businessStrategyPalette.accent, borderRadius: 8, borderWidth: 0 },
+          { label: 'Target ($M)', data: [9, 11, 13, 16], backgroundColor: businessStrategyPalette.secondary, borderColor: businessStrategyPalette.secondary, borderRadius: 8, borderWidth: 0 },
+          { label: 'Expenses ($M)', data: [4.2, 4.8, 5.5, 6.1], backgroundColor: '#FF6B6B', borderColor: '#FF6B6B', borderRadius: 8, borderWidth: 0 },
+        ],
+      } } as Element,
+    ],
+    background: `linear-gradient(135deg, ${businessStrategyPalette.primary}, ${businessStrategyPalette.secondary})`,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+  });
+
+  // 10. Thank-You - Premium closing slide
+  slides.push({
+    id: `bs-${now}-10`,
+    elements: [
+      // Large glass container
+      { id: nowId('thankGlass'), type: 'shape', x: M, y: 150, width: W-2*M, height: 240, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.glassBg, stroke: businessStrategyPalette.glassBorder, strokeWidth: 2, borderRadius: 28, opacity: 0.95, shadow: true, shadowBlur: 30 } as Element,
+      // Thank you title
+      { id: nowId('thankTitle'), type: 'text', x: M+40, y: 200, width: W-2*M-80, height: 80, text: 'Thank You', fontSize: 76, fontWeight: 'bold', fontFamily: titleFont, color: businessStrategyPalette.white, textAlign: 'center', letterSpacing: 1, shadow: true, shadowBlur: 12 } as Element,
+      // Subtitle
+      { id: nowId('thankSub'), type: 'text', x: M+40, y: 290, width: W-2*M-80, height: 50, text: 'Let\'s build the future together', fontSize: 28, fontWeight: '500', fontFamily: bodyFont, color: 'rgba(255,255,255,0.9)', textAlign: 'center', letterSpacing: 0.5 } as Element,
+      // Accent decorations
+      { id: nowId('accent1'), type: 'shape', x: M+200, y: 360, width: 100, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 2 } as Element,
+      { id: nowId('accent2'), type: 'shape', x: M+660, y: 360, width: 100, height: 4, shapeType: 'rounded-rectangle', fill: businessStrategyPalette.accent, borderRadius: 2 } as Element,
+    ],
+    background: `radial-gradient(1200px 800px at 50% 50%, ${businessStrategyPalette.gradientStart}, ${businessStrategyPalette.primary})`,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+  });
+
+  return slides;
+}
 
 export const presentationThemes: PresentationTheme[] = [
   {
@@ -378,9 +723,9 @@ export const presentationThemes: PresentationTheme[] = [
   {
     id: 'business-strategy',
     name: 'Business Strategy',
-    description: 'Professional, minimal, data‑driven corporate strategy deck (10 slides).',
-    slides: buildBusinessStrategySlides(),
-    palette: { primary: '#0A2540', accent: '#00BFA6', light: '#EAEAEA', white: '#FFFFFF' },
+    description: 'Premium Apple Keynote-grade business strategy deck with glass overlays, radial gradients, and professional data visuals (10 slides).',
+    slides: createPremiumBusinessStrategy(),
+    palette: businessStrategyPalette,
     thumbnail: null,
   },
 ];

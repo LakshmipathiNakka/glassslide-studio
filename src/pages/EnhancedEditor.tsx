@@ -356,7 +356,6 @@ const EnhancedEditor = () => {
       {/* Toolbar */}
       <Toolbar
         onAddText={handleAddText}
-        onAddImage={handleAddImage}
         onAddShape={handleAddShape}
         onAddChart={handleAddChart}
         onAddTable={handleAddTable}
@@ -493,7 +492,6 @@ const EnhancedEditor = () => {
           isOpen={commandPaletteOpen}
           onClose={() => setCommandPaletteOpen(false)}
           onAddText={handleAddText}
-          onAddImage={handleAddImage}
           onAddShape={handleAddShape}
           onAddChart={handleAddChart}
           onAddTable={handleAddTable}

@@ -66,7 +66,10 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
       }
 
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // Only set crossOrigin for http(s) URLs; blob: and data: should not set it
+      if (/^https?:/i.test(src)) {
+        img.crossOrigin = 'anonymous';
+      }
       img.onload = () => {
         setImageCache(prev => new Map(prev).set(src, img));
         resolve(img);
@@ -471,8 +474,10 @@ const ThumbnailCanvas: React.FC<ThumbnailCanvasProps> = ({
             fill={slide.background || '#ffffff'}
           />
           
-          {/* Elements */}
-          {slide.elements.map((element, index) => renderElement(element, index))}
+          {/* Elements (zIndex order) */}
+          {[...slide.elements]
+            .sort((a: any, b: any) => (a.zIndex ?? 0) - (b.zIndex ?? 0))
+            .map((element, index) => renderElement(element, index))}
         </Layer>
       </Stage>
     </div>
@@ -499,7 +504,7 @@ const ChartElement: React.FC<{
           y={y}
           width={width}
           height={height}
-          fill={element.backgroundColor || '#f8f9fa'}
+          fill={'rgba(0,0,0,0)'}
           stroke={element.borderColor || '#0078d4'}
           strokeWidth={(element.borderWidth || 2) * scale}
           cornerRadius={(element.borderRadius || 8) * scale}
@@ -532,13 +537,13 @@ const ChartElement: React.FC<{
 
   return (
     <Group>
-      {/* Background */}
+      {/* Background (transparent to match editor) */}
       <Rect
         x={x}
         y={y}
         width={width}
         height={height}
-        fill={element.backgroundColor || '#f8f9fa'}
+        fill={'rgba(0,0,0,0)'}
         stroke={element.borderColor || '#0078d4'}
         strokeWidth={(element.borderWidth || 2) * scale}
         cornerRadius={(element.borderRadius || 8) * scale}
@@ -831,8 +836,9 @@ const ImageElement: React.FC<{
   const [image, setImage] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    if (element.imageUrl) {
-      loadImage(element.imageUrl)
+    const src = (element as any).imageUrl || (element as any).src || (element as any).content;
+    if (src) {
+      loadImage(src)
         .then(setImage)
         .catch(() => {
           setImage(null);
@@ -840,7 +846,7 @@ const ImageElement: React.FC<{
     } else {
       setImage(null);
     }
-  }, [element.imageUrl, loadImage]);
+  }, [element, loadImage]);
 
   // Use scaled coordinates to match other elements (Stage is also scaled)
   const dx = element.x * scale;
@@ -849,7 +855,8 @@ const ImageElement: React.FC<{
   const dh = element.height * scale;
   const borderRadius = (element as any).borderRadius || 0;
 
-  if (!image || !element.imageUrl) {
+  const elementSrc = (element as any).imageUrl || (element as any).src || (element as any).content;
+  if (!image || !elementSrc) {
     // Show placeholder for errors or missing images
     return (
       <Group>

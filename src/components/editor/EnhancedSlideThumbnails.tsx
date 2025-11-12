@@ -2,12 +2,54 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Plus, ChevronDown, Trash2, MoreVertical, PanelLeftClose, PanelLeftOpen, GripVertical } from 'lucide-react';
 import { EnhancedSlideThumbnailsProps, Slide, SlideAction } from '@/types/slide-thumbnails';
-import ThumbnailCanvas from './ThumbnailCanvas';
+import SlideRenderer from '@/components/shared/SlideRenderer';
 import SlideContextMenu from './SlideContextMenu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+
+// Responsive thumbnail renderer that fills available width and keeps 16:9 proportions
+const ResponsiveThumbnail: React.FC<{ slide: Slide; overrideElements?: any[] | null }> = ({ slide, overrideElements }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w > 0 && h > 0) {
+        const sx = w / 960;
+        const sy = h / 540;
+        setScale(Math.min(sx, sy));
+      } else if (w > 0) {
+        setScale(w / 960);
+      }
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="w-full h-full relative">
+      {scale !== null && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <SlideRenderer
+            slide={{ ...slide, elements: (overrideElements as any) ?? slide.elements } as any}
+            mode="thumbnail"
+            scale={scale}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Draggable Thumbnail Item
 const DraggableThumbnailItem: React.FC<{
@@ -91,15 +133,15 @@ const DraggableThumbnailItem: React.FC<{
       {isCollapsed ? (
         // Collapsed view - square thumbnail with live content
         <div className="w-full h-full rounded-lg relative overflow-hidden">
-          {/* Live slide content */}
-          <ThumbnailCanvas
-            slide={slide}
-            width={64}
-            height={64}
-            scale={0.08}
-            className="w-full h-full"
-            overrideElements={overrideElements as any}
-          />
+          {/* Live slide content via CSS-based renderer (letterboxed) */}
+          <div className="absolute inset-0 flex items-center justify-center bg-transparent">
+            <SlideRenderer
+              slide={{ ...slide, elements: (overrideElements as any) ?? slide.elements } as any}
+              mode="thumbnail"
+              scale={64 / 960}
+              className=""
+            />
+          </div>
           
           {/* Slide number overlay */}
           <div className="absolute top-1 left-1 w-5 h-5 bg-black/80 text-white text-[10px] rounded-full flex items-center justify-center font-semibold">
@@ -149,12 +191,13 @@ const DraggableThumbnailItem: React.FC<{
             {/* Thumbnail Canvas */}
             <div
               className={cn(
-                "relative bg-white dark:bg-gray-900 rounded-lg overflow-hidden cursor-pointer transition-all duration-200",
+                "relative bg-white dark:bg-gray-900 rounded-lg overflow-visible cursor-pointer transition-all duration-200",
                 "border border-gray-200 dark:border-gray-700",
                 "shadow-sm hover:shadow-md",
                 isActive 
                   ? "ring-2 ring-blue-500 ring-offset-1" 
-                  : "hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-600"
+                  : "hover:ring-1 hover:ring-gray-600",
+                "transition-[width] duration-300 ease-in-out"
               )}
               style={{
                 aspectRatio: "16 / 9",
@@ -162,18 +205,8 @@ const DraggableThumbnailItem: React.FC<{
                 height: "auto",
               }}
             >
-              <ThumbnailCanvas
-                slide={slide}
-                width={240}
-                height={135}
-                scale={0.25}
-                className="w-full h-full"
-                responsive
-                overrideElements={overrideElements as any}
-              />
+              <ResponsiveThumbnail slide={slide} overrideElements={overrideElements as any} />
               
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 dark:group-hover:bg-black/30 transition-colors duration-200" />
             </div>
           </div>
 
@@ -403,8 +436,8 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
       className={cn(
         "h-full flex flex-col bg-[#F5F5F5] dark:bg-gray-900/80",
         "border-r border-gray-200/70 dark:border-gray-800/70",
-        "transition-all duration-300 ease-in-out overflow-hidden",
-        isCollapsed ? 'w-20' : 'w-72',
+        "transition-[width] duration-300 ease-in-out overflow-hidden",
+        'w-full',
         'relative'
       )}
       onMouseEnter={() => setIsHovered(true)}

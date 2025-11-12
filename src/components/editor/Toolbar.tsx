@@ -1,4 +1,4 @@
-import { Type, Image, Shapes, BarChart3, Table, Save, Undo, Redo, Layout, Play, Palette, Home, Presentation, Edit, LayoutTemplate } from "lucide-react";
+import { Type, Shapes, BarChart3, Table, Save, Undo, Redo, Layout, Play, Palette, Home, Presentation, Edit, LayoutTemplate, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
@@ -7,7 +7,6 @@ import "@/styles/apple-button.css";
 
 interface ToolbarProps {
   onAddText: () => void;
-  onAddImage: () => void;
   onAddShape: () => void;
   onAddChart: () => void;
   onSave: () => void;
@@ -26,11 +25,12 @@ interface ToolbarProps {
   // Title props
   presentationTitle: string;
   onTitleChange: (newTitle: string) => void;
+  // Image insertion handler
+  onInsertImageFile: (file: File) => void;
 }
 
 export const Toolbar = ({
   onAddText,
-  onAddImage,
   onAddShape,
   onAddChart,
   onSave,
@@ -47,6 +47,7 @@ export const Toolbar = ({
   onZoomOut,
   presentationTitle,
   onTitleChange,
+  onInsertImageFile,
 }: ToolbarProps) => {
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -153,7 +154,7 @@ export const Toolbar = ({
             <Separator orientation="vertical" className="h-4 sm:h-6 mx-1 sm:mx-2" aria-hidden="true" />
 
             {/* Chart and Table Tools */}
-            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
               <Button
                 variant="ghost"
                 size={{ base: 'icon', sm: 'sm' }}
@@ -176,16 +177,35 @@ export const Toolbar = ({
                 <Table className="w-4 h-4" aria-hidden="true" />
               </Button>
 
+              {/* Insert Image */}
+              <input
+                id="toolbar-insert-image"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    onInsertImageFile(file);
+                    // Reset to allow re-selecting the same file
+                    e.currentTarget.value = '';
+                  }
+                }}
+              />
               <Button
                 variant="ghost"
                 size={{ base: 'icon', sm: 'sm' }}
-                onClick={onAddImage}
+                onClick={() => {
+                  const input = document.getElementById('toolbar-insert-image') as HTMLInputElement | null;
+                  input?.click();
+                }}
                 className="keynote-button h-8 w-8 sm:h-9 sm:w-auto sm:px-2"
-                title="Add Image"
-                aria-label="Add image element"
+                title="Insert Image"
+                aria-label="Insert Image"
               >
-                <Image className="w-4 h-4" aria-hidden="true" />
+                <ImageIcon className="w-4 h-4" aria-hidden="true" />
               </Button>
+
             </div>
           </div>
         </div>

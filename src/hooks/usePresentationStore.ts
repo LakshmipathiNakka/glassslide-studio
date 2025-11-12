@@ -449,18 +449,7 @@ export const usePresentationStore = create<PresentationStore>()(
         if (index >= 0 && index < state.deck!.slides.length) {
           const slide = state.deck!.slides[index];
           
-          // Extract image URLs from elements
-          slide.elements.forEach(element => {
-            if (element.type === 'image' && element.imageUrl) {
-              assets.push({
-                id: `${slide.id}-${element.id}`,
-                type: 'image',
-                url: element.imageUrl,
-                priority: index === state.currentSlideIndex ? 'high' : 'medium',
-                loaded: false,
-              });
-            }
-          });
+          // Image functionality removed: no image assets to preload
           
           // Background images
           if (slide.background.startsWith('url(')) {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Toolbar } from "@/components/editor/Toolbar";
 import SimplePowerPointCanvas from "@/components/canvas/SimplePowerPointCanvas";
 import { SlideThumbnails } from "@/components/editor/SlideThumbnails";
@@ -168,6 +168,45 @@ const Editor = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [shapeModalOpen, setShapeModalOpen] = useState(false);
   const [tableModalOpen, setTableModalOpen] = useState(false);
+
+  // Insert Image handler (Toolbar)
+  const handleInsertImageFile = useCallback((file: File) => {
+    try {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const SLIDE_W = 960;
+        const SLIDE_H = 540;
+        const targetW = Math.round(SLIDE_W * 0.45);
+        const aspect = img.width / img.height || 1;
+        const targetH = Math.max(1, Math.round(targetW / aspect));
+        const x = Math.round((SLIDE_W - targetW) / 2);
+        const y = Math.round((SLIDE_H - targetH) / 2);
+
+        const newElement: Element = {
+          id: `img-${Date.now()}`,
+          type: 'image',
+          x, y, width: targetW, height: targetH,
+          rotation: 0,
+          opacity: 1,
+          imageUrl: url as any,
+          // metadata
+          borderRadius: 0,
+        } as any;
+
+        const current = slides[currentSlide]?.elements || [];
+        const updated = [...current, newElement];
+        const newSlides = [...slides];
+        newSlides[currentSlide] = { ...newSlides[currentSlide], elements: updated } as any;
+        pushSlides(newSlides);
+        setSelectedElement(newElement);
+      };
+      img.src = url;
+    } catch (e) {
+      console.error('Failed to insert image:', e);
+      toast({ title: 'Insert Image', description: 'Could not load image', variant: 'destructive' });
+    }
+  }, [slides, currentSlide, pushSlides, setSelectedElement, toast]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [openDialogOpen, setOpenDialogOpen] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -903,6 +942,7 @@ const Editor = () => {
     }
   }, [slides, presentationTitle, toast]);
 
+
   // Show loader until loading is complete
   if (isLoading) {
     return <EditorLoader onLoadingComplete={() => setIsLoading(false)} />;
@@ -929,7 +969,6 @@ const Editor = () => {
         <div className="h-16">
           <Toolbar
             onAddText={handleAddText}
-            onAddImage={handleAddImage}
             onAddShape={handleAddShape}
             onAddChart={() => setChartPanelOpen(true)}
             onAddTable={handleAddTable}
@@ -946,6 +985,7 @@ const Editor = () => {
               setPresentationTitle(newTitle);
               document.title = `${newTitle} - GlassSlide`;
             }}
+            onInsertImageFile={handleInsertImageFile}
             isExporting={isExporting}
             zoom={zoom}
             onZoomIn={() => {
@@ -989,7 +1029,7 @@ const Editor = () => {
         </aside>
 
         {/* Desktop: Slide Thumbnails on left */}
-        <aside className="hidden lg:block w-[260px] shrink-0" role="complementary" aria-label="Slide thumbnails">
+        <aside className="hidden lg:block shrink-0 transition-[width] duration-300 ease-in-out lg:w-[220px] xl:w-[240px] 2xl:w-[280px]" role="complementary" aria-label="Slide thumbnails">
           <SlideThumbnails
             slides={slides}
             currentSlide={currentSlide}
@@ -1014,7 +1054,7 @@ const Editor = () => {
         {/* Main content area with canvas and sidebar */}
         <div className="flex-1 flex min-w-0 overflow-hidden">
           {/* Canvas Area - Takes remaining space */}
-          <div className="flex-1 min-w-0 flex items-center bg-[#f0f2f5] dark:bg-[#1e1e1e] overflow-auto p-4 px-12 transition-colors duration-300">
+          <div className="flex-1 min-w-0 flex items-center bg-[#f0f2f5] dark:bg-[#1e1e1e] overflow-auto p-4 px-12 transition-colors duration-300 transition-[width] ease-in-out">
             <section className="w-full h-full" aria-label="Presentation canvas">
               <SimplePowerPointCanvas
                   elements={currentElements}
