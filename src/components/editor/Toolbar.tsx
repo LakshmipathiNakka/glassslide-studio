@@ -1,7 +1,7 @@
 import { Type, Shapes, BarChart3, Table, Save, Undo, Redo, Layout, Play, Palette, Home, Presentation, Edit, LayoutTemplate, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import TemplateModal from "./TemplateModal";
 import "@/styles/apple-button.css";
 
@@ -49,28 +49,59 @@ export const Toolbar = ({
   onTitleChange,
   onInsertImageFile,
 }: ToolbarProps) => {
-  const [showTitleInput, setShowTitleInput] = useState(false);
+  const MAX_TITLE_LENGTH = 30;
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState(presentationTitle);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const handleApplyTemplate = (templateName: string) => {
-    // Emit a custom event that the Editor component can listen to
+    // Emit a custom event that the parent component can listen to
     const event = new CustomEvent('applyTemplate', { 
       detail: { templateName } 
     });
     window.dispatchEvent(event);
+    setShowTemplateModal(false);
   };
-  const [tempTitle, setTempTitle] = useState(presentationTitle);
 
   // Update tempTitle when presentationTitle changes from parent
   useEffect(() => {
     setTempTitle(presentationTitle);
   }, [presentationTitle]);
 
+  // Focus the input when editing starts
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value.length <= MAX_TITLE_LENGTH) {
+      setTempTitle(e.target.value);
+    }
+  };
+
+  const handleTitleBlur = () => {
+    onTitleChange(tempTitle);
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      onTitleChange(tempTitle);
+      setIsEditingTitle(false);
+    } else if (e.key === 'Escape') {
+      setTempTitle(presentationTitle);
+      setIsEditingTitle(false);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between w-full px-3 py-1 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 border-b border-gray-200 h-16" role="toolbar" aria-label="Editor tools">
-      {/* LEFT ZONE */}
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        {/* Logo + Brand - Clickable */}
+      {/* LEFT ZONE - Navigation, History & Zoom */}
+      <div className="flex items-center gap-2">
+        {/* Logo + Brand */}
         <button 
           onClick={onHomeClick}
           className="flex items-center gap-2 flex-shrink-0 group"
@@ -89,165 +120,12 @@ export const Toolbar = ({
           </span>
         </button>
 
-        {/* Editing Tools */}
-        <div className="flex items-center gap-1 flex-wrap justify-center flex-1">
-          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-            <div className="flex items-center gap-0.5 sm:gap-1">
-            </div>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onUndo}
-              disabled={!canUndo}
-              className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
-              title="Undo (Ctrl+Z)"
-              aria-label="Undo last action"
-            >
-              <Undo className="w-4 h-4" aria-hidden="true" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onRedo}
-              disabled={!canRedo}
-              className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
-              title="Redo (Ctrl+Y)"
-              aria-label="Redo last undone action"
-            >
-              <Redo className="w-4 h-4" aria-hidden="true" />
-            </Button>
-
-            <Separator orientation="vertical" className="h-5 sm:h-6 mx-0.5 sm:mx-1" aria-hidden="true" />
-            
-            {/* Text Tools */}
-            <div className="flex items-center space-fluid-xs">
-              <Button
-                variant="ghost"
-                size={{ base: 'icon', sm: 'sm' }}
-                onClick={onAddText}
-                className="keynote-button h-8 w-8 sm:h-9 sm:w-auto sm:px-2"
-                title="Add Text"
-                aria-label="Add text element"
-              >
-                <Type className="w-4 h-4" aria-hidden="true" />
-              </Button>
-            </div>
-
-            <Separator orientation="vertical" className="h-4 sm:h-6 mx-1 sm:mx-2" aria-hidden="true" />
-
-            {/* Shape Tools */}
-            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size={{ base: 'icon', sm: 'sm' }}
-                onClick={onAddShape}
-                className="keynote-button h-8 w-8 sm:h-9 sm:w-auto sm:px-2"
-                title="Add Shape"
-                aria-label="Add shape element"
-              >
-                <Shapes className="w-4 h-4" aria-hidden="true" />
-              </Button>
-            </div>
-
-            <Separator orientation="vertical" className="h-4 sm:h-6 mx-1 sm:mx-2" aria-hidden="true" />
-
-            {/* Chart and Table Tools */}
-        <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size={{ base: 'icon', sm: 'sm' }}
-                onClick={onAddChart}
-                className="keynote-button h-8 w-8 sm:h-9 sm:w-auto sm:px-2"
-                title="Add Chart"
-                aria-label="Add chart element"
-              >
-                <BarChart3 className="w-4 h-4" aria-hidden="true" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size={{ base: 'icon', sm: 'sm' }}
-                onClick={onAddTable}
-                className="keynote-button h-8 w-8 sm:h-9 sm:w-auto sm:px-2"
-                title="Add Table"
-                aria-label="Add table element"
-              >
-                <Table className="w-4 h-4" aria-hidden="true" />
-              </Button>
-
-              {/* Insert Image */}
-              <input
-                id="toolbar-insert-image"
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    onInsertImageFile(file);
-                    // Reset to allow re-selecting the same file
-                    e.currentTarget.value = '';
-                  }
-                }}
-              />
-              <Button
-                variant="ghost"
-                size={{ base: 'icon', sm: 'sm' }}
-                onClick={() => {
-                  const input = document.getElementById('toolbar-insert-image') as HTMLInputElement | null;
-                  input?.click();
-                }}
-                className="keynote-button h-8 w-8 sm:h-9 sm:w-auto sm:px-2"
-                title="Insert Image"
-                aria-label="Insert Image"
-              >
-                <ImageIcon className="w-4 h-4" aria-hidden="true" />
-              </Button>
-
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* CENTER ZONE (Zoom Controls) */}
-      <div className="flex items-center justify-center flex-1">
-        <div className="flex items-center gap-2 bg-white/70 backdrop-blur-md rounded-full px-3 py-1 border border-gray-200 shadow-sm">
-          <button
-            onClick={onZoomOut}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-50 to-gray-200 hover:from-gray-100 hover:to-gray-300 active:scale-95 transition-all"
-            aria-label="Zoom out"
-            title="Zoom out"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
-            </svg>
-          </button>
-          <span className="text-sm font-medium text-gray-700 w-10 text-center select-none">
-            {Math.round((zoom || 1) * 100)}%
-          </span>
-          <button
-            onClick={onZoomIn}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-50 to-gray-200 hover:from-gray-100 hover:to-gray-300 active:scale-95 transition-all"
-            aria-label="Zoom in"
-            title="Zoom in"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* RIGHT ZONE */}
-      <div className="flex items-center justify-end gap-2 flex-1 min-w-0">
         <Button 
           variant="ghost" 
           size="sm" 
           onClick={onOpen} 
           title="Open Project"
-          className="gap-1"
+          className="h-8 w-8 p-0 sm:w-auto sm:px-2 ml-2"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -261,95 +139,242 @@ export const Toolbar = ({
           >
             <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" />
           </svg>
-          <span className="hidden sm:inline">Open</span>
+          <span className="hidden sm:inline ml-1">Open</span>
         </Button>
 
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={onSave} 
-          title="Save Project"
-          className="gap-1"
-        >
-          <Save className="w-4 h-4" />
-          <span className="hidden sm:inline">Save</span>
-        </Button>
+        <Separator orientation="vertical" className="h-6 mx-1" aria-hidden="true" />
 
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={onPresent} 
-          title="Present" 
-          className="gap-1"
-        >
-          <Play className="w-4 h-4" />
-          <span className="hidden sm:inline">Present</span>
-        </Button>
+        {/* Undo/Redo */}
+        <div className="flex items-center bg-white/50 dark:bg-gray-800/50 rounded-lg p-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onUndo}
+            disabled={!canUndo}
+            className={`h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${!canUndo ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title="Undo (Ctrl+Z)"
+            aria-label="Undo last action"
+          >
+            <Undo className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onRedo}
+            disabled={!canRedo}
+            className={`h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${!canRedo ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title="Redo (Ctrl+Y)"
+            aria-label="Redo last undone action"
+          >
+            <Redo className="w-4 h-4" />
+          </Button>
+        </div>
 
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => setShowTemplateModal(true)} 
-          title="Templates" 
-          className="gap-1"
-        >
-          <LayoutTemplate className="w-4 h-4" />
-          <span className="hidden sm:inline">Template</span>
-        </Button>
+        <Separator orientation="vertical" className="h-6 mx-1" aria-hidden="true" />
 
-        <div className="h-6 w-px bg-gray-300 mx-1" aria-hidden="true"></div>
+        {/* Zoom Controls */}
+        <div className="flex items-center bg-white/70 backdrop-blur-md rounded-full px-2 border border-gray-200 shadow-sm">
+          <button
+            onClick={onZoomOut}
+            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-full"
+            aria-label="Zoom out"
+            title="Zoom out"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
+            </svg>
+          </button>
+          <span className="text-sm font-medium text-gray-700 w-12 text-center select-none">
+            {Math.round((zoom || 1) * 100)}%
+          </span>
+          <button
+            onClick={onZoomIn}
+            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-full"
+            aria-label="Zoom in"
+            title="Zoom in"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
-        <div className="relative group">
-          <div className="relative group flex items-center">
-            <button
-              onClick={() => {
-                setShowTitleInput(true);
-                setTempTitle(presentationTitle);
-              }}
-              className="
-                flex items-center gap-2 text-sm font-medium text-foreground
-                hover:bg-gray-100 dark:hover:bg-gray-800
-                rounded px-3 py-1.5
-                transition-all duration-200
-                border border-gray-300 dark:border-gray-600 hover:border-foreground
-                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary
-                whitespace-nowrap overflow-hidden text-ellipsis
-                max-w-[220px] sm:max-w-[260px] md:max-w-[320px]
-                mr-4
-              "
-              title="Click to edit presentation title"
-              aria-label="Edit presentation title"
-            >
-              <span className="truncate">{presentationTitle || 'Untitled Presentation'}</span>
-              <Edit className="w-3.5 h-3.5 opacity-0 group-hover:opacity-70 transition-opacity" />
-            </button>
-          </div>
+      {/* CENTER ZONE - Content Creation Tools */}
+      <div className="flex-1 flex justify-center px-4">
+        <div className="flex items-center gap-1 bg-white/50 rounded-lg p-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onAddText}
+            className="h-8 w-8 p-0 flex items-center justify-center"
+            title="Add Text"
+            aria-label="Add text element"
+          >
+            <Type className="w-4 h-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onAddShape}
+            className="h-8 w-8 p-0 flex items-center justify-center"
+            title="Add Shape"
+            aria-label="Add shape element"
+          >
+            <Shapes className="w-4 h-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onAddChart}
+            className="h-8 w-8 p-0 flex items-center justify-center"
+            title="Add Chart"
+            aria-label="Add chart element"
+          >
+            <BarChart3 className="w-4 h-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onAddTable}
+            className="h-8 w-8 p-0 flex items-center justify-center"
+            title="Add Table"
+            aria-label="Add table element"
+          >
+            <Table className="w-4 h-4" />
+          </Button>
+
+          <input
+            id="toolbar-insert-image"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                onInsertImageFile(file);
+                e.currentTarget.value = '';
+              }
+            }}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => document.getElementById('toolbar-insert-image')?.click()}
+            className="h-8 w-8 p-0 flex items-center justify-center"
+            title="Add Image"
+            aria-label="Add Image"
+          >
+            <ImageIcon className="w-4 h-4" />
+          </Button>
           
-          {showTitleInput && (
-            <div className="absolute top-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 p-1">
-              <div className="flex items-center">
+          <Button 
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowTemplateModal(true)}
+            className="h-8 w-8 p-0 flex items-center justify-center"
+            title="Add Template"
+            aria-label="Add Template"
+          >
+            <LayoutTemplate className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* RIGHT ZONE - Actions */}
+      <div className="flex items-center gap-2">
+
+        <Separator orientation="vertical" className="h-6 mx-1" aria-hidden="true" />
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onPresent} 
+            title="Present"
+            className="h-8 w-8 p-0 sm:w-auto sm:px-2 order-1"
+          >
+            <Play className="w-4 h-4" />
+            <span className="hidden sm:inline ml-1">Present</span>
+          </Button>
+          
+          <div className="relative group w-[200px] mx-2 order-2">
+            {isEditingTitle ? (
+              <div className="relative w-full">
                 <input
+                  ref={titleInputRef}
                   type="text"
                   value={tempTitle}
-                  onChange={(e) => setTempTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      onTitleChange(tempTitle);
-                      setShowTitleInput(false);
-                    } else if (e.key === 'Escape') {
-                      setShowTitleInput(false);
-                    }
-                  }}
-                  onBlur={() => {
-                    onTitleChange(tempTitle);
-                    setShowTitleInput(false);
-                  }}
+                  onChange={handleTitleChange}
+                  onKeyDown={handleTitleKeyDown}
+                  onBlur={handleTitleBlur}
                   autoFocus
-                  className="flex-1 px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                  maxLength={MAX_TITLE_LENGTH}
+                  className={`
+                    w-full h-8 px-2 pr-12 py-1 text-sm font-medium 
+                    bg-white dark:bg-gray-800 
+                    border border-primary rounded 
+                    transition-all duration-200 ease-in-out
+                    focus:outline-none 
+                    focus:ring-2 focus:ring-primary/50 
+                    focus:border-primary 
+                    shadow-sm hover:shadow-md 
+                    focus:shadow-lg focus:shadow-primary/20
+                    overflow-hidden text-ellipsis
+                  `}
+                  style={{
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '200px',
+                    minWidth: '120px',
+                    paddingRight: '3.5rem'
+                  }}
                 />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">
+                  {tempTitle.length}/{MAX_TITLE_LENGTH}
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <button
+                onClick={() => {
+                  setTempTitle(presentationTitle);
+                  setIsEditingTitle(true);
+                }}
+                className={`
+                  w-full h-8 px-2 py-1 text-sm font-medium text-left
+                  hover:bg-gray-100 dark:hover:bg-gray-800 rounded
+                  transition-all duration-200 ease-in-out
+                  border border-gray-200 dark:border-gray-600 
+                  hover:border-primary/50 dark:hover:border-primary/50
+                  focus:outline-none 
+                  focus:ring-2 focus:ring-primary/50 
+                  focus:border-primary
+                  shadow-sm hover:shadow-md
+                  flex items-center justify-between
+                `}
+                title={presentationTitle || 'Untitled Presentation'}
+                aria-label="Edit presentation title"
+              >
+                <span className="truncate flex-1 text-left">{presentationTitle || 'Untitled Presentation'}</span>
+                <Edit className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 opacity-70 flex-shrink-0 ml-2" />
+              </button>
+            )}
+          </div>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onSave} 
+            title="Save"
+            className="h-8 w-8 p-0 sm:w-auto sm:px-2 order-3"
+          >
+            <Save className="w-4 h-4" />
+            <span className="hidden sm:inline ml-1">Save</span>
+          </Button>
         </div>
       </div>
 

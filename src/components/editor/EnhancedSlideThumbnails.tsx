@@ -474,7 +474,7 @@ const EnhancedSlideThumbnails: React.FC<EnhancedSlideThumbnailsProps> = ({
           )}>
             <LayoutGroup>
               <AnimatePresence initial={false}>
-                {slides.map((slide, index) => {
+                {slides.filter(slide => slide && slide.id).map((slide, index) => {
                   // Calculate a subtle parallax effect based on scroll position and index
                   const parallaxOffset = Math.min(20, Math.max(-20, (index / slides.length - scrollPosition) * 40));
                   

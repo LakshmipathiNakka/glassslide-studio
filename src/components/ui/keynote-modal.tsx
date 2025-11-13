@@ -65,17 +65,22 @@ export const KeynoteModal: React.FC<KeynoteModalProps> = ({
   const modal = (
     <AnimatePresence>
       {isOpen && (
-        <motion.div className="fixed inset-0 z-[1000]">
-          {/* Dimmed, blurred backdrop */}
+        <motion.div className="fixed inset-0 z-[1000] overflow-hidden">
+          {/* Enhanced blurred backdrop with gradient overlay */}
           <motion.div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             variants={modalBackdrop}
             initial="hidden"
             animate="visible"
             exit="exit"
             onClick={onClose}
             aria-hidden="true"
-          />
+          >
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5" />
+            {/* Subtle noise texture */}
+            <div className="absolute inset-0 opacity-5 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSJ3aGl0ZSI+PC9yZWN0Pgo8cGF0aCBkPSJNMCA0TDEgM0w0IDRMNCAzTDMgNEw0IDRMNCAwTDMgMUw0IDBMMCA0WiIgZmlsbD0icmdiYSgwLDAsMCwwLjA1KSIvPgo8L3N2Zz4=')]" />
+          </motion.div>
 
           {/* Centered panel */}
           <div className="absolute inset-0 flex items-center justify-center p-4">
@@ -91,13 +96,7 @@ export const KeynoteModal: React.FC<KeynoteModalProps> = ({
               animate="visible"
               exit="exit"
             >
-              <div
-                className="relative overflow-hidden rounded-2xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.25)]"
-                style={{
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)'
-                }}
-              >
+              <div className="relative overflow-hidden rounded-2xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.25)] bg-white/60 dark:bg-gray-800/40 backdrop-blur-xl">
                 <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-white/20 dark:from-white/10 dark:to-white/5" />
                 <div className="relative">
                 {/* Header */}

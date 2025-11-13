@@ -105,6 +105,20 @@ const shapeDefinitions: Array<{
 
 const ShapeModal: React.FC<ShapeModalProps> = ({ isOpen, onClose, onSelectShape }) => {
   const [hoveredShape, setHoveredShape] = useState<ShapeType | null>(null);
+  
+  // Creative descriptions with color-coded highlights
+  const headerDescription = (
+    <span>
+      Transform your slides with <span className="text-blue-600 dark:text-blue-400">geometric precision</span> and <span className="text-emerald-600 dark:text-emerald-400">creative flair</span>
+    </span>
+  );
+  
+  const footerDescription = (
+    <span>
+      Every great presentation starts with the <span className="text-blue-600 dark:text-blue-400 font-medium">perfect shape</span>. 
+      Choose wisely and let your ideas <span className="text-emerald-600 dark:text-emerald-400 font-medium">take form</span>.
+    </span>
+  );
 
   const handleShapeSelect = (shapeType: ShapeType) => {
     onSelectShape(shapeType);
@@ -138,13 +152,16 @@ const ShapeModal: React.FC<ShapeModalProps> = ({ isOpen, onClose, onSelectShape 
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
                 Insert Shape
               </h2>
+              <p className="text-center text-sm text-gray-600 dark:text-gray-300 mt-6 px-4">
+                {footerDescription}
+              </p>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-gray-100/60 dark:hover:bg-gray-700/40 transition-all duration-200 ease-out hover:scale-105 active:scale-95"
+                className="absolute right-4 top-4 p-2 rounded-full hover:bg-gray-100/60 dark:hover:bg-gray-700/40 transition-colors"
               >
                 <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </button>
@@ -196,9 +213,9 @@ const ShapeModal: React.FC<ShapeModalProps> = ({ isOpen, onClose, onSelectShape 
             </div>
 
             {/* Footer */}
-            <div className="mt-6 pt-4 border-t border-gray-200/40">
-              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                Click a shape to add it to your slide
+            <div className="mt-8 pt-4 border-t border-gray-200/40">
+              <p className="text-gray-700 dark:text-gray-300 mt-2 text-sm font-normal">
+                {headerDescription}
               </p>
             </div>
           </motion.div>

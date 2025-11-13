@@ -224,17 +224,34 @@ const Editor = () => {
   const handleApplyTemplate = async (templateName: string) => {
     try {
       let newSlides: Slide[] = [];
+      const { presentationThemes } = await import('@/utils/presentationThemes');
 
-      // Support themes from the registry (THEME:<id>) and by name
-      if (templateName.startsWith('THEME:')) {
-        const { presentationThemes } = await import('@/utils/presentationThemes');
+      // Handle DEMO: prefix (from demo templates)
+      if (templateName.startsWith('DEMO:')) {
+        const demoName = templateName.substring('DEMO:').toLowerCase();
+        
+        // Map demo names to theme IDs
+        const demoToThemeMap: Record<string, string> = {
+          'business_strategy': 'business-strategy',
+          'marketing_plan': 'marketing-plan',
+          // Add more demo to theme mappings as needed
+        };
+        
+        const themeId = demoToThemeMap[demoName] || 'business-strategy';
+        const theme = presentationThemes.find(t => t.id === themeId);
+        if (theme) {
+          newSlides = theme.slides;
+        }
+      } 
+      // Support themes from the registry (THEME:<id>)
+      else if (templateName.startsWith('THEME:')) {
         const id = templateName.substring('THEME:'.length);
         const theme = presentationThemes.find(t => t.id === id);
         if (!theme) throw new Error(`Theme not found: ${id}`);
         newSlides = theme.slides;
-      } else {
-        // Fallback by theme name (with Education alias)
-        const { presentationThemes } = await import('@/utils/presentationThemes');
+      } 
+      // Fallback by theme name (with Education alias)
+      else {
         let matched = presentationThemes.find(t => t.name.toLowerCase() === templateName.toLowerCase());
         if (!matched && templateName.toLowerCase() === 'education') {
           matched = presentationThemes.find(t => t.id === 'education-pro' || t.name.toLowerCase().includes('education'));
@@ -268,10 +285,9 @@ const Editor = () => {
         }
       }
 
-      // Update the slides with the new slides
-      const updatedSlides = [...slides, ...newSlides];
-      pushSlides(updatedSlides);
-      setCurrentSlide(slides.length); // Set to first new slide
+      // Replace all slides with the new template slides
+      pushSlides(newSlides);
+      setCurrentSlide(0); // Set to first slide of the new template
 
       toast({
         title: 'Template Applied',

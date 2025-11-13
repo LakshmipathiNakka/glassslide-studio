@@ -695,6 +695,360 @@ function createPremiumBusinessStrategy(): Slide[] {
   return slides;
 }
 
+function createBusinessStrategyTemplate(): Slide[] {
+  const now = Date.now();
+  const slides: Slide[] = [];
+
+  // 1. Title Slide
+  slides.push({
+    id: `biz-${now}-1`,
+    title: 'Title Slide',
+    elements: [
+      // Background shape
+      { 
+        id: `bg-${now}-1`, 
+        type: 'shape', 
+        x: 0, 
+        y: 0, 
+        width: W, 
+        height: H, 
+        shapeType: 'rectangle', 
+        fill: businessStrategyPalette.primary,
+        zIndex: 0
+      },
+      // Decorative accent
+      { 
+        id: `accent-${now}-1`, 
+        type: 'shape', 
+        x: 0, 
+        y: H - 100, 
+        width: W, 
+        height: 100, 
+        shapeType: 'rectangle', 
+        fill: businessStrategyPalette.accent,
+        opacity: 0.8,
+        zIndex: 1
+      },
+      // Company logo placeholder
+      { 
+        id: `logo-${now}-1`, 
+        type: 'shape', 
+        x: W - 180, 
+        y: 40, 
+        width: 120, 
+        height: 40, 
+        shapeType: 'rectangle', 
+        fill: 'rgba(255,255,255,0.1)',
+        stroke: 'rgba(255,255,255,0.3)',
+        strokeWidth: 1,
+        zIndex: 2
+      },
+      // Title text
+      { 
+        id: `title-${now}-1`, 
+        type: 'text', 
+        x: M, 
+        y: H/3, 
+        width: W - 2*M, 
+        height: 80, 
+        text: 'BUSINESS STRATEGY', 
+        fontSize: 48, 
+        fontWeight: 'bold', 
+        fontFamily: 'Inter, sans-serif', 
+        color: '#FFFFFF', 
+        textAlign: 'left',
+        letterSpacing: 2,
+        zIndex: 2
+      },
+      // Subtitle
+      { 
+        id: `subtitle-${now}-1`, 
+        type: 'text', 
+        x: M, 
+        y: H/3 + 90, 
+        width: W/2, 
+        height: 40, 
+        text: '2025-2027 Growth Plan', 
+        fontSize: 24, 
+        fontFamily: 'Inter, sans-serif', 
+        color: 'rgba(255,255,255,0.9)', 
+        textAlign: 'left',
+        zIndex: 2
+      },
+      // Date
+      { 
+        id: `date-${now}-1`, 
+        type: 'text', 
+        x: M, 
+        y: H - 80, 
+        width: 200, 
+        height: 20, 
+        text: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }), 
+        fontSize: 14, 
+        fontFamily: 'Inter, sans-serif', 
+        color: 'rgba(255,255,255,0.7)',
+        zIndex: 2
+      }
+    ],
+    background: businessStrategyPalette.primary,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+    category: 'intro'
+  });
+
+  // 2. Strategy Overview Slide
+  slides.push({
+    id: `biz-${now}-2`,
+    title: 'Strategy Overview',
+    elements: [
+      // Background
+      { 
+        id: `bg-${now}-2`, 
+        type: 'shape', 
+        x: 0, 
+        y: 0, 
+        width: W, 
+        height: H, 
+        shapeType: 'rectangle', 
+        fill: businessStrategyPalette.light,
+        zIndex: 0
+      },
+      // Header
+      { 
+        id: `header-${now}-2`, 
+        type: 'shape', 
+        x: 0, 
+        y: 0, 
+        width: W, 
+        height: 80, 
+        shapeType: 'rectangle', 
+        fill: businessStrategyPalette.primary,
+        zIndex: 1
+      },
+      // Header text
+      { 
+        id: `title-${now}-2`, 
+        type: 'text', 
+        x: M, 
+        y: 20, 
+        width: W - 2*M, 
+        height: 40, 
+        text: 'STRATEGY OVERVIEW', 
+        fontSize: 24, 
+        fontWeight: 'bold', 
+        fontFamily: 'Inter, sans-serif', 
+        color: '#FFFFFF',
+        zIndex: 2
+      },
+      // Content container
+      { 
+        id: `content-${now}-2`, 
+        type: 'shape', 
+        x: M, 
+        y: 100, 
+        width: W - 2*M, 
+        height: H - 150, 
+        shapeType: 'rounded-rectangle', 
+        fill: '#FFFFFF',
+        stroke: 'rgba(0,0,0,0.1)',
+        strokeWidth: 1,
+        zIndex: 1
+      },
+      // Bullet points
+      { 
+        id: `bullet1-${now}-2`, 
+        type: 'text', 
+        x: M + 40, 
+        y: 140, 
+        width: W/2 - M - 50, 
+        height: 80, 
+        text: '•  Market Analysis\n•  Competitive Landscape\n•  Growth Opportunities', 
+        fontSize: 20, 
+        fontFamily: 'Inter, sans-serif', 
+        color: businessStrategyPalette.dark,
+        lineHeight: 1.6,
+        zIndex: 2
+      },
+      // Diagram placeholder
+      { 
+        id: `diagram-${now}-2`, 
+        type: 'shape', 
+        x: W/2 + 20, 
+        y: 140, 
+        width: W/2 - M - 20, 
+        height: 300, 
+        shapeType: 'rectangle', 
+        fill: 'rgba(0,0,0,0.02)', 
+        stroke: 'rgba(0,0,0,0.1)',
+        strokeWidth: 1,
+        
+        zIndex: 2
+      },
+      // Diagram label
+      { 
+        id: `diagram-label-${now}-2`, 
+        type: 'text', 
+        x: W/2 + 20, 
+        y: 450, 
+        width: W/2 - M - 20, 
+        height: 20, 
+        text: '[Strategic Framework Diagram]', 
+        fontSize: 12, 
+        fontFamily: 'Inter, sans-serif', 
+        color: 'rgba(0,0,0,0.5)',
+        textAlign: 'center',
+        zIndex: 2
+      },
+      // Page number
+      { 
+        id: `pagenum-${now}-2`, 
+        type: 'text', 
+        x: W - M - 40, 
+        y: H - 40, 
+        width: 40, 
+        height: 20, 
+        text: '2', 
+        fontSize: 14, 
+        fontFamily: 'Inter, sans-serif', 
+        color: 'rgba(0,0,0,0.5)',
+        textAlign: 'right',
+        zIndex: 2
+      }
+    ],
+    background: businessStrategyPalette.light,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+    category: 'content'
+  });
+
+  // 3. Closing Slide
+  slides.push({
+    id: `biz-${now}-3`,
+    title: 'Key Takeaways',
+    elements: [
+      // Background
+      { 
+        id: `bg-${now}-3`, 
+        type: 'shape', 
+        x: 0, 
+        y: 0, 
+        width: W, 
+        height: H, 
+        shapeType: 'rectangle', 
+        fill: businessStrategyPalette.primary,
+        zIndex: 0
+      },
+      // Content container
+      { 
+        id: `content-${now}-3`, 
+        type: 'shape', 
+        x: M, 
+        y: M, 
+        width: W - 2*M, 
+        height: H - 2*M, 
+        shapeType: 'rectangle', 
+        fill: 'rgba(255,255,255,0.1)',
+        stroke: 'rgba(255,255,255,0.2)',
+        strokeWidth: 1,
+        zIndex: 1
+      },
+      // Title
+      { 
+        id: `title-${now}-3`, 
+        type: 'text', 
+        x: M + 60, 
+        y: 80, 
+        width: W - 2*M - 120, 
+        height: 50, 
+        text: 'KEY TAKEAWAYS', 
+        fontSize: 28, 
+        fontWeight: 'bold', 
+        fontFamily: 'Inter, sans-serif', 
+        color: '#FFFFFF',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+        zIndex: 2
+      },
+      // Divider
+      { 
+        id: `divider-${now}-3`, 
+        type: 'shape', 
+        x: M + 60, 
+        y: 140, 
+        width: 80, 
+        height: 3, 
+        shapeType: 'rectangle', 
+        fill: businessStrategyPalette.accent,
+        zIndex: 2
+      },
+      // Bullet points container
+      { 
+        id: `points-container-${now}-3`,
+        type: 'shape',
+        x: M + 60,
+        y: 160,
+        width: W - 2*M - 120,
+        height: 220,
+        shapeType: 'rectangle',
+        fill: 'rgba(255,255,255,0.05)',
+        borderRadius: 8,
+        zIndex: 1
+      },
+      // Bullet points
+      { 
+        id: `points-${now}-3`, 
+        type: 'text', 
+        x: M + 80, 
+        y: 170, 
+        width: W - 2*M - 140, 
+        height: 200, 
+        text: '•  Clear strategic direction for 2025-2027\n•  Focus on high-growth market segments\n•  Leverage competitive advantages\n•  Drive operational excellence\n•  Deliver sustainable growth', 
+        fontSize: 18, 
+        fontFamily: 'Inter, sans-serif', 
+        color: 'rgba(255,255,255,0.9)',
+        lineHeight: 1.6,
+        zIndex: 2
+      },
+      // Call to action
+      { 
+        id: `cta-${now}-3`, 
+        type: 'text', 
+        x: M + 80, 
+        y: 420, 
+        width: W - 2*M - 120, 
+        height: 30, 
+        text: 'Let\'s discuss how we can work together', 
+        fontSize: 18, 
+        fontFamily: 'Inter, sans-serif', 
+        color: businessStrategyPalette.accent,
+        fontWeight: 'bold',
+        zIndex: 2
+      },
+      // Contact info (simplified)
+      { 
+        id: `contact-${now}-3`, 
+        type: 'text', 
+        x: M + 80, 
+        y: 460, 
+        width: W - 2*M - 120, 
+        height: 40, 
+        text: 'contact@company.com  •  +1 (555) 123-4567', 
+        fontSize: 14, 
+        fontFamily: 'Inter, sans-serif', 
+        color: 'rgba(255,255,255,0.7)',
+        textAlign: 'center',
+        zIndex: 2
+      }
+    ],
+    background: businessStrategyPalette.primary,
+    createdAt: new Date(),
+    lastUpdated: Date.now(),
+    category: 'conclusion'
+  });
+
+  return slides;
+}
+
 export const presentationThemes: PresentationTheme[] = [
   {
     id: 'modern-corporate',
@@ -720,11 +1074,12 @@ export const presentationThemes: PresentationTheme[] = [
     palette: eduPalette,
     thumbnail: null,
   },
+  // Business Strategy Template (using the premium version)
   {
     id: 'business-strategy',
     name: 'Business Strategy',
     description: 'Premium Apple Keynote-grade business strategy deck with glass overlays, radial gradients, and professional data visuals (10 slides).',
-    slides: createPremiumBusinessStrategy(),
+    slides: createBusinessStrategyTemplate(),
     palette: businessStrategyPalette,
     thumbnail: null,
   },

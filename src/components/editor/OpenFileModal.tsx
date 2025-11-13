@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { X, Trash2, FileText, RefreshCw, FolderOpen, Sparkles } from 'lucide-react';
+import { X, Trash2, FileText, RefreshCw, FolderOpen, Sparkles, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getUserProjects, deleteUserProject, GSlideProject } from '@/utils/userProjectStorage';
 import { format } from 'date-fns';
@@ -23,6 +23,21 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'saved' | 'themes'>('saved');
+  const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean, projectId: string | null}>({open: false, projectId: null});
+
+  // Creative descriptions with color-coded highlights
+  const headerDescription = (
+    <span>
+      Continue your <span className="text-blue-600 dark:text-blue-400">creative journey</span>. Pick up where you left off.
+    </span>
+  );
+  
+  const footerDescription = (
+    <span>
+      Your presentations are where <span className="text-emerald-600 dark:text-emerald-400 font-medium">ideas come to life</span>. 
+      Select one to begin <span className="text-amber-600 dark:text-amber-400 font-medium">crafting your next masterpiece</span>.
+    </span>
+  );
 
   const loadProjects = useCallback(() => {
     try {
@@ -47,15 +62,25 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
 
   const handleDelete = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) {
-      try {
-        deleteUserProject(currentUsername, projectId);
-        loadProjects();
-      } catch (err) {
-        console.error('Failed to delete project:', err);
-        setError('Failed to delete project. Please try again.');
-      }
+    setDeleteConfirm({open: true, projectId});
+  };
+
+  const confirmDelete = () => {
+    if (!deleteConfirm.projectId) return;
+    
+    try {
+      deleteUserProject(currentUsername, deleteConfirm.projectId);
+      loadProjects();
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+      setError('Failed to delete project. Please try again.');
+    } finally {
+      setDeleteConfirm({open: false, projectId: null});
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({open: false, projectId: null});
   };
 
 
@@ -63,6 +88,54 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
 
   return createPortal(
     <AnimatePresence>
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm.open && (
+        <motion.div 
+          className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <motion.div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 mx-4"
+            initial={{ scale: 0.95, y: 10 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.95, y: 10 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Delete Presentation?
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                This action cannot be undone. The presentation will be permanently deleted.
+              </p>
+              <div className="flex justify-center space-x-3">
+                <button
+                  type="button"
+                  onClick={cancelDelete}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-offset-gray-800"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
       {open && (
         <motion.div 
           className="fixed inset-0 z-[99999] flex items-center justify-center px-4 py-6 sm:px-6 backdrop-blur-md bg-black/40"
@@ -85,48 +158,27 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
-                Open Project
+            <div className="text-center mb-6 relative">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+                Open Presentation
               </h2>
-
-              <div className="flex items-center gap-2">
-                {/* Refresh */}
-                <button
-                  onClick={loadProjects}
-                  disabled={isLoading}
-                  title="Refresh projects"
-                  className="keynote-icon-btn hover:rotate-180"
-                >
-                  <RefreshCw className={`w-5 h-5 text-gray-500 dark:text-gray-400 ${isLoading ? 'animate-spin' : ''}`} />
-                </button>
-
-                {/* Close */}
-                <button 
-                  onClick={() => onOpenChange(false)} 
-                  title="Close modal" 
-                  className="keynote-icon-btn"
-                  disabled={isLoading}
-                >
-                  <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                </button>
-              </div>
+              <p className="text-gray-700 dark:text-gray-300 mt-2 text-sm font-normal">
+                {headerDescription}
+              </p>
+              
+              {/* Close button */}
+              <button 
+                onClick={() => onOpenChange(false)} 
+                title="Close modal" 
+                className="absolute right-0 top-0 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors"
+                disabled={isLoading}
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
             </div>
 
-            {/* Tabs */}
+            {/* Main Content */}
             <div className="flex flex-col flex-1 overflow-hidden">
-            <div className="flex justify-center mb-6">
-              <div className="inline-flex bg-gray-100/60 dark:bg-gray-700/40 rounded-xl p-1">
-                <button
-                  className={`keynote-tab ${activeTab === 'saved' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('saved')}
-                >
-                  <FolderOpen className="w-4 h-4" />
-                  <span className="hidden sm:inline">Saved</span>
-                </button>
-              </div>
-            </div>
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto pr-2 -mr-2">
@@ -182,12 +234,12 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
                               </p>
                             </div>
                             <button
-                              className="keynote-delete-btn"
+                              className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDelete(e, project.id);
                               }}
-                              title="Delete project"
+                              title="Delete presentation"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -198,6 +250,13 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
                   )}
                 </>
             </div>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-8 pt-4 border-t border-gray-200/40">
+              <p className="text-center text-sm text-gray-600 dark:text-gray-300 mt-6 px-4">
+                {footerDescription}
+              </p>
             </div>
           </motion.div>
         </motion.div>

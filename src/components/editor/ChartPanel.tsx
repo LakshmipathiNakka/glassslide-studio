@@ -1,4 +1,4 @@
-import { BarChart3, LineChart, PieChart, Edit, X } from "lucide-react";
+import { BarChart3, LineChart, PieChart, Edit, X, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import KeynoteModal from "@/components/ui/keynote-modal";
 import { useState, useRef, useEffect } from "react";
@@ -198,45 +198,92 @@ export const ChartPanel = ({ open, onClose, onAddChart, onEditChart, editingChar
     onClose();
   };
 
+  // Chart type descriptions with color-coded highlights
+  const chartTypeDescriptions = {
+    bar: <span>Ideal for <span className="text-blue-600 dark:text-blue-400">comparing values</span> across categories</span>,
+    line: <span>Perfect for showing <span className="text-emerald-600 dark:text-emerald-400">trends over time</span></span>,
+    pie: <span>Best for displaying <span className="text-amber-600 dark:text-amber-400">parts of a whole</span></span>
+  };
+  
+  // Header description with subtle highlights
+  const headerDescription = (
+    <span>
+      Transform your data into <span className="text-blue-600 dark:text-blue-400 font-medium">compelling visual stories</span>
+    </span>
+  );
+  
+  // Footer description with subtle highlights
+  const footerDescription = (
+    <span>
+      Select a chart type to visualize your data with <span className="text-emerald-600 dark:text-emerald-400 font-medium">clarity</span> and <span className="text-amber-600 dark:text-amber-400 font-medium">impact</span>
+    </span>
+  );
+
   return (
     <KeynoteModal isOpen={open} onClose={onClose}>
-      <div className="relative p-4 sm:p-6" ref={modalRef}>
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-2 right-2 sm:top-4 sm:right-4 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          aria-label="Close"
-        >
-          <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-        </button>
-        
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center">
-          {editingChart ? 'Edit Chart' : 'Add Chart'}
-        </h2>
+      <div 
+        className="relative p-6" 
+        ref={modalRef}
+      >
+        {/* Header */}
+        <div className="text-center mb-6 relative">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+            {editingChart ? 'Edit Chart' : 'Add Chart'}
+          </h2>
+          <p className="text-gray-700 dark:text-gray-300 mt-2 text-sm font-normal">
+            {headerDescription}
+          </p>
+          
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute right-0 top-0 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
         
         {!showEditor ? (
           <div className="space-y-4 sm:space-y-6">
-            <div>
-              <h3 className="text-sm font-medium mb-2 px-1">Chart Type</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">SELECT CHART TYPE</h3>
+              <div className="grid grid-cols-1 gap-3">
                 {chartTypes.map(({ type, icon: Icon, label }) => (
                   <button
                     key={type}
                     onClick={() => handleChartTypeSelect(type)}
-                    className={`flex flex-col items-center p-3 sm:p-4 rounded-lg border-2 transition-all ${
+                    className={`group relative p-4 rounded-xl border transition-all flex items-center w-full text-left ${
                       selectedType === type
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500/50 shadow-md'
+                        : 'border-gray-200 hover:border-blue-300 dark:border-gray-700 dark:hover:border-blue-600/50 hover:bg-gray-50 dark:hover:bg-gray-800/40'
                     }`}
                   >
-                    <Icon className="w-6 h-6 sm:w-8 sm:h-8 mb-1.5 sm:mb-2" />
-                    <span className="text-xs sm:text-sm">{label}</span>
+                    <div className={`p-2.5 rounded-lg mr-4 ${
+                      selectedType === type 
+                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' 
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-500 dark:group-hover:text-blue-400'
+                    }`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900 dark:text-white">{label}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {chartTypeDescriptions[type]}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400" />
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Removed Cancel and Create Chart buttons as requested */}
+            {/* Footer */}
+            <div className="mt-8 pt-4 border-t border-gray-200/40">
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center font-medium">
+                Select a chart type to visualize your data with clarity and impact
+              </p>
+            </div>
           </div>
         ) : (
           <ChartEditor
