@@ -114,10 +114,10 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
     maxHeight: '95vh', // Increased from 90vh to 95vh
     display: 'flex',
     flexDirection: 'column' as const,
-    '@media (min-height: 900px)': {
+    '@media (minHeight: 900px)': {
       height: '90vh', // Slightly smaller height on very tall screens
     },
-    '@media (max-height: 700px)': {
+    '@media (maxHeight: 700px)': {
       height: '90vh', // Use more of the viewport on smaller screens
       maxHeight: '98vh',
     },
@@ -237,27 +237,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
 
   return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/40 backdrop-blur-md" style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0.5rem',
-        '@media (min-width: 640px)': {
-          padding: '1rem',
-        },
-        '@media (min-width: 768px)': {
-          padding: '1.5rem',
-        },
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)'
-      }}>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/40 backdrop-blur-md">
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -360,20 +340,29 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
                         {[
                           {
-                            id: 1,
+                            id: 'business-strategy',
                             title: 'Business Strategy',
-                            description: 'Professional templates for strategic planning and business presentations',
+                            description: 'Premium Apple Keynote-grade business strategy deck with glass overlays and professional data visuals',
                             icon: <Briefcase className="w-5 h-5 text-blue-500" />,
-                            bgGradient: 'from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10'
+                            bgGradient: 'from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10',
+                            themeId: 'business-strategy'
                           },
                           {
-                            id: 2,
-                            title: 'Marketing Plan',
-                            description: 'Engaging templates for marketing strategies and campaigns',
-                            icon: <Sparkles className="w-5 h-5 text-purple-500" />,
-                            bgGradient: 'from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/10'
+                            id: 'modern-corporate',
+                            title: 'Modern Corporate',
+                            description: 'Clean and professional templates for business presentations',
+                            icon: <Briefcase className="w-5 h-5 text-indigo-500" />,
+                            bgGradient: 'from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/10',
+                            themeId: 'modern-corporate'
                           },
-                          ...Array(4).fill(null).map((_, i) => ({ id: i + 3 }))
+                          {
+                            id: 'education-pro',
+                            title: 'Education Pro',
+                            description: 'Academic and educational templates with clean layouts',
+                            icon: <BookOpen className="w-5 h-5 text-amber-500" />,
+                            bgGradient: 'from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/10',
+                            themeId: 'education-pro'
+                          }
                         ].map((item, i) => (
                           <motion.article
                             key={i}

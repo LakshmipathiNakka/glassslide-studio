@@ -150,9 +150,13 @@ export const PresentationMode = ({
         try {
           // Handle different element types
           if (element.type === 'image' && element.src) {
-            // Handle image loading
+            // Handle image loading with all properties
             fabric.Image.fromURL(element.src, (img) => {
-              img.set({
+              const borderWidth = element.borderWidth ?? 0;
+              const hasBorder = borderWidth > 0;
+              
+              // Create a group to hold the image and border
+              const group = new fabric.Group([], {
                 left: element.left,
                 top: element.top,
                 scaleX: element.scaleX || 1,
@@ -165,8 +169,54 @@ export const PresentationMode = ({
                 ...(element as any)
               });
               
-              canvas.add(img);
+              // Add the image to the group
+              img.set({
+                left: 0,
+                top: 0,
+                width: element.width,
+                height: element.height,
+                originX: 'left',
+                originY: 'top',
+                clipPath: element.borderRadius ? new fabric.Rect({
+                  width: element.width,
+                  height: element.height,
+                  rx: element.borderRadius,
+                  ry: element.borderRadius
+                }) : undefined,
+                selectable: false,
+                evented: false,
+                excludeFromExport: false
+              });
+              
+              group.addWithUpdate(img);
+              
+              // Add border if needed
+              if (hasBorder) {
+                const border = new fabric.Rect({
+                  width: element.width,
+                  height: element.height,
+                  rx: element.borderRadius || 0,
+                  ry: element.borderRadius || 0,
+                  fill: 'transparent',
+                  stroke: element.borderColor || '#000000',
+                  strokeWidth: borderWidth * 2, // Double because border is centered on path
+                  strokeUniform: true,
+                  selectable: false,
+                  evented: false,
+                  excludeFromExport: false
+                });
+                
+                group.addWithUpdate(border);
+              }
+              
+              // Add the group to canvas
+              canvas.add(group);
               checkAllLoaded();
+            }, {
+              crossOrigin: 'anonymous',
+              // @ts-ignore - Fabric.js types don't include these options
+              background: 'transparent',
+              opacity: element.opacity ?? 1
             });
           } else {
             // Handle other objects (shapes, text, etc.)

@@ -580,6 +580,13 @@ export const SimplePresentationMode = ({
 
       case 'image':
         if (!element.imageUrl) return null;
+        const borderWidth = (element.borderWidth ?? 0) * scale;
+        const hasBorder = borderWidth > 0;
+        const borderRadius = (element.borderRadius || 0) * scale;
+        const borderColor = element.borderColor || '#000000';
+        const borderStyle = hasBorder ? (element.borderStyle || 'solid') : 'none';
+        const opacity = element.opacity ?? 1;
+        
         return (
           <div
             key={element.id}
@@ -589,12 +596,26 @@ export const SimplePresentationMode = ({
               top: element.y * scale,
               width: element.width * scale,
               height: element.height * scale,
+              borderRadius: `${borderRadius}px`,
+              overflow: 'hidden',
+              border: hasBorder ? `${borderWidth}px ${borderStyle} ${borderColor}` : 'none',
+              boxSizing: 'border-box',
+              backgroundColor: 'transparent',
             }}
           >
             <img
               src={element.imageUrl}
               alt=""
-              className="w-full h-full object-cover"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                display: 'block',
+                opacity: opacity,
+                borderRadius: hasBorder ? '0' : `${borderRadius}px`,
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
             />
           </div>
         );

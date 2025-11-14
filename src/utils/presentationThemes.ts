@@ -1079,7 +1079,7 @@ export const presentationThemes: PresentationTheme[] = [
     id: 'business-strategy',
     name: 'Business Strategy',
     description: 'Premium Apple Keynote-grade business strategy deck with glass overlays, radial gradients, and professional data visuals (10 slides).',
-    slides: createBusinessStrategyTemplate(),
+    slides: [], // Will be loaded dynamically in Editor.tsx
     palette: businessStrategyPalette,
     thumbnail: null,
   },

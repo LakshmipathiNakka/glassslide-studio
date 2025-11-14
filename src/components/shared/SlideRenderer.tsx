@@ -148,11 +148,40 @@ function renderContent(el: Element, s: number): React.ReactNode {
       const src = resolveImageSrc(el);
       if (!src) {
         return (
-          <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background:'#f5f5f5', border:'2px dashed #ccc', borderRadius:8 }}>No image</div>
+          <div style={{ 
+            width: '100%', 
+            height: '100%', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            background: '#f5f5f5', 
+            border: '2px dashed #ccc', 
+            borderRadius: 8 * s 
+          }}>
+            No image
+          </div>
         );
       }
+      const borderWidth = (el as any).borderWidth ?? 0;
       return (
-        <img src={src} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', background:'transparent', borderRadius: ((el as any).borderRadius || 0) * s }} />
+        <img 
+          src={src} 
+          alt="" 
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            objectFit: 'contain', 
+            backgroundColor: 'transparent',
+            borderRadius: ((el as any).borderRadius || 0) * s,
+            borderWidth: borderWidth * s,
+            borderStyle: borderWidth > 0 ? ((el as any).borderStyle || 'solid') : 'none',
+            borderColor: (el as any).borderColor || '#000000',
+            display: 'block',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            opacity: (el as any).opacity ?? 1
+          }} 
+        />
       );
     }
     case 'chart': {

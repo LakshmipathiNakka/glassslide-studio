@@ -470,6 +470,11 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
         const extra = (element as any).imageUrls as string[] | undefined;
         if (Array.isArray(extra)) fallbacks.push(...extra);
         const sources = [primary, ...fallbacks].filter(Boolean);
+        const borderWidth = ((element as any).borderWidth ?? 0) * scale;
+        const hasBorder = borderWidth > 0;
+        const borderColor = (element as any).borderColor || '#000000';
+        const borderStyle = (element as any).borderStyle || 'solid';
+        const opacity = (element as any).opacity ?? 1;
 
         const drawLoaded = (img: HTMLImageElement) => {
           // Re-apply transform for safety
@@ -482,7 +487,10 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
           } else {
             ctx.translate(x, y);
           }
-          // Clear background (transparent)
+          
+          // Set global alpha for opacity
+          ctx.globalAlpha = opacity;
+          
           // Draw image with contain fit
           const sRatio = img.width / img.height;
           const dRatio = w / h;
@@ -496,6 +504,26 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             dw = h * sRatio;
             dx = (w - dw) / 2; dy = 0;
           }
+          
+          // Draw border if needed
+          if (hasBorder && borderStyle !== 'none') {
+            ctx.save();
+            const r = borderRadius * scale;
+            ctx.beginPath();
+            const rradius = Math.min(r, w / 2, h / 2);
+            ctx.moveTo(rradius, 0);
+            ctx.arcTo(w, 0, w, h, rradius);
+            ctx.arcTo(w, h, 0, h, rradius);
+            ctx.arcTo(0, h, 0, 0, rradius);
+            ctx.arcTo(0, 0, w, 0, rradius);
+            ctx.closePath();
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = borderWidth * 2; // Double the width since stroke is centered on the path
+            ctx.stroke();
+            ctx.restore();
+          }
+          
+          // Clip the image with border radius if needed
           if (hasRadius) {
             const r = borderRadius * scale;
             ctx.beginPath();

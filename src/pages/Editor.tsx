@@ -24,6 +24,7 @@ import { saveUserProject, GSlideProject, getUserProjects } from "@/utils/userPro
 import { SaveProjectDialog } from "@/components/editor/SaveProjectDialog";
 import { OpenFileModal } from "@/components/editor/OpenFileModal";
 import { LayoutWarningModal } from "@/components/editor/LayoutWarningModal";
+import { TABLE_THEMES } from "@/constants/tableThemes";
 
 // Default slide templates (Apple Keynote / PowerPoint inspired)
 function createTitleSlidePlaceholders(now: number): Element[] {
@@ -220,6 +221,28 @@ const Editor = () => {
     onApplied: (layoutId) => setCurrentLayoutId(layoutId),
   });
 
+  // Import the template creation function at the top level
+  const loadBusinessStrategyTemplate = async () => {
+    try {
+      console.log('[Template] Attempting to import business strategy template...');
+      // Use the @ alias to point to the src directory
+      const templateModule = await import('@/templates/businessStrategyTemplate');
+      console.log('[Template] Template module loaded:', templateModule);
+      
+      if (typeof templateModule.default !== 'function') {
+        console.error('[Template] Default export is not a function');
+        throw new Error('Invalid template module');
+      }
+      
+      const template = templateModule.default();
+      console.log(`[Template] Loaded template with ${template?.length || 0} slides`);
+      return template || [];
+    } catch (error) {
+      console.error('[Template] Error loading business strategy template:', error);
+      throw new Error('Failed to load the Business Strategy template');
+    }
+  };
+
   // Handle template application
   const handleApplyTemplate = async (templateName: string) => {
     try {
@@ -227,39 +250,94 @@ const Editor = () => {
       const { presentationThemes } = await import('@/utils/presentationThemes');
 
       // Handle DEMO: prefix (from demo templates)
-      if (templateName.startsWith('DEMO:')) {
-        const demoName = templateName.substring('DEMO:').toLowerCase();
+      if (templateName.toUpperCase().startsWith('DEMO:')) {
+        const demoName = templateName.substring('DEMO:'.length).trim().toLowerCase();
+        console.log(`[Template] Processing DEMO template: ${demoName}`);
         
-        // Map demo names to theme IDs
-        const demoToThemeMap: Record<string, string> = {
-          'business_strategy': 'business-strategy',
-          'marketing_plan': 'marketing-plan',
-          // Add more demo to theme mappings as needed
-        };
-        
-        const themeId = demoToThemeMap[demoName] || 'business-strategy';
-        const theme = presentationThemes.find(t => t.id === themeId);
-        if (theme) {
-          newSlides = theme.slides;
+        // Special handling for Business Strategy template
+        if (['business_strategy', 'business-strategy', 'businessstrategy'].includes(demoName)) {
+          console.log('[Template] Loading SIMPLE Business Strategy template...');
+          try {
+            // Try loading the simple template first
+            const module = await import('@/templates/simpleBusinessStrategyTemplate');
+            newSlides = module.default();
+            console.log(`[Template] Successfully loaded simple template with ${newSlides.length} slides`);
+            
+            // If we successfully loaded the simple template, try loading the full template in the background
+            (async () => {
+              try {
+                console.log('[Template] Attempting to load full Business Strategy template in background...');
+                const fullModule = await import('@/templates/businessStrategyTemplate');
+                console.log('[Template] Full template loaded in background. Will use it next time.');
+                // You could update the template here if needed
+              } catch (bgError) {
+                console.warn('[Template] Could not load full template in background:', bgError);
+              }
+            })();
+            
+          } catch (error) {
+            console.error('[Template] Error loading simple template:', error);
+            throw new Error('Failed to load Business Strategy template: ' + error);
+          }
+        } else {
+          // Handle other demos
+          const themeId = demoName.replace(/_/g, '-');
+          const theme = presentationThemes.find(t => t.id === themeId);
+          if (theme) {
+            newSlides = [...theme.slides];
+          }
         }
-      } 
+      }
       // Support themes from the registry (THEME:<id>)
       else if (templateName.startsWith('THEME:')) {
         const id = templateName.substring('THEME:'.length);
-        const theme = presentationThemes.find(t => t.id === id);
-        if (!theme) throw new Error(`Theme not found: ${id}`);
-        newSlides = theme.slides;
+        
+        // Special handling for Business Strategy theme
+        if (id === 'business-strategy') {
+          try {
+            const module = await import('@/templates/businessStrategyTemplate');
+            newSlides = module.default();
+          } catch (error) {
+            console.error('[Template] Error loading Business Strategy template:', error);
+            throw new Error('Failed to load Business Strategy template');
+          }
+        } 
+        // Handle other themes
+        else {
+          const theme = presentationThemes.find(t => t.id === id);
+          if (!theme) throw new Error(`Theme not found: ${id}`);
+          newSlides = theme.slides;
+        }
       } 
       // Fallback by theme name (with Education alias)
       else {
-        let matched = presentationThemes.find(t => t.name.toLowerCase() === templateName.toLowerCase());
-        if (!matched && templateName.toLowerCase() === 'education') {
-          matched = presentationThemes.find(t => t.id === 'education-pro' || t.name.toLowerCase().includes('education'));
+        const lowerName = templateName.toLowerCase();
+        let themeFound = false;
+        
+        // Special handling for Business Strategy by name
+        if (lowerName === 'business strategy' || lowerName === 'business-strategy') {
+          newSlides = await loadBusinessStrategyTemplate();
+          themeFound = true;
         }
-        if (matched) {
-          newSlides = matched.slides;
-        } else {
-          // Default blank slide
+        // Handle education theme alias
+        else if (lowerName === 'education') {
+          const matched = presentationThemes.find(t => t.id === 'education-pro' || t.name.toLowerCase().includes('education'));
+          if (matched) {
+            newSlides = matched.slides;
+            themeFound = true;
+          }
+        }
+        // Handle other themes by name
+        else {
+          const matched = presentationThemes.find(t => t.name.toLowerCase() === lowerName);
+          if (matched) {
+            newSlides = matched.slides;
+            themeFound = true;
+          }
+        }
+        
+        // If no theme was found, create a default blank slide
+        if (!themeFound) {
           newSlides.push({
             id: Date.now().toString(),
             elements: [
@@ -303,12 +381,18 @@ const Editor = () => {
       });
     }
   };
-  
+
+  // Import the template creation function
+  const createBusinessStrategyTemplate = useCallback(() => {
+    const { createBusinessStrategyTemplate } = require('@/utils/presentationThemes');
+    return createBusinessStrategyTemplate();
+  }, []);
+
   // Listen for template application events
   useEffect(() => {
-    const handleTemplateApply = (event: Event) => {
+    const handleTemplateApply = async (event: Event) => {
       const customEvent = event as CustomEvent<{ templateName: string }>;
-      handleApplyTemplate(customEvent.detail.templateName);
+      await handleApplyTemplate(customEvent.detail.templateName);
     };
     
     window.addEventListener('applyTemplate', handleTemplateApply as EventListener);
@@ -316,7 +400,7 @@ const Editor = () => {
     return () => {
       window.removeEventListener('applyTemplate', handleTemplateApply as EventListener);
     };
-  }, [slides, pushSlides, toast]);
+  }, [slides, pushSlides, toast, createBusinessStrategyTemplate]);
 
   // Get current user (simplified - replace with your auth system)
   const getCurrentUser = () => {
@@ -703,6 +787,10 @@ const Editor = () => {
     const x = Math.round((slideW - width) / 2);
     const y = Math.round((slideH - height) / 2);
 
+    // Get the blue theme
+    const blueTheme = TABLE_THEMES.find(theme => theme.id === 'keynote1');
+    
+    // Create new element with blue theme applied by default
     const newElement: Element = {
       id: Date.now().toString(),
       type: 'table',
@@ -713,20 +801,20 @@ const Editor = () => {
       rows: safeRows,
       cols: safeCols,
       tableData,
-      // Defaults aligned with professional editors
+      // Apply blue theme properties
       themeId: 'keynote1',
       borderWidth: 1,
-      borderColor: '#D9D9D9',
-      backgroundColor: '#FFFFFF',
-      color: '#000000',
+      borderColor: blueTheme?.borderColor || '#E2E8F0',
+      backgroundColor: blueTheme?.rowEvenBg || '#F8FAFC',
+      color: blueTheme?.textColor || '#1E293B',
       borderStyle: 'solid' as any,
       header: true,
-      headerBg: '#E7E6E6',
-      headerTextColor: '#000000',
+      headerBg: blueTheme?.headerBg || '#3B82F6',
+      headerTextColor: blueTheme?.headerTextColor || '#FFFFFF',
       cellPadding: 12,
       cellTextAlign: 'left',
       rotation: 0,
-      rowAltBg: '#fafafa',
+      rowAltBg: blueTheme?.rowOddBg || '#F1F5F9',
     } as any;
     updateCurrentSlide([...currentElements, newElement]);
     setSelectedElement(newElement);

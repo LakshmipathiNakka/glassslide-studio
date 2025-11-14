@@ -1306,24 +1306,30 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         Array.from({ length: cols }, (_, c) => (el.tableData?.[r]?.[c] ?? ''))
       );
 
-      const cellPadding = el.cellPadding ?? 8;
+      // Get theme-based colors first
+      const theme = TABLE_THEMES.find(t => t.id === el.themeId) || {} as any;
+      
+      // Border properties with theme fallbacks
       const borderWidth = (el.borderWidth ?? 1);
       const borderStyle = (el as any).borderStyle || 'solid';
+      const borderColor = el.borderColor || theme.borderColor || '#D9D9D9';
+      
+      // Other table properties
+      const cellPadding = el.cellPadding ?? 8;
       const textAlign = el.cellTextAlign || 'left';
       const opacity = (el as any).opacity ?? 1;
       const header = (el as any).header ?? false;
-      const headerBg = (el as any).headerBg || '#E7E6E6';
-      const headerTextColor = (el as any).headerTextColor || '#111827';
-      const rowAltBg = (el as any).rowAltBg || null;
-
-      // Get theme-based colors from theme or fallback to element properties
-      const theme = TABLE_THEMES.find(t => t.id === el.themeId) || {} as any;
-      const rowEvenBg = theme.rowEvenBg || el.backgroundColor || '#FFFFFF';
-      const rowOddBg = theme.rowOddBg || rowAltBg || (theme.rowEvenBg ? 'rgba(0,0,0,0.02)' : 'transparent');
-      const themeHeaderBg = theme.headerBg || headerBg || '#E7E6E6';
-      const themeHeaderTextColor = theme.headerTextColor || headerTextColor || '#111827';
-      const textColor = theme.textColor || el.color || '#000000';
-      const borderColor = theme.borderColor || el.borderColor || '#D9D9D9';
+      
+      // Header styling with theme fallbacks
+      const headerBg = (el as any).headerBg || theme.headerBg || '#E7E6E6';
+      const headerTextColor = (el as any).headerTextColor || theme.headerTextColor || '#111827';
+      
+      // Row and text colors with theme fallbacks - prioritize element's color, then theme, then defaults
+      const rowBg = theme.rowEvenBg || el.backgroundColor || '#FFFFFF';
+      // Check for color in the element first, then theme, then fallback to black
+      const textColor = el.color || theme.textColor || '#000000';
+      // For header, use headerTextColor if explicitly set, otherwise use theme's header text color, then fallback to default
+      const effectiveHeaderTextColor = (el as any).headerTextColor || theme.headerTextColor || '#111827';
 
       const handleCellCommit = (r: number, c: number, html: string) => {
         const next = tableData.map(row => row.slice());
@@ -1385,16 +1391,16 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
                   el.style.borderColor = borderColor;
                 }}
                 style={{
-                  borderRight: borderStyle === 'none' || borderWidth === 0 ? 'none' : `${borderWidth}px ${borderStyle} ${borderColor}`,
-                  borderBottom: borderStyle === 'none' || borderWidth === 0 ? 'none' : `${borderWidth}px ${borderStyle} ${borderColor}`,
+                  borderRight: borderStyle === 'none' || borderWidth === 0 || !borderColor ? 'none' : `${borderWidth}px ${borderStyle} ${borderColor}`,
+                  borderBottom: borderStyle === 'none' || borderWidth === 0 || !borderColor ? 'none' : `${borderWidth}px ${borderStyle} ${borderColor}`,
                   padding: cellPadding,
                   outline: 'none',
                   minWidth: 0,
                   overflow: 'hidden',
                   textAlign: textAlign as any,
                   caretColor: '#000',
-                  backgroundColor: header && r === 0 ? themeHeaderBg : (r % 2 === 0 ? rowEvenBg : rowOddBg),
-                  color: header && r === 0 ? themeHeaderTextColor : textColor,
+                  backgroundColor: header && r === 0 ? headerBg : rowBg,
+                  color: header && r === 0 ? effectiveHeaderTextColor : textColor,
                   fontWeight: header && r === 0 ? '600' : 'normal',
                   fontFamily: el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
                   fontSize: (el.fontSize || 16) as any,

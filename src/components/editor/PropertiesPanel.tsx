@@ -952,16 +952,6 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     />
                   </div>
 
-                  {/* Alternating Row Background */}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="row-alt-bg-toggle">Alternating Row Background</Label>
-                    <Switch
-                      id="row-alt-bg-toggle"
-                      checked={!!selectedElement.rowAltBg}
-                      onCheckedChange={(checked) => onElementUpdate(selectedElement.id, { rowAltBg: checked ? '#f5f5f5' : null })}
-                    />
-                  </div>
-
                   {/* Cell Padding */}
                   <div>
                     <Label className="text-sm font-medium">Cell Padding: {selectedElement.cellPadding || 0}px</Label>
@@ -1456,15 +1446,16 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                       </div>
                       
                       <div className="space-y-2">
-                        {selectedElement.chartData.labels?.map((label: string, index: number) => (
+                        {selectedElement.chartData?.labels?.map((label: string, index: number) => (
                           <div key={index} className="flex items-center gap-2">
                             <Input
                               value={label}
                               onChange={(e) => {
-                                const newLabels = [...(selectedElement.chartData.labels || [])];
+                                const currentChartData = selectedElement.chartData || {};
+                                const newLabels = [...(currentChartData.labels || [])];
                                 newLabels[index] = e.target.value;
                                 handlePropertyChange('chartData', {
-                                  ...selectedElement.chartData,
+                                  ...currentChartData,
                                   labels: newLabels
                                 });
                               }}
@@ -1531,7 +1522,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4 space-y-4 overflow-visible">
-                    {selectedElement.chartData.datasets?.map((dataset: any, datasetIndex: number) => (
+                    {selectedElement.chartData?.datasets?.map((dataset: any, datasetIndex: number) => (
                       <motion.div 
                         key={datasetIndex}
                         initial={{ opacity: 0, scale: 0.95 }}

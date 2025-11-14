@@ -117,86 +117,85 @@ export const TablePropertiesPanel: React.FC<TablePropertiesPanelProps> = ({ sele
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto relative">
-        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <Table className="w-6 h-6" /> Table Properties
-        </h2>
+    <div className="fixed inset-0 bg-gray-600/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+              <Table className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              <span>Table Properties</span>
+            </h2>
+            <button 
+              onClick={handleCancel}
+              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors"
+              aria-label="Close panel"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="themes" className="flex items-center gap-2">
-              <Palette className="w-4 h-4" /> Themes
-            </TabsTrigger>
-            <TabsTrigger value="customize" className="flex items-center gap-2">
-              <Droplet className="w-4 h-4" /> Customize
-            </TabsTrigger>
-          </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="grid w-full grid-cols-2 px-2 pt-1 bg-gray-50 dark:bg-gray-800/80">
+              <TabsTrigger 
+                value="themes" 
+                className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300 data-[state=active]:text-primary data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-gray-700 rounded-lg px-3 py-2 transition-colors"
+              >
+                <Palette className="w-4 h-4" />
+                <span>Themes</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="customize" 
+                className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300 data-[state=active]:text-primary data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-gray-700 rounded-lg px-3 py-2 transition-colors"
+              >
+                <Droplet className="w-4 h-4" />
+                <span>Customize</span>
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="themes" className="space-y-4">
-            <div className="grid grid-cols-4 gap-4">
-              {TABLE_THEMES.map(theme => renderThemePreview(theme))}
-            </div>
-          </TabsContent>
+            <TabsContent value="themes" className="space-y-4">
+              <div className="grid grid-cols-4 gap-4">
+                {TABLE_THEMES.map(theme => renderThemePreview(theme))}
+              </div>
+            </TabsContent>
 
-          <TabsContent value="customize" className="space-y-6">
-            {/* Table Structure */}
-            <Accordion type="single" collapsible defaultValue="table-structure">
-              <AccordionItem value="table-structure">
-                <AccordionTrigger className="text-lg font-semibold">Table Structure</AccordionTrigger>
-                <AccordionContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label>Rows: {localElement.rows || 1}</Label>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="icon" onClick={handleRemoveRow} disabled={(localElement.rows || 1) <= 1}>
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={handleAddRow}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label>Columns: {localElement.cols || 1}</Label>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="icon" onClick={handleRemoveColumn} disabled={(localElement.cols || 1) <= 1}>
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={handleAddColumn}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-
-            {/* Table Styling */}
-            <Accordion type="single" collapsible defaultValue="table-styling">
-              <AccordionItem value="table-styling">
-                <AccordionTrigger className="text-lg font-semibold">Table Styling</AccordionTrigger>
-                <AccordionContent className="space-y-4">
-                  {/* Header Row Toggle */}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="header-toggle">Header Row</Label>
-                    <Switch
-                      id="header-toggle"
-                      checked={localElement.header || false}
-                      onCheckedChange={(checked) => handlePropertyChange('header', checked)}
-                    />
-                  </div>
-
-                  {/* Alternating Row Background */}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="row-alt-bg-toggle">Alternating Row Background</Label>
-                    <Switch
-                      id="row-alt-bg-toggle"
-                      checked={!!localElement.rowAltBg}
-                      onCheckedChange={(checked) => handlePropertyChange('rowAltBg', checked ? '#f5f5f5' : null)}
-                    />
-                  </div>
-
-                  {/* Cell Padding */}
+            <TabsContent value="customize" className="space-y-6">
+              {/* Table Structure */}
+              <Accordion type="single" collapsible defaultValue="table-structure">
+                <AccordionItem value="table-structure">
+                  <AccordionTrigger className="text-lg font-semibold">Table Structure</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="flex items-center justify-between py-2">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Rows</Label>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Number of rows in the table</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 w-8 text-center">
+                          {localElement.rows || 1}
+                        </span>
+                        <div className="flex flex-col gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            onClick={handleAddRow}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            onClick={handleRemoveRow} 
+                            disabled={(localElement.rows || 1) <= 1}
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+{/* Cell Padding */}
                   <div>
                     <Label className="text-sm font-medium">Cell Padding: {localElement.cellPadding || 0}px</Label>
                     <Slider
@@ -288,9 +287,22 @@ export const TablePropertiesPanel: React.FC<TablePropertiesPanelProps> = ({ sele
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end gap-2 mt-6">
-          <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-          <Button onClick={handleApply}>Apply</Button>
+        <div className="p-4 border-t border-gray-100 dark:border-gray-700">
+          <div className="flex justify-end gap-3">
+            <Button 
+              variant="outline" 
+              onClick={handleCancel}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleApply}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Apply Changes
+            </Button>
+          </div>
         </div>
       </div>
     </div>
