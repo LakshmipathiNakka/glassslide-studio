@@ -257,6 +257,25 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
     };
   }, [chart.chartData, chart.chartType, colorPalette, scale]);
 
+  // Precomputed pie data (for pie charts only)
+  const pieData = useMemo(() => {
+    if (chart.chartType !== 'pie' || !chart.chartData) return null;
+
+    const baseDatasets = chart.chartData.datasets || [];
+    if (!baseDatasets.length) return null;
+
+    return {
+      labels: chart.chartData.labels || [],
+      datasets: baseDatasets.map((dataset: any) => ({
+        label: dataset.label || '',
+        data: dataset.data || [],
+        backgroundColor: dataset.backgroundColor || '#3B82F6',
+        borderColor: dataset.borderColor || 'transparent',
+        borderWidth: dataset.borderWidth ?? 0,
+      })),
+    };
+  }, [chart.chartType, chart.chartData]);
+
   // Common options with intelligent color system
   const commonOptions = useMemo(() => ({
     responsive: true,
@@ -571,48 +590,16 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
           </div>
         );
       
-      case 'pie':
-        // Enforce single dataset for pies
+      case 'pie': {
+        // Enforce single dataset for pies (most common case)
         const datasets = (chart.chartData?.datasets || []).slice(0, 1);
         
-        if (datasets.length === 1) {
+        if (datasets.length === 1 && pieData) {
           // Single dataset - regular pie chart with intelligent color shades
-          const dataset = chartData.datasets[0];
-          // Prefer per-slice colors if provided; otherwise use distinct palette colors
-          const sliceColors: string[] = Array.isArray(dataset.backgroundColor)
-            ? (dataset.backgroundColor as string[])
-            : chartData.labels.map((_, i) => colorPalette[i % colorPalette.length]);
-          
-          const pieData = useMemo(() => {
-            if (!chart.chartData) {
-              console.warn('No chart data available');
-              return { labels: [], datasets: [] };
-            }
-            
-            const data = {
-              labels: chart.chartData.labels || [],
-              datasets: chart.chartData.datasets.map((dataset: any) => ({
-                label: dataset.label || '',
-                data: dataset.data || [],
-                backgroundColor: dataset.backgroundColor || '#3B82F6',
-                borderColor: dataset.borderColor || 'transparent',
-                borderWidth: 0,
-              })),
-            };
-            
-            return data;
-          }, [chart.chartData]);
-          
-          // Debug log for pie chart data
-          useEffect(() => {
-            if (chart.chartType === 'pie') {
-              console.log('Pie Chart Data:', pieData);
-            }
-          }, [chart.chartType, pieData]);
+          const dataset = pieData.datasets[0];
 
-return (
-  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-    {/* ... (rest of the code remains the same) */}
+          return (
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
               {/* Title (read-only; editable in Properties Panel) */}
               {chart.chartData?.title && (
                 <div style={{ marginBottom: 16 * scale, padding: `${0}px ${8 * scale}px` }}>
@@ -644,17 +631,18 @@ return (
                         position: 'bottom',
                         labels: {
                           ...commonOptions.plugins.legend.labels,
+                          // Color legend markers AND text with slice color
                           generateLabels: (chart: any) => {
                             const data = chart.data;
                             if (data.labels.length && data.datasets.length) {
                               return data.labels.map((label: string, i: number) => {
-                                const dataset = data.datasets[0];
-                                const backgroundColor = Array.isArray(dataset.backgroundColor) 
-                                  ? dataset.backgroundColor[i] 
-                                  : dataset.backgroundColor;
-                                const borderColor = Array.isArray(dataset.borderColor) 
-                                  ? dataset.borderColor[i] 
-                                  : dataset.borderColor;
+                                const ds = data.datasets[0];
+                                const backgroundColor = Array.isArray(ds.backgroundColor) 
+                                  ? ds.backgroundColor[i] 
+                                  : ds.backgroundColor;
+                                const borderColor = Array.isArray(ds.borderColor) 
+                                  ? ds.borderColor[i] 
+                                  : ds.borderColor;
                                 
                                 return {
                                   text: label,
@@ -662,7 +650,159 @@ return (
                                   strokeStyle: borderColor,
                                   lineWidth: 1,
                                   hidden: false,
-                                  index: i
+                                  index: i,
+                                  // Chart.js v3+ uses `color`; v2 used `fontColor`.
+                                  color: backgroundColor,
+                                  fontColor: backgroundColor,
+                                };
+                              });
+                            }
+                            return [];
+                          },
+                        },
+                        onClick: (e: any, legendItem: any, legend: any) => {
+                          const index = legendItem.index;
+                          const ci = legend.chart;
+                          if (ci.getDataVisibility(index)) {
+                            ci.hide(index);
+                            legendItem.hidden = true;
+                          } else {
+                            ci.show(index);
+                            legendItem.hidden = false;
+                          }
+                          ci.update('none');
+                        },
+                      },
+                      tooltip: {
+                        ...commonOptions.plugins.tooltip,
+                        callbacks: {
+                          title: (context: any) => {
+                            const label = context[0]?.label || '';
+                            return dataset.label ? `${label} (${dataset.label})` : label;
+                          },
+                          label: (context: any) => {
+                            const value = context.parsed;
+                            const total = dataset.data.reduce((a: number, b: number) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return dataset.label
+                              ? `${dataset.label}: ${value.toLocaleString()} (${percentage}%)`
+                              : `${value.toLocaleString()} (${percentage}%)`;
+                          },
+                        },
+                      },
+                    },
+                  }} 
+                />
+              </div>
+            </div>
+          );
+        } else {
+          // Multiple datasets - existing combined pie logic (unchanged)
+          const allLabels: string[] = [];
+          const allDatasets: any[] = [];
+          
+          datasets.forEach((dataset: any, datasetIndex: number) => {
+            const baseColor = dataset.colorIdentity?.solid || dataset.backgroundColor;
+            const shades = createShades(baseColor, chartData.labels.length);
+            
+            // Add dataset label to each data point label
+            const labeledData = dataset.data.map((value: number, index: number) => ({
+              value,
+              label: `${chartData.labels[index]} (${dataset.label})`,
+              originalLabel: chartData.labels[index],
+              datasetLabel: dataset.label,
+              color: shades[index] || baseColor
+            }));
+            
+            allLabels.push(...labeledData.map(item => item.label));
+            allDatasets.push({
+              ...dataset,
+              data: labeledData.map(item => item.value),
+              backgroundColor: labeledData.map(item => item.color),
+              borderColor: labeledData.map(item => item.color),
+              borderWidth: 2,
+              hoverBackgroundColor: labeledData.map(item => item.color),
+              hoverBorderColor: '#ffffff',
+              hoverBorderWidth: 3,
+              // Store metadata for tooltips
+              metadata: labeledData
+            });
+          });
+          
+          const combinedPieData = {
+            labels: allLabels,
+            datasets: allDatasets
+          };
+          
+          return (
+            <div className="w-full h-full flex flex-col">
+              {/* Title (read-only; editable in Properties Panel) */}
+              {chart.chartData?.title && (
+                <div className="px-2" style={{ marginBottom: 16 * scale }}>
+                  <div
+                    className="rounded"
+                    style={{
+                      padding: `${4 * scale}px ${8 * scale}px`,
+                      fontSize: `${(chart.chartData?.titleFontSize || 18) * scale}px`,
+                      fontFamily: chart.chartData?.titleFontFamily || 'system-ui, -apple-system, sans-serif',
+                      fontWeight: chart.chartData?.titleFontWeight || 'bold',
+                      color: chart.chartData?.titleColor || '#000000',
+                      textAlign: chart.chartData?.titleAlign || 'center'
+                    }}
+                  >
+                    {chart.chartData.title}
+                  </div>
+                </div>
+              )}
+              <div className="flex-1 min-h-0">
+                <Pie 
+                  data={combinedPieData} 
+                  options={{
+                    ...commonOptions,
+                    plugins: {
+                      ...commonOptions.plugins,
+                      legend: {
+                        ...commonOptions.plugins.legend,
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                          ...commonOptions.plugins.legend.labels,
+                          generateLabels: (chart: any) => {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                              return data.labels.map((label: string, i: number) => {
+                                // Find which dataset this label belongs to
+                                let datasetIndex = 0;
+                                let itemIndex = i;
+                                let currentLength = 0;
+                                
+                                for (let j = 0; j < data.datasets.length; j++) {
+                                  const dataset = data.datasets[j];
+                                  if (i < currentLength + dataset.data.length) {
+                                    datasetIndex = j;
+                                    itemIndex = i - currentLength;
+                                    break;
+                                  }
+                                  currentLength += dataset.data.length;
+                                }
+                                
+                                const dataset = data.datasets[datasetIndex];
+                                const backgroundColor = Array.isArray(dataset.backgroundColor) 
+                                  ? dataset.backgroundColor[itemIndex] 
+                                  : dataset.backgroundColor;
+                                const borderColor = Array.isArray(dataset.borderColor) 
+                                  ? dataset.borderColor[itemIndex] 
+                                  : dataset.borderColor;
+                                
+                                return {
+                                  text: label,
+                                  fillStyle: backgroundColor,
+                                  strokeStyle: borderColor,
+                                  lineWidth: 1,
+                                  hidden: !chart.getDataVisibility(i),
+                                  index: i,
+                                  color: backgroundColor,
+                                  fontColor: backgroundColor,
                                 };
                               });
                             }
@@ -670,29 +810,52 @@ return (
                           }
                         },
                         onClick: (e: any, legendItem: any, legend: any) => {
-                          const index = legendItem.datasetIndex ?? legendItem.index;
+                          const index = legendItem.index;
                           const ci = legend.chart;
-                          if (ci.isDatasetVisible(index)) {
+                          if (ci.getDataVisibility(index)) {
                             ci.hide(index);
                             legendItem.hidden = true;
                           } else {
                             ci.show(index);
                             legendItem.hidden = false;
                           }
+                          ci.update('none');
                         }
                       },
                       tooltip: {
                         ...commonOptions.plugins.tooltip,
                         callbacks: {
                           title: (context: any) => {
+                            const dataIndex = context[0]?.dataIndex || 0;
+                            const datasetIndex = context[0]?.datasetIndex || 0;
+                            const dataset = allDatasets[datasetIndex];
+                            const metadata = dataset?.metadata?.[dataIndex];
+                            
+                            if (metadata) {
+                              return `${metadata.originalLabel}(${metadata.datasetLabel})`;
+                            }
+                            
                             const label = context[0]?.label || '';
-                            return `${label} (${dataset.label})`;
+                            return label;
                           },
                           label: (context: any) => {
+                            const dataIndex = context[0]?.dataIndex || 0;
+                            const datasetIndex = context[0]?.datasetIndex || 0;
+                            const dataset = allDatasets[datasetIndex];
+                            const metadata = dataset?.metadata?.[dataIndex];
+                            
+                            if (metadata) {
+                              const value = context.parsed;
+                              const total = dataset.data.reduce((a: number, b: number) => a + b, 0);
+                              const percentage = ((value / total) * 100).toFixed(1);
+                              return `${metadata.datasetLabel}: ${value.toLocaleString()} (${percentage}%)`;
+                            }
+                            
                             const value = context.parsed;
-                            const total = dataset.data.reduce((a: number, b: number) => a + b, 0);
+                            const currentDataset = allDatasets[datasetIndex];
+                            const total = currentDataset.data.reduce((a: number, b: number) => a + b, 0);
                             const percentage = ((value / total) * 100).toFixed(1);
-                            return `${dataset.label}: ${value.toLocaleString()} (${percentage}%)`;
+                            return `${currentDataset.label}: ${value.toLocaleString()} (${percentage}%)`;
                           }
                         }
                       }
@@ -700,9 +863,32 @@ return (
                   }} 
                 />
               </div>
+              
+               {/* Hide custom legend in thumbnails */}
+               {scale >= 1 && (
+                 <div className="flex flex-wrap justify-center gap-3 p-3 bg-gray-50/50 rounded-b-lg">
+                   {datasets.map((dataset: any, index: number) => {
+                     const baseColor = dataset.colorIdentity?.solid || dataset.backgroundColor;
+                     return (
+                       <div 
+                         key={index} 
+                         className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg text-sm font-medium shadow-sm border border-gray-200 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                       >
+                         <div 
+                           className="w-3 h-3 rounded-full"
+                           style={{ backgroundColor: baseColor }}
+                         />
+                         <span style={{ color: baseColor }}>
+                           {dataset.label}
+                         </span>
+                       </div>
+                     );
+                   })}
+                 </div>
+               )}
             </div>
           );
-        } else {
+        }
           // Multiple datasets - create a single pie chart with all datasets as separate arcs
           // This ensures all datasets are equally interactive
           const allLabels: string[] = [];

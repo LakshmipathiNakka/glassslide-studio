@@ -113,31 +113,41 @@ function renderContent(el: Element, s: number): React.ReactNode {
         width: '100%', height: '100%', background: fill, border: `${strokeWidth * s}px solid ${stroke}`,
       };
       switch (el.shapeType) {
-        case 'rectangle': return <div style={common} />;
-        case 'rounded-rectangle': return <div style={{ ...common, borderRadius: 8 * s }} />;
-        case 'circle': return <div style={{ ...common, borderRadius: '50%' }} />;
+        case 'rectangle':
+          return <div style={common} />;
+        case 'rounded-rectangle':
+          return <div style={{ ...common, borderRadius: 8 * s }} />;
+        case 'circle':
+          return <div style={{ ...common, borderRadius: '50%' }} />;
         case 'triangle':
           return (
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width:'100%', height:'100%' }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
               <polygon points="50,0 0,100 100,100" fill={fill} stroke={stroke} strokeWidth={strokeWidth * s} />
             </svg>
           );
         case 'diamond':
           return (
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width:'100%', height:'100%' }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
               <polygon points="50,0 100,50 50,100 0,50" fill={fill} stroke={stroke} strokeWidth={strokeWidth * s} />
             </svg>
           );
         case 'star':
           return (
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width:'100%', height:'100%' }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
               <polygon points="50,0 61,35 98,35 68,57 79,91 50,70 21,91 32,57 2,35 39,35" fill={fill} stroke={stroke} strokeWidth={strokeWidth * s} />
             </svg>
           );
         case 'arrow-right':
           return (
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width:'100%', height:'100%' }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
               <polygon points="0,20 60,20 60,0 100,50 60,100 60,80 0,80" fill={fill} stroke={stroke} strokeWidth={strokeWidth * s} />
+            </svg>
+          );
+        case 'hexagon':
+          return (
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+              {/* Match SimplePowerPointCanvas hexagon geometry: 25,0 75,0 100,50 75,100 25,100 0,50 */}
+              <polygon points="25,0 75,0 100,50 75,100 25,100 0,50" fill={fill} stroke={stroke} strokeWidth={strokeWidth * s} />
             </svg>
           );
         default:

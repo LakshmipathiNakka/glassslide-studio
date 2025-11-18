@@ -341,32 +341,12 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                         {presentationThemes.map((theme, i) => {
                           // Map theme IDs to appropriate icons
                           const getIcon = () => {
-                            switch(theme.id) {
-                              case 'business-strategy':
-                                return <Briefcase className="w-5 h-5 text-blue-500" />;
-                              case 'education-learning':
-                                return <BookOpen className="w-5 h-5 text-amber-500" />;
-                              case 'education-pro':
-                                return <BookOpen className="w-5 h-5 text-emerald-500" />;
-                              case 'modern-corporate':
-                              default:
-                                return <Briefcase className="w-5 h-5 text-indigo-500" />;
-                            }
+                            return <BookOpen className="w-5 h-5 text-amber-500" />;
                           };
 
                           // Map theme IDs to gradient classes
                           const getGradient = () => {
-                            switch(theme.id) {
-                              case 'business-strategy':
-                                return 'from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10';
-                              case 'education-learning':
-                                return 'from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/10';
-                              case 'education-pro':
-                                return 'from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/10';
-                              case 'modern-corporate':
-                              default:
-                                return 'from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/10';
-                            }
+                            return 'from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/10';
                           };
 
                           return (

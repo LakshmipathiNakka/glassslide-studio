@@ -863,21 +863,31 @@ export const SimplePresentationMode = ({
             );
             
           case 'hexagon':
+            // Use SVG polygon so presentation mode matches editor/thumbnail geometry exactly
             return (
-              <div 
+              <svg
                 key={element.id}
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
                 style={{
-                  ...baseStyle,
-                  width: width,
-                  height: height,
-                  background: fill,
-                  position: 'relative',
-                  borderColor: stroke,
-                  borderWidth: strokeWidth,
-                  borderStyle: 'solid',
-                  clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+                  position: 'absolute',
+                  left: element.x * scale,
+                  top: element.y * scale,
+                  width,
+                  height,
+                  opacity,
+                  transform: rotation ? `rotate(${rotation}deg)` : undefined,
+                  transformOrigin: 'center center',
+                  overflow: 'visible',
                 }}
-              />
+              >
+                <polygon
+                  points="25,0 75,0 100,50 75,100 25,100 0,50"
+                  fill={fill}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                />
+              </svg>
             );
             
           case 'octagon':

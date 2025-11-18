@@ -1309,10 +1309,10 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
       // Get theme-based colors first
       const theme = TABLE_THEMES.find(t => t.id === el.themeId) || {} as any;
       
-      // Border properties with theme fallbacks
+      // Border properties with theme fallbacks (match thumbnail defaults)
       const borderWidth = (el.borderWidth ?? 1);
       const borderStyle = (el as any).borderStyle || 'solid';
-      const borderColor = el.borderColor || theme.borderColor || '#D9D9D9';
+      const borderColor = theme.borderColor || el.borderColor || '#E2E8F0';
       
       // Other table properties
       const cellPadding = el.cellPadding ?? 8;
@@ -1320,16 +1320,15 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
       const opacity = (el as any).opacity ?? 1;
       const header = (el as any).header ?? false;
       
-      // Header styling with theme fallbacks
-      const headerBg = (el as any).headerBg || theme.headerBg || '#E7E6E6';
-      const headerTextColor = (el as any).headerTextColor || theme.headerTextColor || '#111827';
-      
-      // Row and text colors with theme fallbacks - prioritize element's color, then theme, then defaults
-      const rowBg = theme.rowEvenBg || el.backgroundColor || '#FFFFFF';
-      // Check for color in the element first, then theme, then fallback to black
-      const textColor = el.color || theme.textColor || '#000000';
-      // For header, use headerTextColor if explicitly set, otherwise use theme's header text color, then fallback to default
-      const effectiveHeaderTextColor = (el as any).headerTextColor || theme.headerTextColor || '#111827';
+      // Header styling with theme fallbacks (match thumbnail/table theme defaults)
+      const headerBg = theme.headerBg || (el as any).headerBg || '#3B82F6';
+      // Row and text colors with theme fallbacks - keep in sync with ThumbnailCanvasHTML
+      const rowEvenBg = theme.rowEvenBg || (el as any).rowEvenBg || '#F8FAFC';
+      const rowOddBg = theme.rowOddBg || (el as any).rowAltBg || (theme.rowEvenBg ? 'rgba(0,0,0,0.02)' : '#F1F5F9');
+      // Prefer theme text color, then element color, then fallback
+      const textColor = theme.textColor || el.color || '#1E293B';
+      // For header, use theme header text color first, then element override, then fallback to white
+      const effectiveHeaderTextColor = (el as any).headerTextColor || theme.headerTextColor || '#FFFFFF';
 
       const handleCellCommit = (r: number, c: number, html: string) => {
         const next = tableData.map(row => row.slice());
@@ -1401,7 +1400,9 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
                   textAlign: textAlign as any,
                   wordBreak: 'break-word', // Ensure long words don't overflow
                   caretColor: '#000',
-                  backgroundColor: header && r === 0 ? headerBg : rowBg,
+                  backgroundColor: header && r === 0
+                    ? headerBg
+                    : (((header ? r - 1 : r) % 2 === 0) ? rowEvenBg : rowOddBg),
                   color: header && r === 0 ? effectiveHeaderTextColor : textColor,
                   fontWeight: header && r === 0 ? '600' : 'normal',
                   fontFamily: el.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',

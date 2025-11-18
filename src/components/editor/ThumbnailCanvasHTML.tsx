@@ -366,17 +366,14 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             break;
             
           case 'hexagon':
+            // Match the SVG hexagon used in SimplePowerPointCanvas for visual consistency
             ctx.beginPath();
-            const hexCenterX = w / 2;
-            const hexCenterY = h / 2;
-            const hexRadius = Math.min(w, h) / 2;
-            for (let i = 0; i < 6; i++) {
-              const angle = (i * Math.PI) / 3;
-              const x = hexCenterX + Math.cos(angle) * hexRadius;
-              const y = hexCenterY + Math.sin(angle) * hexRadius;
-              if (i === 0) ctx.moveTo(x, y);
-              else ctx.lineTo(x, y);
-            }
+            ctx.moveTo(w * 0.25, 0);
+            ctx.lineTo(w * 0.75, 0);
+            ctx.lineTo(w, h * 0.5);
+            ctx.lineTo(w * 0.75, h);
+            ctx.lineTo(w * 0.25, h);
+            ctx.lineTo(0, h * 0.5);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
