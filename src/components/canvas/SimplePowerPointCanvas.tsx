@@ -1396,8 +1396,10 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
                   padding: cellPadding,
                   outline: 'none',
                   minWidth: 0,
-                  overflow: 'hidden',
+                  minHeight: '40px', // Increased minimum height for better content visibility
+                  overflow: 'auto', // Allow scrolling for overflow content
                   textAlign: textAlign as any,
+                  wordBreak: 'break-word', // Ensure long words don't overflow
                   caretColor: '#000',
                   backgroundColor: header && r === 0 ? headerBg : rowBg,
                   color: header && r === 0 ? effectiveHeaderTextColor : textColor,

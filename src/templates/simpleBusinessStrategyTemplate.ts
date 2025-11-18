@@ -123,6 +123,58 @@ const createPolygon = (
   };
 };
 
+// Helper function to create chart elements
+const createChart = (
+  id: string,
+  type: 'bar' | 'line' | 'pie',
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  chartData: any,
+  options: any = {}
+): any => ({
+  id,
+  type: 'chart',
+  chartType: type,
+  x,
+  y,
+  width,
+  height,
+  chartData: {
+    ...chartData,
+    // Ensure datasets is an array
+    datasets: chartData.datasets?.map((dataset: any) => ({
+      ...dataset,
+      // Ensure backgroundColor is an array for pie charts
+      backgroundColor: Array.isArray(dataset.backgroundColor) 
+        ? dataset.backgroundColor 
+        : [dataset.backgroundColor || '#3B82F6'],
+      // Ensure borderColor is an array for line/bar charts
+      borderColor: Array.isArray(dataset.borderColor)
+        ? dataset.borderColor
+        : [dataset.borderColor || '#3B82F6']
+    })) || []
+  },
+  chartOptions: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: {
+          font: {
+            size: 12,
+          },
+          padding: 20
+        }
+      }
+    },
+    ...options,
+  },
+  zIndex: 1,
+});
+
 const createSimpleBusinessStrategyTemplate = (): Slide[] => {
   console.log('[Template] Creating enhanced business strategy template...');
   const now = new Date();
@@ -169,6 +221,56 @@ const createSimpleBusinessStrategyTemplate = (): Slide[] => {
     ]
   };
 
+  // Sample chart data
+  const revenueData = {
+    labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+    datasets: [
+      {
+        label: 'Revenue (in millions)',
+        data: [4.2, 5.1, 6.3, 7.8],
+        borderColor: '#3B82F6',
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        borderWidth: 2,
+        tension: 0.3,
+        fill: true
+      }
+    ]
+  };
+
+  const marketShareData = {
+    labels: ['Our Company', 'Competitor A', 'Competitor B', 'Others'],
+    datasets: [
+      {
+        data: [42, 25, 20, 13],
+        backgroundColor: [
+          '#3B82F6',
+          '#10B981',
+          '#F59E0B',
+          '#E5E7EB'
+        ],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  const quarterlyData = {
+    labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+    datasets: [
+      {
+        label: 'New Customers',
+        data: [120, 150, 180, 210],
+        backgroundColor: '#3B82F6',
+        borderRadius: 4,
+      },
+      {
+        label: 'Returning Customers',
+        data: [80, 100, 130, 150],
+        backgroundColor: '#10B981',
+        borderRadius: 4,
+      }
+    ]
+  };
+
   // Slide 1: Title Slide with enhanced visuals
   const titleSlide: Slide = {
     id: 'title-slide',
@@ -209,14 +311,7 @@ const createSimpleBusinessStrategyTemplate = (): Slide[] => {
         zIndex: 2,
       }),
       
-      // Decorative divider with gradient
-      createDecorativeElement(
-        'divider',
-        'rectangle',
-        80, 360, 120, 4,
-        accentGradient,
-        { color: 'rgba(0,0,0,0.2)', blur: 4, offsetX: 0, offsetY: 2 }
-      )
+      // Removed decorative divider
     ],
     background: '#1e3a8a',
     createdAt: now.toISOString(),
@@ -283,42 +378,37 @@ const createSimpleBusinessStrategyTemplate = (): Slide[] => {
     createdAt: now.toISOString(),
   };
 
-  // Slide 4: Market Analysis with Line Chart
+  // Slide 4: Market Analysis
   const marketAnalysisSlide: Slide = {
     id: 'market-analysis',
     elements: [
-      createTextElement('title', 'Market Growth Trends (2023-2030)', 80, 80, 800, 60, sectionTitleStyle),
-      // Line Chart
-      {
-        id: 'market-growth-chart',
-        type: 'chart',
-        x: 100,
-        y: 160,
-        width: 760,
-        height: 320,
-        chartType: 'line',
-        data: {
-          title: 'Market Growth Projection',
-          titleFontSize: 14,
-          titleFontWeight: 'bold',
-          titleFontFamily: 'Arial',
-          titleAlign: 'center',
-          titleColor: '#1f2937',
+      createTextElement('title', 'Market Analysis', 80, 60, 800, 60, sectionTitleStyle),
+      
+      // Market Growth Projection Chart (Larger to take more space)
+      createChart(
+        'market-growth-chart',
+        'line',
+        80,
+        120,
+        400,
+        320,
+        {
           labels: ['2023', '2024', '2025', '2026', '2027', '2028', '2029', '2030'],
           datasets: [
             {
               label: 'Market Size ($B)',
               data: [45, 52, 60, 68, 75, 83, 90, 100],
-              borderColor: '#1d4ed8',
-              backgroundColor: 'rgba(29, 78, 216, 0.1)',
+              borderColor: '#3B82F6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
               borderWidth: 2,
               tension: 0.3,
-              fill: true
+              fill: true,
+              yAxisID: 'y'
             },
             {
               label: 'Growth Rate (%)',
               data: [12, 15, 13, 12, 10, 9, 8, 11],
-              borderColor: '#10b981',
+              borderColor: '#10B981',
               backgroundColor: 'rgba(16, 185, 129, 0.1)',
               borderWidth: 2,
               borderDash: [5, 5],
@@ -327,9 +417,20 @@ const createSimpleBusinessStrategyTemplate = (): Slide[] => {
             }
           ]
         },
-        options: {
+        {
           responsive: true,
           maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: 'Market Growth Projection',
+              font: { size: 16, weight: 'bold' }
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            }
+          },
           scales: {
             y: {
               type: 'linear',
@@ -356,28 +457,70 @@ const createSimpleBusinessStrategyTemplate = (): Slide[] => {
               },
               min: 0,
               max: 20
-            }
-          },
-          plugins: {
-            legend: {
-              position: 'top',
-              labels: {
-                usePointStyle: true,
-                padding: 20
-              }
             },
-            tooltip: {
-              mode: 'index',
-              intersect: false
+            x: {
+              grid: {
+                display: false
+              }
             }
           }
         }
-      },
-      createTextElement('chart-note', 'Source: Market Research 2023 | *Projected values for 2024-2030', 100, 500, 760, 40, {
+      ),
+
+      // Market Share Distribution Pie Chart (Larger to take more space)
+      createChart(
+        'market-share-chart',
+        'pie',
+        520,
+        120,
+        400,
+        320,
+        {
+          labels: ['Our Company', 'Competitor A', 'Competitor B', 'Others'],
+          datasets: [{
+            data: [15, 35, 25, 25],
+            backgroundColor: [
+              '#3B82F6',
+              '#10B981',
+              '#F59E0B',
+              '#E5E7EB'
+            ],
+            borderWidth: 1
+          }]
+        },
+        {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: 'Market Share Distribution (2023)',
+              font: { size: 16, weight: 'bold' }
+            },
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 20,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (context: any) => {
+                  return `${context.label}: ${context.raw}%`;
+                }
+              }
+            }
+          }
+        }
+      ),
+
+      createTextElement('chart-note', 'Source: Market Research 2023 | *Projected values for 2024-2030', 100, 480, 800, 40, {
         fontSize: 12,
         fontStyle: 'italic',
         color: '#6b7280',
-        textAlign: 'right',
+        textAlign: 'center',
       }),
     ],
     background: '#ffffff',
@@ -449,80 +592,97 @@ const createSimpleBusinessStrategyTemplate = (): Slide[] => {
     createdAt: now.toISOString(),
   };
 
+  // Helper function to create a metric with label and value
+  const createTextMetric = (
+    id: string,
+    label: string,
+    value: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    styles: any = {}
+  ): Element[] => {
+    const elements: Element[] = [];
+    
+    elements.push(createTextElement(
+      `${id}-label`,
+      label,
+      x,
+      y,
+      width,
+      20,
+      {
+        fontSize: 14,
+        color: styles.labelColor || '#6B7280',
+        ...(styles.labelStyle || {})
+      }
+    ));
+    
+    elements.push(createTextElement(
+      `${id}-value`,
+      value,
+      x,
+      y + 25,
+      width,
+      30,
+      {
+        fontSize: styles.valueSize || 20,
+        fontWeight: 'bold',
+        color: styles.valueColor || '#1F2937',
+        ...(styles.valueStyle || {})
+      }
+    ));
+    
+    return elements;
+  };
+
   // Slide 7: Financial Roadmap
   const financialRoadmapSlide: Slide = {
     id: 'financial-roadmap',
     elements: [
-      createTextElement('title', 'Financial Roadmap', 80, 80, 800, 60, sectionTitleStyle),
-      createShape('chart-bg', 'rectangle', 80, 160, 800, 300, {
-        fill: '#f3f4f6',
-        stroke: '#d1d5db',
-      }),
-      createTextElement('chart-label', 'Revenue Projection (in $M)', 80, 470, 800, 30, {
-        fontSize: 16,
-        textAlign: 'center',
-        color: '#6b7280',
-      }),
-      // Bar Chart
-      {
-        id: 'revenue-bar-chart',
-        type: 'chart',
-        x: 100,
-        y: 160,
-        width: 760,
-        height: 300,
-        chartType: 'bar',
-        data: {
-          title: 'Revenue Growth',
-          titleFontSize: 14,
-          titleFontWeight: 'bold',
-          titleFontFamily: 'Arial',
-          titleAlign: 'center',
-          titleColor: '#1f2937',
+      createTextElement('title', 'Financial Roadmap', 80, 60, 800, 60, sectionTitleStyle),
+      
+      // Revenue Projection Chart (Larger and centered)
+      createChart(
+        'revenue-chart',
+        'bar',
+        80,
+        140,
+        400,
+        400,
+        {
           labels: ['2023', '2024', '2025', '2026', '2027', '2028', '2029', '2030'],
           datasets: [{
             label: 'Revenue ($M)',
             data: [100, 120, 140, 160, 180, 200, 220, 240],
-            backgroundColor: [
-              'rgba(99, 102, 241, 0.8)',
-              'rgba(59, 130, 246, 0.8)',
-              'rgba(14, 165, 233, 0.8)',
-              'rgba(6, 182, 212, 0.8)',
-              'rgba(251, 146, 60, 0.8)',
-              'rgba(220, 38, 103, 0.8)',
-              'rgba(220, 38, 103, 0.8)',
-              'rgba(220, 38, 103, 0.8)'
-            ],
-            borderColor: [
-              'rgba(99, 102, 241, 1)',
-              'rgba(59, 130, 246, 1)',
-              'rgba(14, 165, 233, 1)',
-              'rgba(6, 182, 212, 1)',
-              'rgba(251, 146, 60, 1)',
-              'rgba(220, 38, 103, 1)',
-              'rgba(220, 38, 103, 1)',
-              'rgba(220, 38, 103, 1)'
-            ],
-            borderWidth: 1
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 1,
+            borderRadius: 4
           }]
         },
-        options: {
+        {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              position: 'top',
-              labels: {
-                usePointStyle: true,
-                padding: 15
+            title: {
+              display: true,
+              text: 'Revenue Projection',
+              font: { size: 16, weight: 'bold' }
+            },
+            tooltip: {
+              callbacks: {
+                label: (context: any) => `$${context.raw}M`
               }
+            },
+            legend: {
+              display: false
             }
           },
           scales: {
             y: {
-              type: 'linear',
-              display: true,
-              position: 'left',
+              beginAtZero: true,
               title: {
                 display: true,
                 text: 'Revenue ($M)'
@@ -530,16 +690,149 @@ const createSimpleBusinessStrategyTemplate = (): Slide[] => {
               grid: {
                 drawOnChartArea: true
               }
+            },
+            x: {
+              grid: {
+                display: false
+              }
             }
           }
         }
-      },
+      ),
+
+      // Financial Metrics Card (Larger and better organized)
+      createShape('metrics-bg', 'rectangle', 520, 140, 400, 400, {
+        fill: '#F9FAFB',
+        stroke: '#E5E7EB',
+        strokeWidth: 1,
+        borderRadius: 8
+      }),
+
+      createTextElement('metrics-title', 'Key Financial Metrics', 540, 170, 360, 30, {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1F2937'
+      }),
+
+      // Revenue Metrics
+      createTextElement('metric-1', 'Current Run Rate', 540, 220, 360, 25, {
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500'
+      }),
+      createTextElement('metric-1-value', '$120M', 540, 245, 360, 30, {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#3B82F6'
+      }),
+
+      // Growth Metrics
+      createTextElement('metric-2', `YoY Growth (${currentYear - 1} → ${currentYear})`, 540, 290, 360, 25, {
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500'
+      }),
+      createTextElement('metric-2-value', '20%', 540, 315, 360, 30, {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#10B981'
+      }),
+
+      // Margin Metrics
+      createTextElement('metric-3', 'EBITDA Margin', 540, 360, 360, 25, {
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500'
+      }),
+      createTextElement('metric-3-value', '25%', 540, 385, 360, 30, {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#8B5CF6'
+      }),
+
+      // Cash Runway
+      createTextElement('metric-4', 'Cash Runway', 540, 430, 360, 25, {
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500'
+      }),
+      createTextElement('metric-4-value', '36 months', 540, 455, 360, 30, {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#F59E0B'
+      }),
+
+      createTextElement('chart-note', 'Source: Internal Financials | *Projected values for 2024-2030', 100, 780, 760, 40, {
+        fontSize: 12,
+        fontStyle: 'italic',
+        color: '#6b7280',
+        textAlign: 'right',
+      })
+    ],
+    background: '#ffffff',
+    createdAt: now
+  };
+
+  // Slide 8: Implementation Timeline
+  const implementationTimelineSlide: Slide = {
+    id: 'implementation-timeline',
+    elements: [
+      createTextElement('title', 'Implementation Timeline', 80, 80, 800, 60, sectionTitleStyle),
+      createTextElement('timeline-1', 'Q1 2024: Product Development', 100, 180, 700, 30, {
+        fontSize: 18,
+        color: '#1f2937',
+        fontWeight: 'bold'
+      }),
+      createTextElement('timeline-2', 'Q2 2024: Beta Testing', 100, 230, 700, 30, {
+        fontSize: 18,
+        color: '#1f2937',
+        fontWeight: 'bold'
+      }),
+      createTextElement('timeline-3', 'Q3 2024: Market Launch', 100, 280, 700, 30, {
+        fontSize: 18,
+        color: '#1f2937',
+        fontWeight: 'bold'
+      })
+    ],
+    background: '#ffffff',
+    createdAt: now
+  };
+
+  // Slide 7.5: Key Metrics Table
+  const metricsTableSlide: Slide = {
+    id: 'key-metrics-table',
+    elements: [
+      createTextElement('title', 'Key Performance Metrics', 80, 80, 800, 60, sectionTitleStyle),
+      
+      // Table with proper table type and theme
+      {
+        id: 'metrics-table',
+        type: 'table',
+        x: 80,
+        y: 160,
+        width: 800,
+        height: 300,
+        rows: 6, // header + 5 data rows
+        cols: 4,
+        tableData: [
+          ['Metric', 'Current', 'Target', 'Variance'],
+          ['Revenue Growth (YoY)', '12.5%', '15.0%', '-2.5%'],
+          ['Gross Margin', '45.2%', '47.0%', '-1.8%'],
+          ['Customer Acquisition Cost', '$120', '$100', '+$20'],
+          ['Customer Lifetime Value', '$1,250', '$1,400', '-$150'],
+          ['Net Promoter Score', '72', '75', '-3']
+        ],
+        themeId: 'keynote1', // Using the theme system
+        header: true,
+        borderWidth: 1,
+        cellPadding: 12,
+        cellTextAlign: 'left'
+      } as Element
     ],
     background: '#ffffff',
     createdAt: now.toISOString(),
   };
 
-  // ... (rest of the code remains the same)
   // Slide 8: Team & Resources
   const teamSlide: Slide = {
     id: 'team-resources',
@@ -638,6 +931,7 @@ const createSimpleBusinessStrategyTemplate = (): Slide[] => {
     createdAt: now.toISOString(),
   };
 
+  // Add slides to the array in the desired order
   return [
     titleSlide,
     agendaSlide,
@@ -646,7 +940,7 @@ const createSimpleBusinessStrategyTemplate = (): Slide[] => {
     competitiveLandscapeSlide,
     strategicInitiativesSlide,
     financialRoadmapSlide,
-    teamSlide,
+    metricsTableSlide,
     risksSlide,
     nextStepsSlide,
   ];

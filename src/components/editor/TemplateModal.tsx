@@ -338,35 +338,41 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
-                        {[
-                          {
-                            id: 'business-strategy',
-                            title: 'Business Strategy',
-                            description: 'Premium Apple Keynote-grade business strategy deck with glass overlays and professional data visuals',
-                            icon: <Briefcase className="w-5 h-5 text-blue-500" />,
-                            bgGradient: 'from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10',
-                            themeId: 'business-strategy'
-                          },
-                          {
-                            id: 'modern-corporate',
-                            title: 'Modern Corporate',
-                            description: 'Clean and professional templates for business presentations',
-                            icon: <Briefcase className="w-5 h-5 text-indigo-500" />,
-                            bgGradient: 'from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/10',
-                            themeId: 'modern-corporate'
-                          },
-                          {
-                            id: 'education-pro',
-                            title: 'Education Pro',
-                            description: 'Academic and educational templates with clean layouts',
-                            icon: <BookOpen className="w-5 h-5 text-amber-500" />,
-                            bgGradient: 'from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/10',
-                            themeId: 'education-pro'
-                          }
-                        ].map((item, i) => (
+                        {presentationThemes.map((theme, i) => {
+                          // Map theme IDs to appropriate icons
+                          const getIcon = () => {
+                            switch(theme.id) {
+                              case 'business-strategy':
+                                return <Briefcase className="w-5 h-5 text-blue-500" />;
+                              case 'education-learning':
+                                return <BookOpen className="w-5 h-5 text-amber-500" />;
+                              case 'education-pro':
+                                return <BookOpen className="w-5 h-5 text-emerald-500" />;
+                              case 'modern-corporate':
+                              default:
+                                return <Briefcase className="w-5 h-5 text-indigo-500" />;
+                            }
+                          };
+
+                          // Map theme IDs to gradient classes
+                          const getGradient = () => {
+                            switch(theme.id) {
+                              case 'business-strategy':
+                                return 'from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10';
+                              case 'education-learning':
+                                return 'from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/10';
+                              case 'education-pro':
+                                return 'from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/10';
+                              case 'modern-corporate':
+                              default:
+                                return 'from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/10';
+                            }
+                          };
+
+                          return (
                           <motion.article
-                            key={i}
-                            className={`group relative flex flex-col h-[280px] bg-white dark:bg-gray-800/80 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 dark:border-gray-700/50 ${item.bgGradient || ''}`}
+                            key={theme.id}
+                            className={`group relative flex flex-col h-[280px] bg-white dark:bg-gray-800/80 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 dark:border-gray-700/50 ${getGradient()}`}
                             initial={{ opacity: 0, y: 10, scale: 0.98 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ 
@@ -380,87 +386,55 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                               boxShadow: '0 15px 30px -10px rgba(0, 0, 0, 0.1)',
                               borderColor: 'rgba(0, 0, 0, 0.1)'
                             }}
-                            aria-labelledby={`card-${i}-title`}
+                            aria-labelledby={`card-${theme.id}-title`}
                           >
                             {/* Preview Area */}
                             <div className="relative h-40 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 overflow-hidden">
-                              {item.id === 1 ? (
-                                <div className="absolute inset-0 p-4 flex flex-col">
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div className="flex space-x-1">
-                                      <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                                      <div className="w-2 h-2 rounded-full bg-blue-300"></div>
-                                      <div className="w-2 h-2 rounded-full bg-blue-200"></div>
-                                    </div>
-                                    <div className="text-xs font-medium text-blue-700 dark:text-blue-300">Strategy Deck</div>
+                              <div className="absolute inset-0 p-4 flex flex-col">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex space-x-1">
+                                    <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                                    <div className="w-2 h-2 rounded-full bg-blue-300"></div>
+                                    <div className="w-2 h-2 rounded-full bg-blue-200"></div>
                                   </div>
-                                  <div className="flex-1 grid grid-cols-3 gap-2">
-                                    <div className="bg-white/80 dark:bg-white/10 rounded p-2 flex flex-col">
-                                      <div className="h-2 bg-blue-100 dark:bg-blue-900/50 rounded-full mb-2"></div>
-                                      <div className="h-1 bg-blue-50 dark:bg-blue-900/30 rounded-full mb-1"></div>
-                                      <div className="flex-1 bg-gradient-to-b from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded mt-2"></div>
-                                    </div>
-                                    <div className="bg-white/80 dark:bg-white/10 rounded p-2 flex flex-col">
-                                      <div className="h-2 bg-blue-100 dark:bg-blue-900/50 rounded-full mb-2"></div>
-                                      <div className="h-1 bg-blue-50 dark:bg-blue-900/30 rounded-full mb-1"></div>
-                                      <div className="h-1 bg-blue-50 dark:bg-blue-900/30 rounded-full mb-1"></div>
-                                      <div className="flex-1 bg-gradient-to-b from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded mt-2"></div>
-                                    </div>
-                                    <div className="bg-white/80 dark:bg-white/10 rounded p-2 flex flex-col">
-                                      <div className="h-2 bg-blue-100 dark:bg-blue-900/50 rounded-full mb-2"></div>
-                                      <div className="h-1 bg-blue-50 dark:bg-blue-900/30 rounded-full mb-1"></div>
-                                      <div className="flex-1 bg-gradient-to-b from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded mt-2"></div>
-                                    </div>
+                                  <div className="text-xs font-medium text-blue-700 dark:text-blue-300">{theme.name}</div>
+                                </div>
+                                <div className="flex-1 grid grid-cols-3 gap-2">
+                                  <div className="bg-white/80 dark:bg-white/10 rounded p-2 flex flex-col">
+                                    <div className="h-2 bg-blue-100 dark:bg-blue-900/50 rounded-full mb-2"></div>
+                                    <div className="h-1 bg-blue-50 dark:bg-blue-900/30 rounded-full mb-1"></div>
+                                    <div className="flex-1 bg-gradient-to-b from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded mt-2"></div>
                                   </div>
-                                  <div className="mt-2 text-[10px] text-blue-600/70 dark:text-blue-300/70 text-center">
-                                    Business Strategy Template
+                                  <div className="bg-white/80 dark:bg-white/10 rounded p-2 flex flex-col">
+                                    <div className="h-2 bg-blue-100 dark:bg-blue-900/50 rounded-full mb-2"></div>
+                                    <div className="h-1 bg-blue-50 dark:bg-blue-900/30 rounded-full mb-1"></div>
+                                    <div className="h-1 bg-blue-50 dark:bg-blue-900/30 rounded-full mb-1"></div>
+                                    <div className="flex-1 bg-gradient-to-b from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded mt-2"></div>
+                                  </div>
+                                  <div className="bg-white/80 dark:bg-white/10 rounded p-2 flex flex-col">
+                                    <div className="h-2 bg-blue-100 dark:bg-blue-900/50 rounded-full mb-2"></div>
+                                    <div className="h-1 bg-blue-50 dark:bg-blue-900/30 rounded-full mb-1"></div>
+                                    <div className="flex-1 bg-gradient-to-b from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded mt-2"></div>
                                   </div>
                                 </div>
-                              ) : (
-                                <div className="absolute inset-0 flex items-center justify-center p-4">
-                                  <div className="w-full h-full rounded-lg bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 shadow-inner overflow-hidden">
-                                    <div className="h-3 flex items-center px-2 border-b border-gray-100 dark:border-gray-700/50">
-                                      <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 mr-1"></div>
-                                      <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 mr-1"></div>
-                                      <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>
-                                    </div>
-                                    <div className="p-3 h-[calc(100%-12px)]">
-                                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full w-3/4 mb-2"></div>
-                                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full w-1/2 mb-3"></div>
-                                      <div className="grid grid-cols-3 gap-2 mb-2">
-                                        <div className="h-16 bg-gray-100 dark:bg-gray-700/50 rounded"></div>
-                                        <div className="h-16 bg-gray-100 dark:bg-gray-700/50 rounded"></div>
-                                        <div className="h-16 bg-gray-100 dark:bg-gray-700/50 rounded"></div>
-                                      </div>
-                                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full w-5/6 mb-1"></div>
-                                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full w-2/3"></div>
-                                    </div>
-                                  </div>
+                                <div className="mt-2 text-[10px] text-blue-600/70 dark:text-blue-300/70 text-center">
+                                  {theme.name} Template
                                 </div>
-                              )}
-                              {item.id !== 1 && (
-                                <div className="absolute top-3 right-3 flex items-center gap-1">
-                                  <span className="bg-white/90 dark:bg-gray-800/90 text-[11px] font-medium px-2 py-0.5 rounded-full text-gray-700 dark:text-gray-200 shadow-sm">
-                                    Demo {item.id}
-                                  </span>
-                                </div>
-                              )}
+                              </div>
                             </div>
 
                             {/* Card Content */}
                             <div className="p-4 flex-1 flex flex-col">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                  {item.icon && (
-                                    <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30">
-                                      {item.icon}
-                                    </div>
-                                  )}
+                                  <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                                    {getIcon()}
+                                  </div>
                                   <h3 
-                                    id={`card-${i}-title`}
+                                    id={`card-${theme.id}-title`}
                                     className="text-[15px] font-semibold text-gray-900 dark:text-white truncate"
                                   >
-                                    {item.title || 'Presentation Template'}
+                                    {theme.name}
                                   </h3>
                                 </div>
                                 <button 
@@ -473,30 +447,29 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                               
                               <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/50">
                                 <div className="flex flex-col gap-2">
-                                  {item.description && (
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                                      {item.description}
-                                    </p>
-                                  )}
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                                    {theme.description}
+                                  </p>
                                   <Button 
                                     variant="outline"
                                     size="sm"
                                     className="w-full text-[13px] h-8 group-hover:bg-blue-50 group-hover:text-blue-600 dark:group-hover:bg-blue-900/20 dark:group-hover:text-blue-300 transition-colors duration-200 border-gray-200 dark:border-gray-600"
-                                    onClick={() => handleApplyTemplate(`DEMO:${item.title?.toUpperCase().replace(/\s+/g, '_') || i + 1}`)}
-                                    aria-label={item.title ? `Use ${item.title} template` : `Use demo template ${i + 1}`}
+                                    onClick={() => handleApplyTemplate(theme.id)}
+                                    aria-label={`Use ${theme.name} template`}
                                   >
                                     <span className="group-hover:translate-x-0.5 transition-transform duration-200 mr-1">
                                       →
                                     </span>
                                     <span className="text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">
-                                      {item.title ? 'Use Template' : 'Use This'}
+                                      Use Template
                                     </span>
                                   </Button>
                                 </div>
                               </div>
                             </div>
                           </motion.article>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                     

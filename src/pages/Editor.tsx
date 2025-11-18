@@ -320,18 +320,30 @@ const Editor = () => {
           themeFound = true;
         }
         // Handle education theme alias
-        else if (lowerName === 'education') {
-          const matched = presentationThemes.find(t => t.id === 'education-pro' || t.name.toLowerCase().includes('education'));
+        else if (lowerName === 'education' || lowerName === 'education-learning' || lowerName === 'education_learning') {
+          const matched = presentationThemes.find(t => 
+            t.id === 'education-learning' || 
+            t.id === 'education-pro' || 
+            t.name.toLowerCase().includes('education')
+          );
           if (matched) {
-            newSlides = matched.slides;
+            console.log(`[Template] Found education theme: ${matched.id} with ${matched.slides?.length || 0} slides`);
+            newSlides = Array.isArray(matched.slides) ? [...matched.slides] : [];
             themeFound = true;
+          } else {
+            console.warn('[Template] No education theme found in presentationThemes:', presentationThemes);
           }
         }
         // Handle other themes by name
         else {
-          const matched = presentationThemes.find(t => t.name.toLowerCase() === lowerName);
+          const matched = presentationThemes.find(t => 
+            t.name.toLowerCase() === lowerName || 
+            t.id === lowerName ||
+            t.id.replace(/-/g, '') === lowerName.replace(/-/g, '')
+          );
           if (matched) {
-            newSlides = matched.slides;
+            console.log(`[Template] Found theme by name: ${matched.id} with ${matched.slides?.length || 0} slides`);
+            newSlides = Array.isArray(matched.slides) ? [...matched.slides] : [];
             themeFound = true;
           }
         }
@@ -371,7 +383,7 @@ const Editor = () => {
         title: 'Template Applied',
         description: `Applied ${templateName.replace('THEME:', '')} with ${newSlides.length} slides`,
       });
-
+      return newSlides;
     } catch (error) {
       console.error('Error applying template:', error);
       toast({
@@ -379,6 +391,7 @@ const Editor = () => {
         description: 'Failed to apply template. Please try again.',
         variant: 'destructive',
       });
+      return [];
     }
   };
 
@@ -1094,7 +1107,7 @@ const Editor = () => {
             zoom={zoom}
             onZoomIn={() => {
               setZoom((z) => {
-                const newZoom = Math.min(3.0, Math.round((z + 0.1) * 10) / 10);
+                const newZoom = Math.min(1.2, Math.round((z + 0.1) * 10) / 10);
                 return newZoom;
               });
             }}

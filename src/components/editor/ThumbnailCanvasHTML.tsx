@@ -597,22 +597,25 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
         break;
 
       case 'table': {
-        const rows = Math.max(1, (element as any).rows || 3);
-        const cols = Math.max(1, (element as any).cols || 3);
-        const cellPadding = (element as any).cellPadding ?? 6;
+        // Get table data and dimensions
+        const tableData = (element as any).tableData || [];
+        const header = !!(element as any).header;
+        const rows = Math.max(1, tableData.length || (element as any).rows || 3);
+        const cols = Math.max(1, tableData[0]?.length || (element as any).cols || 3);
+        const cellPadding = (element as any).cellPadding ?? 8;
         const borderWidth = ((element as any).borderWidth ?? 1) * scale;
+        
         // Get theme if exists
         const theme = (element as any).themeId ? 
           TABLE_THEMES.find(t => t.id === (element as any).themeId) : null;
           
-        const header = !!(element as any).header;
-        const headerBg = theme?.headerBg || (element as any).headerBg || '#E7E6E6';
-        const headerTextColor = theme?.headerTextColor || (element as any).headerTextColor || '#111827';
-        const rowAltBg = (element as any).rowAltBg || null;
-        const rowEvenBg = theme?.rowEvenBg || (element as any).backgroundColor || '#FFFFFF';
-        const rowOddBg = theme?.rowOddBg || rowAltBg || (theme?.rowEvenBg ? 'rgba(0,0,0,0.02)' : 'transparent');
-        const textColor = theme?.textColor || (element as any).color || '#000000';
-        const borderColor = theme?.borderColor || (element as any).borderColor || '#D9D9D9';
+        // Use theme colors with proper fallbacks to match the editor's theme system
+        const headerBg = theme?.headerBg || (element as any).headerBg || '#3B82F6';
+        const headerTextColor = theme?.headerTextColor || (element as any).headerTextColor || '#FFFFFF';
+        const rowEvenBg = theme?.rowEvenBg || (element as any).rowEvenBg || '#F8FAFC';
+        const rowOddBg = theme?.rowOddBg || (element as any).rowAltBg || (theme?.rowEvenBg ? 'rgba(0,0,0,0.02)' : '#F1F5F9');
+        const textColor = theme?.textColor || (element as any).color || '#1E293B';
+        const borderColor = theme?.borderColor || (element as any).borderColor || '#E2E8F0';
         const textAlign = (element as any).cellTextAlign || 'left';
         const fontFamily = (element as any).fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif';
         const fontSize = ((element as any).fontSize || 16) * scale;
@@ -639,8 +642,10 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
             const isHeader = header && r === 0;
             const isEvenRow = ((header ? r - 1 : r) % 2 === 0);
             const bg = isHeader ? headerBg : (isEvenRow ? rowEvenBg : rowOddBg);
+            
+            // Draw cell background
             if (bg && bg !== 'transparent') {
-              ctx.fillStyle = bg as string;
+              ctx.fillStyle = bg;
               ctx.fillRect(cx, cy, cellW, cellH);
             }
 
@@ -651,10 +656,9 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
               ctx.strokeRect(cx, cy, cellW, cellH);
             }
 
-            // Text
-            const tableData = (element as any).tableData as string[][] | undefined;
-            const raw = tableData?.[r]?.[c] ?? '';
-            const text = stripHtml(raw);
+            // Text content
+            const cellData = tableData[r]?.[c] ?? '';
+            const text = stripHtml(cellData);
 
             ctx.fillStyle = isHeader ? headerTextColor : textColor;
             ctx.font = `${isHeader ? '600 ' : ''}${Math.max(10 * scale, fontSize)}px ${fontFamily}`;

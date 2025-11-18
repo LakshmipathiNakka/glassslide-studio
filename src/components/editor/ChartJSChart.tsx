@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -275,6 +275,20 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
       easing: 'easeInOutQuart' as const,
     },
     plugins: {
+      title: {
+        display: !!chart.chartData?.title,
+        text: chart.chartData?.title || '',
+        font: {
+          size: (chart.chartData?.titleFontSize || 16) * scale,
+          weight: chart.chartData?.titleFontWeight || 'bold',
+          family: 'sans-serif'
+        },
+        color: chart.chartData?.titleColor || '#000000',
+        padding: {
+          top: 10 * scale,
+          bottom: 10 * scale
+        }
+      },
       legend: {
         display: false, // We'll use custom legend below charts (hidden in thumbnails)
         position: 'bottom' as const,
@@ -569,22 +583,36 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
             ? (dataset.backgroundColor as string[])
             : chartData.labels.map((_, i) => colorPalette[i % colorPalette.length]);
           
-          const pieData = {
-            labels: chartData.labels,
-            datasets: [{
-              ...dataset,
-              data: dataset.data,
-              backgroundColor: sliceColors,
-              borderColor: sliceColors,
-              borderWidth: 2,
-              hoverBackgroundColor: sliceColors,
-              hoverBorderColor: '#ffffff',
-              hoverBorderWidth: 3
-            }]
-          };
+          const pieData = useMemo(() => {
+            if (!chart.chartData) {
+              console.warn('No chart data available');
+              return { labels: [], datasets: [] };
+            }
+            
+            const data = {
+              labels: chart.chartData.labels || [],
+              datasets: chart.chartData.datasets.map((dataset: any) => ({
+                label: dataset.label || '',
+                data: dataset.data || [],
+                backgroundColor: dataset.backgroundColor || '#3B82F6',
+                borderColor: dataset.borderColor || 'transparent',
+                borderWidth: 0,
+              })),
+            };
+            
+            return data;
+          }, [chart.chartData]);
           
-          return (
-            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+          // Debug log for pie chart data
+          useEffect(() => {
+            if (chart.chartType === 'pie') {
+              console.log('Pie Chart Data:', pieData);
+            }
+          }, [chart.chartType, pieData]);
+
+return (
+  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    {/* ... (rest of the code remains the same) */}
               {/* Title (read-only; editable in Properties Panel) */}
               {chart.chartData?.title && (
                 <div style={{ marginBottom: 16 * scale, padding: `${0}px ${8 * scale}px` }}>
@@ -611,7 +639,47 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
                     plugins: {
                       ...commonOptions.plugins,
                       legend: {
-                        display: false
+                        ...commonOptions.plugins.legend,
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                          ...commonOptions.plugins.legend.labels,
+                          generateLabels: (chart: any) => {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                              return data.labels.map((label: string, i: number) => {
+                                const dataset = data.datasets[0];
+                                const backgroundColor = Array.isArray(dataset.backgroundColor) 
+                                  ? dataset.backgroundColor[i] 
+                                  : dataset.backgroundColor;
+                                const borderColor = Array.isArray(dataset.borderColor) 
+                                  ? dataset.borderColor[i] 
+                                  : dataset.borderColor;
+                                
+                                return {
+                                  text: label,
+                                  fillStyle: backgroundColor,
+                                  strokeStyle: borderColor,
+                                  lineWidth: 1,
+                                  hidden: false,
+                                  index: i
+                                };
+                              });
+                            }
+                            return [];
+                          }
+                        },
+                        onClick: (e: any, legendItem: any, legend: any) => {
+                          const index = legendItem.datasetIndex ?? legendItem.index;
+                          const ci = legend.chart;
+                          if (ci.isDatasetVisible(index)) {
+                            ci.hide(index);
+                            legendItem.hidden = true;
+                          } else {
+                            ci.show(index);
+                            legendItem.hidden = false;
+                          }
+                        }
                       },
                       tooltip: {
                         ...commonOptions.plugins.tooltip,
@@ -701,7 +769,63 @@ export const ChartJSChart: React.FC<ChartJSChartProps> = ({
                     plugins: {
                       ...commonOptions.plugins,
                       legend: {
-                        display: false
+                        ...commonOptions.plugins.legend,
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                          ...commonOptions.plugins.legend.labels,
+                          generateLabels: (chart: any) => {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                              return data.labels.map((label: string, i: number) => {
+                                // Find which dataset this label belongs to
+                                let datasetIndex = 0;
+                                let itemIndex = i;
+                                let currentLength = 0;
+                                
+                                for (let j = 0; j < data.datasets.length; j++) {
+                                  const dataset = data.datasets[j];
+                                  if (i < currentLength + dataset.data.length) {
+                                    datasetIndex = j;
+                                    itemIndex = i - currentLength;
+                                    break;
+                                  }
+                                  currentLength += dataset.data.length;
+                                }
+                                
+                                const dataset = data.datasets[datasetIndex];
+                                const backgroundColor = Array.isArray(dataset.backgroundColor) 
+                                  ? dataset.backgroundColor[itemIndex] 
+                                  : dataset.backgroundColor;
+                                const borderColor = Array.isArray(dataset.borderColor) 
+                                  ? dataset.borderColor[itemIndex] 
+                                  : dataset.borderColor;
+                                
+                                return {
+                                  text: label,
+                                  fillStyle: backgroundColor,
+                                  strokeStyle: borderColor,
+                                  lineWidth: 1,
+                                  hidden: !chart.getDataVisibility(i),
+                                  index: i
+                                };
+                              });
+                            }
+                            return [];
+                          }
+                        },
+                        onClick: (e: any, legendItem: any, legend: any) => {
+                          const index = legendItem.index;
+                          const ci = legend.chart;
+                          if (ci.getDataVisibility(index)) {
+                            ci.hide(index);
+                            legendItem.hidden = true;
+                          } else {
+                            ci.show(index);
+                            legendItem.hidden = false;
+                          }
+                          ci.update('none');
+                        }
                       },
                       tooltip: {
                         ...commonOptions.plugins.tooltip,

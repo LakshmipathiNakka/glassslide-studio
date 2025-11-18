@@ -8,12 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 
 interface ChartData {
+  title?: string;
+  titleFontSize?: number;
+  titleFontWeight?: 'normal' | 'bold';
+  titleColor?: string;
   labels: string[];
   datasets: {
     label: string;
     data: number[];
-    backgroundColor?: string;
-    borderColor?: string;
+    backgroundColor?: string | string[];
+    borderColor?: string | string[];
   }[];
 }
 
@@ -27,19 +31,27 @@ interface ChartEditorProps {
 
 export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }: ChartEditorProps) => {
   const [chartType, setChartType] = useState<'bar' | 'line' | 'pie'>('bar');
+  const [title, setTitle] = useState<string>('Chart Title');
+  const [titleFontSize, setTitleFontSize] = useState<number>(16);
+  const [titleFontWeight, setTitleFontWeight] = useState<'normal' | 'bold'>('bold');
+  const [titleColor, setTitleColor] = useState<string>('#000000');
   const [labels, setLabels] = useState<string[]>(['Jan', 'Feb', 'Mar', 'Apr', 'May']);
   const [datasets, setDatasets] = useState<{ label: string; data: number[]; color: string | string[] }[]>([
-    { label: 'Series 1', data: [65, 59, 80, 81, 56], color: '#000000' }
+    { label: 'Series 1', data: [65, 59, 80, 81, 56], color: '#3B82F6' }
   ]);
 
   useEffect(() => {
     if (initialData) {
+      setTitle(initialData.title || 'Chart Title');
+      setTitleFontSize(initialData.titleFontSize || 16);
+      setTitleFontWeight(initialData.titleFontWeight || 'bold');
+      setTitleColor(initialData.titleColor || '#000000');
       setLabels(initialData.labels);
       setDatasets(initialData.datasets.map(ds => ({
         label: ds.label,
         data: ds.data,
         // For pie charts, backgroundColor is an array of colors
-        color: ds.backgroundColor || '#000000'
+        color: ds.backgroundColor || '#3B82F6'
       })));
     }
     if (initialType) {
@@ -142,6 +154,10 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
 
   const handleSave = () => {
     const chartData: ChartData = {
+      title,
+      titleFontSize,
+      titleFontWeight,
+      titleColor,
       labels,
       datasets: datasets.map(ds => {
         // For pie charts, backgroundColor should be an array of colors
@@ -174,8 +190,104 @@ export const ChartEditor = ({ open, onClose, onSave, initialData, initialType }:
         </DialogHeader>
         
         <div className="space-y-6">
+          {/* Chart Title Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Chart Title</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="chart-title">Title Text</Label>
+                  <Input
+                    id="chart-title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter chart title"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title-size">Size</Label>
+                    <Input
+                      id="title-size"
+                      type="number"
+                      min="8"
+                      max="36"
+                      value={titleFontSize}
+                      onChange={(e) => setTitleFontSize(Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="title-weight">Weight</Label>
+                    <select
+                      id="title-weight"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={titleFontWeight}
+                      onChange={(e) => setTitleFontWeight(e.target.value as 'normal' | 'bold')}
+                    >
+                      <option value="normal">Normal</option>
+                      <option value="bold">Bold</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="title-color">Color</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        id="title-color"
+                        value={titleColor}
+                        onChange={(e) => setTitleColor(e.target.value)}
+                        className="h-10 w-10 cursor-pointer rounded-md border"
+                      />
+                      <Input
+                        value={titleColor}
+                        onChange={(e) => setTitleColor(e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Pie: combined table-like editor; Others: separate labels/series */}
+          {/* Chart Type Selector */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Chart Type</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant={chartType === 'bar' ? 'default' : 'outline'}
+                  onClick={() => setChartType('bar')}
+                  className="flex-col h-auto py-3"
+                >
+                  <span className="text-lg">📊</span>
+                  <span className="text-xs mt-1">Bar</span>
+                </Button>
+                <Button
+                  variant={chartType === 'line' ? 'default' : 'outline'}
+                  onClick={() => setChartType('line')}
+                  className="flex-col h-auto py-3"
+                >
+                  <span className="text-lg">📈</span>
+                  <span className="text-xs mt-1">Line</span>
+                </Button>
+                <Button
+                  variant={chartType === 'pie' ? 'default' : 'outline'}
+                  onClick={() => setChartType('pie')}
+                  className="flex-col h-auto py-3"
+                >
+                  <span className="text-lg">🥧</span>
+                  <span className="text-xs mt-1">Pie</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Data Editor */}
           {chartType === 'pie' ? (
             <Card>
               <CardHeader>
