@@ -486,6 +486,12 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
             {selectedElement.type === 'text' && <Type className="w-4 h-4" />}
             {selectedElement.type === 'shape' && <Shapes className="w-4 h-4" />}
             <span className="capitalize">{selectedElement.type}</span>
+            {selectedElement.type === 'chart' && (
+              <span className="text-gray-600 font-normal">• <span className="capitalize">{(((selectedElement as any).chartType || '').toString().replace(/-/g, ' ')) || 'chart'}</span></span>
+            )}
+            {selectedElement.type === 'shape' && (
+              <span className="text-gray-600 font-normal">• <span className="capitalize">{((selectedElement as any).shapeType || '').toString().replace(/-/g, ' ')}</span></span>
+            )}
           </div>
         </motion.section>
 

@@ -139,6 +139,8 @@ export const SimplePresentationMode = ({
   const endOverlayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fullscreenChangeHandlerRef = useRef<(() => void) | null>(null);
   const slideContainerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [slideScale, setSlideScale] = useState(1);
 
   // Initialize presentation - always start at slide 0 and clear any stale state
   useEffect(() => {
@@ -526,7 +528,25 @@ export const SimplePresentationMode = ({
 
   const baseWidth = 960;
   const baseHeight = 540;
-  const scaleFactor = isFullscreen ? 1.5 : 1;
+  const scaleFactor = slideScale;
+
+  // Compute scale to fit viewport (edge-to-edge, preserving 16:9)
+  useEffect(() => {
+    const calculateScale = () => {
+      const container = viewportRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const scaleX = rect.width / baseWidth;
+      const scaleY = rect.height / baseHeight;
+      setSlideScale(Math.min(scaleX, scaleY));
+    };
+
+    calculateScale();
+
+    const ro = new ResizeObserver(calculateScale);
+    if (viewportRef.current) ro.observe(viewportRef.current);
+    return () => ro.disconnect();
+  }, []);
   
   // Handle escape key to exit end overlay
   useEffect(() => {
@@ -1155,7 +1175,7 @@ export const SimplePresentationMode = ({
       )}
 
       {/* Main slide content with transition */}
-      <div className="flex-1 flex items-center justify-center p-8 relative">
+      <div ref={viewportRef} className="flex-1 flex items-center justify-center relative" style={{ inset: 0 }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={safeCurrentSlide}
@@ -1164,14 +1184,14 @@ export const SimplePresentationMode = ({
             style={{
               width: baseWidth * scaleFactor,
               height: baseHeight * scaleFactor,
-              maxWidth: '100%',
-              maxHeight: '100%',
               ...(slide?.background?.startsWith('linear-gradient') 
                 ? { background: slide.background }
                 : { backgroundColor: slide?.background || '#ffffff' }),
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
+              borderRadius: '22px',
+              overflow: 'hidden',
               boxShadow: '0 10px 50px rgba(0,0,0,0.5)',
               opacity: isTransitioning ? 0.7 : 1,
             }}

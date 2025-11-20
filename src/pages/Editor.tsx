@@ -9,7 +9,7 @@ import { SimplePresentationMode } from "@/components/editor/SimplePresentationMo
 import ShapeModal, { ShapeType } from "@/components/editor/ShapeModal";
 import TableModal from "@/components/editor/TableModal";
 import { useToast } from "@/hooks/use-toast";
-import { useHistory } from "@/hooks/use-history";
+import { useEditorHistory } from "@/hooks/use-editor-history";
 import { usePersistence } from "@/hooks/use-persistence";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -102,7 +102,7 @@ function createContentSlidePlaceholders(now: number): Element[] {
       text: '',
       placeholder: 'Click here to add Title',
       fontSize: 32,
-      fontWeight: '600',
+      fontWeight: 'medium',
       fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
       textAlign: 'center',
       color: '#222',
@@ -117,7 +117,7 @@ function createContentSlidePlaceholders(now: number): Element[] {
       text: '',
       placeholder: 'Click here to add text',
       fontSize: 22,
-      fontWeight: '400',
+      fontWeight: 'normal',
       fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
       textAlign: 'left',
       lineHeight: 1.5,
@@ -154,7 +154,10 @@ const Editor = () => {
   }];
   // Zoom state for canvas and toolbar (stored as decimal, e.g., 0.3 for 30%)
   const [zoom, setZoom] = useState<number>(1); // Start at 100%
-  const { state: slides, push: pushSlides, undo, redo, canUndo, canRedo } = useHistory<Slide[]>(initialSlides);
+  const { state: slides, snapshot, push: pushSlides, undo, redo, canUndo, canRedo, pushSnapshot } = useEditorHistory<Slide>(
+    initialSlides,
+    { currentSlide: 0, selectedElementId: null, zoom }
+  );
   const [currentSlide, setCurrentSlide] = useState(0);
   const [chartPanelOpen, setChartPanelOpen] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
@@ -169,6 +172,22 @@ const Editor = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [shapeModalOpen, setShapeModalOpen] = useState(false);
   const [tableModalOpen, setTableModalOpen] = useState(false);
+
+  // Keep local UI state in sync with history snapshot (for undo/redo reliability)
+  useEffect(() => {
+    const snap = snapshot as any;
+    if (typeof snap?.currentSlide === 'number' && snap.currentSlide !== currentSlide) {
+      setCurrentSlide(snap.currentSlide);
+    }
+    if (typeof snap?.zoom === 'number' && snap.zoom !== zoom) {
+      setZoom(snap.zoom);
+    }
+    if (typeof snap?.selectedElementId !== 'undefined') {
+      const selId = snap.selectedElementId as string | null;
+      const el = slides[snap.currentSlide ?? currentSlide]?.elements?.find((e: any) => e.id === selId) || null;
+      setSelectedElement(el);
+    }
+  }, [snapshot, slides]);
 
   // Insert Image handler (Toolbar)
   const handleInsertImageFile = useCallback((file: File) => {
@@ -492,15 +511,20 @@ const Editor = () => {
 
   const updateCurrentSlide = (elements: Element[]) => {
     const newSlides = [...slides];
+    // Ensure zIndex normalization to satisfy SlideElement typing
+    const normalized = elements.map((el, i) => ({ ...(el as any), zIndex: (el as any).zIndex ?? i })) as any;
     newSlides[currentSlide] = {
       ...newSlides[currentSlide],
-      elements,
+      elements: normalized,
     };
-    pushSlides(newSlides);
+    // Coalesce rapid element edits (drag/resize/typing)
+    pushSlides(newSlides, { coalesceKey: `slide-${currentSlide}-elements` });
   };
 
   const handleElementSelect = (element: Element | null) => {
     setSelectedElement(element);
+    // Record selection changes as meta updates (coalesced)
+    pushSnapshot(slides, { coalesceKey: 'selection' }, { selectedElementId: element?.id || null });
   };
 
   const handleElementUpdate = (updatedElement: Element) => {
@@ -991,7 +1015,7 @@ const Editor = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#F3F4F6] overflow-hidden">
       {/* Shape Modal */}
       <ShapeModal
         isOpen={shapeModalOpen}
@@ -1032,12 +1056,15 @@ const Editor = () => {
             onZoomIn={() => {
               setZoom((z) => {
                 const newZoom = Math.min(1.2, Math.round((z + 0.1) * 10) / 10);
+                // Record zoom in history meta (coalesced)
+                pushSnapshot(slides, { coalesceKey: 'zoom' }, { zoom: newZoom });
                 return newZoom;
               });
             }}
             onZoomOut={() => {
               setZoom((z) => {
                 const newZoom = Math.max(0.3, Math.round((z - 0.1) * 10) / 10);
+                pushSnapshot(slides, { coalesceKey: 'zoom' }, { zoom: newZoom });
                 return newZoom;
               });
             }}
@@ -1051,7 +1078,10 @@ const Editor = () => {
           <SlideThumbnails
             slides={slides}
             currentSlide={currentSlide}
-            onSlideChange={setCurrentSlide}
+            onSlideChange={(idx) => {
+              setCurrentSlide(idx);
+              pushSnapshot(slides, undefined, { currentSlide: idx, selectedElementId: null });
+            }}
             onAddSlide={handleAddSlide}
             onReorderSlides={handleReorderSlides}
             onUpdateSlide={(index, updates) => {
@@ -1074,7 +1104,10 @@ const Editor = () => {
           <SlideThumbnails
             slides={slides}
             currentSlide={currentSlide}
-            onSlideChange={setCurrentSlide}
+            onSlideChange={(idx) => {
+              setCurrentSlide(idx);
+              pushSnapshot(slides, undefined, { currentSlide: idx, selectedElementId: null });
+            }}
             onAddSlide={handleAddSlide}
             onReorderSlides={handleReorderSlides}
             onUpdateSlide={(index, updates) => {
@@ -1095,7 +1128,10 @@ const Editor = () => {
         {/* Main content area with canvas and sidebar */}
         <div className="flex-1 flex min-w-0 overflow-hidden">
           {/* Canvas Area - Takes remaining space */}
-          <div className="flex-1 min-w-0 flex items-center bg-[#f0f2f5] dark:bg-[#1e1e1e] overflow-auto p-4 px-0 transition-colors duration-300 transition-[width] ease-in-out relative">
+          <div className="flex-1 min-w-0 flex items-center bg-[#F3F4F6] dark:bg-[#1e1e1e] overflow-auto p-4 px-0 transition-colors duration-300 transition-[width] ease-in-out relative">
+            {/* Edge shadows toward canvas (left and right) */}
+            <div aria-hidden="true" className="pointer-events-none absolute left-0 top-0 h-full w-4 bg-gradient-to-r from-black/5 to-transparent dark:from-white/10" />
+            <div aria-hidden="true" className="pointer-events-none absolute right-0 top-0 h-full w-4 bg-gradient-to-l from-black/5 to-transparent dark:from-white/10" />
             <section className="w-full h-full" aria-label="Presentation canvas">
               <SimplePowerPointCanvas
                   elements={currentElements}
