@@ -7,7 +7,7 @@ export const EditorLoader = ({ onLoadingComplete }: { onLoadingComplete: () => v
 
   useEffect(() => {
     let start: number;
-    const duration = 5000; // 5 seconds
+    const duration = 3000; // 3 seconds
     
     const animate = (timestamp: number) => {
       if (!start) start = timestamp;

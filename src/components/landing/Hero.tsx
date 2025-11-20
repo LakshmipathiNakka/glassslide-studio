@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Sparkles } from "lucide-react";
+import { ArrowRight, Play, Sparkles, CreditCard, SparklesIcon, Heart } from "lucide-react";
 import { Logo } from "./Logo";
 import { useNavigate } from "react-router-dom";
 import { useScrollAnimation, useParallax } from "@/hooks/use-scroll-animations";
@@ -96,9 +96,20 @@ export const Hero = () => {
                 size="sm" 
                 onClick={() => navigate('/editor')}
                 className="touch-button bg-black text-white hover:bg-gray-800 transition-all duration-300"
-                aria-label="Open the editor"
+                aria-label="Experience the app"
               >
-                Open Editor
+                <SparklesIcon className="mr-2 w-4 h-4" aria-hidden="true" />
+                Experience it
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="apple-glass-button apple-button-glow apple-magnetic-button w-full sm:w-auto"
+                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+                aria-label="View pricing plans"
+              >
+                <CreditCard className="mr-3 w-5 h-5 apple-icon-bounce text-gray-700" aria-hidden="true" />
+                <span className="apple-text-gradient">Pricing</span>
               </Button>
             </div>
             
@@ -108,9 +119,10 @@ export const Hero = () => {
                 size="sm" 
                 onClick={() => navigate('/editor')}
                 className="touch-button bg-black text-white hover:bg-gray-800 transition-all duration-300"
-                aria-label="Open the editor"
+                aria-label="Experience the app"
               >
-                Open Editor
+                <SparklesIcon className="mr-2 w-4 h-4" aria-hidden="true" />
+                Experience it
               </Button>
             </div>
           </div>
@@ -143,6 +155,95 @@ export const Hero = () => {
           .animate-delay-200 { animation-delay: 0.2s; }
           .animate-delay-300 { animation-delay: 0.3s; }
           .animate-delay-400 { animation-delay: 0.4s; }
+          
+          /* Apple Keynote-Inspired Button Styles */
+          .apple-glass-button {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            border-radius: 12px;
+            color: rgba(17, 24, 39, 0.9);
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+            transform: translateZ(0);
+            will-change: transform;
+          }
+
+          .apple-glass-button:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(0, 0, 0, 0.25);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+          }
+
+          .apple-glass-button:active {
+            transform: translateY(0);
+            transition: all 0.1s ease;
+          }
+
+          .apple-button-glow {
+            position: relative;
+          }
+
+          .apple-button-glow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+          }
+
+          .apple-button-glow:hover::before {
+            opacity: 1;
+          }
+
+          .apple-magnetic-button {
+            transition: all 0.2s ease;
+          }
+
+.apple-icon-bounce {
+            transition: transform 0.2s ease;
+          }
+
+          .apple-glass-button:hover .apple-icon-bounce {
+            transform: scale(1.05);
+          }
+
+          .apple-heart-pulse {
+            color: #ef4444;
+            transition: transform 0.2s ease;
+          }
+
+          .apple-glass-button:hover .apple-heart-pulse {
+            transform: scale(1.05);
+          }
+
+          .apple-text-gradient {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+          }
+
+@media (prefers-reduced-motion: reduce) {
+            .apple-glass-button,
+            .apple-icon-bounce,
+            .apple-heart-pulse {
+              transition: none;
+            }
+          }
           .animate-duration-700 { animation-duration: 0.7s; }
           .animate-duration-1000 { animation-duration: 1s; }
           .animate-fill-both { animation-fill-mode: both; }
@@ -213,8 +314,7 @@ export const Hero = () => {
                   animation: isVisible ? 'fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both' : 'none'
                 }}
               >
-                Create, animate, and share presentations that look flawless everywhere. 
-                Professional tools with zero friction.
+                Create stunning, precise presentations with powerful, frictionless design tools built for clarity and speed.
               </p>
 
               <div 
@@ -236,12 +336,12 @@ export const Hero = () => {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  className="touch-button bg-transparent text-gray-600 hover:bg-gray-200 hover:text-black transition-all duration-300 card-glass group btn-click btn-shimmer w-full sm:w-auto"
-                  onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-                  aria-label="Watch a demo of the presentation editor"
+                  className="apple-glass-button apple-button-glow apple-magnetic-button w-full sm:w-auto"
+                  onClick={() => document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' })}
+                  aria-label="View testimonials"
                 >
-                  <Play className="mr-3 w-5 h-5" aria-hidden="true" />
-                  Watch Demo
+                  <Heart className="mr-3 w-5 h-5 apple-heart-pulse" aria-hidden="true" />
+                  <span className="apple-text-gradient">Why They Love Us</span>
                 </Button>
               </div>
               
@@ -268,7 +368,7 @@ export const Hero = () => {
                   }}
                 >
                   <div className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" aria-hidden="true" />
-                  <span className="font-medium">Free forever</span>
+                  <span className="font-medium">Free now</span>
                 </div>
               </div>
             </div>

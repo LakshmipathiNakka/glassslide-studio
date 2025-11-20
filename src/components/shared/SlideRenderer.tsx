@@ -215,16 +215,16 @@ function renderContent(el: Element, s: number): React.ReactNode {
         Array.from({ length: cols }, (_, c) => (el.tableData?.[r]?.[c] ?? ''))
       );
       const theme = TABLE_THEMES.find(t => (t as any).id === (el as any).themeId) || {} as any;
-      const borderColor = theme.borderColor || (el as any).borderColor || '#D9D9D9';
+      const borderColor = (el as any).borderColor || theme.borderColor || '#D9D9D9';
       const borderWidth = ((el as any).borderWidth ?? 1) * s;
       const borderStyle = (el as any).borderStyle || 'solid';
       const textAlign = (el as any).cellTextAlign || 'left';
       const header = (el as any).header ?? false;
-      const headerBg = theme.headerBg || (el as any).headerBg || '#E7E6E6';
-      const headerTextColor = theme.headerTextColor || (el as any).headerTextColor || '#111827';
-      const rowEvenBg = theme.rowEvenBg || (el as any).backgroundColor || '#FFFFFF';
-      const rowAltBg = theme.rowOddBg || (el as any).rowAltBg || 'transparent';
-      const textColor = theme.textColor || (el as any).color || '#000000';
+      const headerBg = (el as any).headerBg || theme.headerBg || '#E7E6E6';
+      const headerTextColor = (el as any).headerTextColor || theme.headerTextColor || '#111827';
+      const rowEvenBg = (el as any).backgroundColor || theme.rowEvenBg || '#FFFFFF';
+      const rowAltBg = (el as any).rowAltBg || theme.rowOddBg || 'transparent';
+      const textColor = (el as any).textColor || (el as any).color || theme.textColor || '#000000';
       const cellPadding = ((el as any).cellPadding ?? 8) * s;
       return (
         <div style={{ width:'100%', height:'100%', display:'grid', gridTemplateColumns:`repeat(${cols},1fr)`, gridTemplateRows:`repeat(${rows},1fr)`, boxSizing:'border-box', border: borderStyle==='none'||borderWidth===0? undefined : `${borderWidth}px ${borderStyle} ${borderColor}` }}>

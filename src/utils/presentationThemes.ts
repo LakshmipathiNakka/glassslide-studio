@@ -1,10 +1,13 @@
 import { Slide } from '@/types/slide-thumbnails';
 import { Element } from '@/hooks/use-action-manager';
-import createHealthcareMedicalTemplate from '@/templates/healthcareMedicalTemplate';
-import createTechnologyInnovationTemplate from '@/templates/technologyInnovationTemplate';
 import createSportsFitnessTemplate from '@/templates/sportsFitnessTemplate';
 import createEventPortfolioTemplate from '@/templates/eventPortfolioTemplate';
 import createFilmProductionTemplate from '@/templates/filmProductionTemplate';
+import createBusinessStrategyTemplate from '@/templates/businessStrategyTemplate';
+import createTechnologyInnovationLightTemplate from '@/templates/technologyInnovationLightTemplate';
+import createActalystAIPitchTemplate from '@/templates/actalystAIPitchTemplate';
+import createMedicalClinicalTemplate from '@/templates/medicalClinicalTemplate';
+import createFinanceAnalyticsDashboardTemplate from '@/templates/financeAnalyticsDashboardTemplate';
 
 export interface PresentationTheme {
   id: string;
@@ -44,6 +47,29 @@ function createEducationLearningTemplate(): Slide[] {
   slides.push({
     id: `edu-${now}-1`,
     elements: [
+      // Background accent blobs
+      {
+        id: `hero-accent-1-${now}`,
+        type: 'shape',
+        x: -60,
+        y: -20,
+        width: 260,
+        height: 260,
+        shapeType: 'circle',
+        fill: primary,
+        opacity: 0.25
+      },
+      {
+        id: `hero-accent-2-${now}`,
+        type: 'shape',
+        x: 720,
+        y: 320,
+        width: 220,
+        height: 220,
+        shapeType: 'circle',
+        fill: accent,
+        opacity: 0.2
+      },
       // Glass card for content
       {
         id: `glass-card-${now}`,
@@ -53,16 +79,16 @@ function createEducationLearningTemplate(): Slide[] {
         width: 840,
         height: 380,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        backdropFilter: 'blur(10px)',
-        rx: 24,
+        backdropFilter: 'blur(14px)',
+        rx: 28,
         shadow: {
-          color: 'rgba(0, 0, 0, 0.1)',
-          blur: 20,
+          color: 'rgba(0, 0, 0, 0.35)',
+          blur: 28,
           offsetX: 0,
-          offsetY: 10
+          offsetY: 18
         }
       },
       // Title with gradient text
@@ -111,6 +137,35 @@ function createEducationLearningTemplate(): Slide[] {
         textAlign: 'center',
         letterSpacing: 1.5
       },
+      // Small session tag pill
+      {
+        id: `tag-pill-${now}`,
+        type: 'shape',
+        x: 110,
+        y: 115,
+        width: 190,
+        height: 34,
+        shapeType: 'rounded-rectangle',
+        fill: 'rgba(0, 0, 0, 0.35)',
+        stroke: 'rgba(255, 255, 255, 0.35)',
+        strokeWidth: 1,
+        rx: 18
+      },
+      {
+        id: `tag-pill-text-${now}`,
+        type: 'text',
+        x: 130,
+        y: 122,
+        width: 160,
+        height: 20,
+        text: 'Modern learning series',
+        fontSize: 12,
+        fontWeight: 'bold',
+        fontFamily: 'Arial, sans-serif',
+        color: 'rgba(255, 255, 255, 0.86)',
+        textAlign: 'left',
+        letterSpacing: 0.5
+      },
       // Presenter info
       { 
         id: `presenter-${now}`, 
@@ -123,6 +178,20 @@ function createEducationLearningTemplate(): Slide[] {
         fontSize: 20, 
         fontFamily: 'Arial, sans-serif',
         color: '#FFFFFF',
+        textAlign: 'center'
+      },
+      // Session meta
+      {
+        id: `session-meta-${now}`,
+        type: 'text',
+        x: 100,
+        y: 360,
+        width: 760,
+        height: 26,
+        text: 'Lesson 01 · Introduction · 45 mins',
+        fontSize: 16,
+        fontFamily: 'Arial, sans-serif',
+        color: 'rgba(255, 255, 255, 0.78)',
         textAlign: 'center'
       },
       // Decorative elements
@@ -158,10 +227,284 @@ function createEducationLearningTemplate(): Slide[] {
     lastUpdated: Date.now()
   });
 
+  // 2. Agenda / Overview – Modern Layout
+  slides.push({
+    id: `edu-${now}-2`,
+    elements: [
+      // Background accent shapes
+      {
+        id: `bg-accent-left-${now}`,
+        type: 'shape',
+        x: -40,
+        y: 60,
+        width: 220,
+        height: 220,
+        shapeType: 'circle',
+        fill: primary,
+        opacity: 0.35
+      },
+      {
+        id: `bg-accent-right-${now}`,
+        type: 'shape',
+        x: 720,
+        y: 280,
+        width: 260,
+        height: 260,
+        shapeType: 'circle',
+        fill: accent,
+        opacity: 0.25
+      },
+      // Split glass panel
+      {
+        id: `agenda-panel-${now}`,
+        type: 'shape',
+        x: 80,
+        y: 80,
+        width: 800,
+        height: 380,
+        shapeType: 'rounded-rectangle',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
+        strokeWidth: 1,
+        backdropFilter: 'blur(14px)',
+        rx: 28,
+        shadow: {
+          color: 'rgba(0, 0, 0, 0.35)',
+          blur: 28,
+          offsetX: 0,
+          offsetY: 18
+        }
+      },
+      // Left column header
+      {
+        id: `agenda-title-${now}`,
+        type: 'text',
+        x: 120,
+        y: 120,
+        width: 360,
+        height: 60,
+        text: "Today's Agenda",
+        fontSize: 38,
+        fontWeight: 'bold',
+        fontFamily: 'Arial, sans-serif',
+        color: text,
+        textAlign: 'left'
+      },
+      {
+        id: `agenda-subtitle-${now}`,
+        type: 'text',
+        x: 120,
+        y: 170,
+        width: 360,
+        height: 40,
+        text: 'A quick overview of what we will explore today',
+        fontSize: 16,
+        fontFamily: 'Arial, sans-serif',
+        color: 'rgba(255, 255, 255, 0.78)',
+        textAlign: 'left',
+        lineHeight: 1.5
+      },
+      // Minimal vertical timeline bullets
+      {
+        id: `agenda-bullet-1-${now}`,
+        type: 'text',
+        x: 120,
+        y: 230,
+        width: 360,
+        height: 30,
+        text: '01  •  Welcome & course orientation',
+        fontSize: 18,
+        color: text,
+        fontFamily: 'Arial, sans-serif'
+      },
+      {
+        id: `agenda-bullet-2-${now}`,
+        type: 'text',
+        x: 120,
+        y: 265,
+        width: 360,
+        height: 30,
+        text: '02  •  Core concepts & live demo',
+        fontSize: 18,
+        color: text,
+        fontFamily: 'Arial, sans-serif'
+      },
+      {
+        id: `agenda-bullet-3-${now}`,
+        type: 'text',
+        x: 120,
+        y: 300,
+        width: 360,
+        height: 30,
+        text: '03  •  Guided practice & discussion',
+        fontSize: 18,
+        color: text,
+        fontFamily: 'Arial, sans-serif'
+      },
+      {
+        id: `agenda-bullet-4-${now}`,
+        type: 'text',
+        x: 120,
+        y: 335,
+        width: 360,
+        height: 30,
+        text: '04  •  Quiz, wrap‑up & next steps',
+        fontSize: 18,
+        color: text,
+        fontFamily: 'Arial, sans-serif'
+      },
+      // Right column: modern pill cards
+      {
+        id: `agenda-pill-1-${now}`,
+        type: 'shape',
+        x: 500,
+        y: 140,
+        width: 340,
+        height: 60,
+        shapeType: 'rounded-rectangle',
+        fill: lightBlue,
+        stroke: 'rgba(255, 255, 255, 0.35)',
+        strokeWidth: 1,
+        rx: 30,
+        shadow: {
+          color: 'rgba(0, 0, 0, 0.25)',
+          blur: 16,
+          offsetX: 0,
+          offsetY: 8
+        }
+      },
+      {
+        id: `agenda-pill-1-text-${now}`,
+        type: 'text',
+        x: 520,
+        y: 158,
+        width: 300,
+        height: 24,
+        text: 'Module 1 · Foundations of the topic',
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: text,
+        textAlign: 'left'
+      },
+      {
+        id: `agenda-pill-2-${now}`,
+        type: 'shape',
+        x: 500,
+        y: 220,
+        width: 340,
+        height: 60,
+        shapeType: 'rounded-rectangle',
+        fill: lightYellow,
+        stroke: 'rgba(255, 255, 255, 0.35)',
+        strokeWidth: 1,
+        rx: 30
+      },
+      {
+        id: `agenda-pill-2-text-${now}`,
+        type: 'text',
+        x: 520,
+        y: 238,
+        width: 300,
+        height: 24,
+        text: 'Module 2 · Hands‑on activities',
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: text,
+        textAlign: 'left'
+      },
+      {
+        id: `agenda-pill-3-${now}`,
+        type: 'shape',
+        x: 500,
+        y: 300,
+        width: 340,
+        height: 60,
+        shapeType: 'rounded-rectangle',
+        fill: lightCoral,
+        stroke: 'rgba(255, 255, 255, 0.35)',
+        strokeWidth: 1,
+        rx: 30
+      },
+      {
+        id: `agenda-pill-3-text-${now}`,
+        type: 'text',
+        x: 520,
+        y: 318,
+        width: 300,
+        height: 24,
+        text: 'Module 3 · Project & reflection',
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: text,
+        textAlign: 'left'
+      },
+      // Progress indicator
+      {
+        id: `agenda-progress-label-${now}`,
+        type: 'text',
+        x: 520,
+        y: 370,
+        width: 120,
+        height: 20,
+        text: 'Session progress',
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.7)'
+      },
+      {
+        id: `agenda-progress-track-${now}`,
+        type: 'shape',
+        x: 520,
+        y: 392,
+        width: 220,
+        height: 6,
+        shapeType: 'rectangle',
+        fill: 'rgba(255, 255, 255, 0.18)',
+        rx: 3
+      },
+      {
+        id: `agenda-progress-fill-${now}`,
+        type: 'shape',
+        x: 520,
+        y: 392,
+        width: 140,
+        height: 6,
+        shapeType: 'rectangle',
+        fill: secondary,
+        rx: 3
+      }
+    ],
+    background: background,
+    createdAt: new Date(),
+    lastUpdated: Date.now()
+  });
+
   // 3. Lesson Breakdown (Timeline)
   slides.push({
     id: `edu-${now}-3`,
     elements: [
+      // Background accent blobs
+      {
+        id: `timeline-accent-1-${now}`,
+        type: 'shape',
+        x: -50,
+        y: 40,
+        width: 220,
+        height: 220,
+        shapeType: 'circle',
+        fill: primary,
+        opacity: 0.2
+      },
+      {
+        id: `timeline-accent-2-${now}`,
+        type: 'shape',
+        x: 740,
+        y: 340,
+        width: 200,
+        height: 200,
+        shapeType: 'circle',
+        fill: accent,
+        opacity: 0.18
+      },
       // Title
       { 
         id: `title-${now}-3`, 
@@ -334,15 +677,16 @@ function createEducationLearningTemplate(): Slide[] {
         width: 800,
         height: 350,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        rx: 24,
+        backdropFilter: 'blur(14px)',
+        rx: 28,
         shadow: {
-          color: 'rgba(0, 0, 0, 0.1)',
-          blur: 20,
+          color: 'rgba(0, 0, 0, 0.35)',
+          blur: 28,
           offsetX: 0,
-          offsetY: 10
+          offsetY: 18
         }
       },
       // Main concept
@@ -472,16 +816,16 @@ function createEducationLearningTemplate(): Slide[] {
         width: 800,
         height: 380,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        backdropFilter: 'blur(10px)',
-        rx: 24,
+        backdropFilter: 'blur(14px)',
+        rx: 28,
         shadow: {
-          color: 'rgba(0, 0, 0, 0.1)',
-          blur: 20,
+          color: 'rgba(0, 0, 0, 0.35)',
+          blur: 28,
           offsetX: 0,
-          offsetY: 10
+          offsetY: 18
         }
       },
       // Title
@@ -545,11 +889,11 @@ function createEducationLearningTemplate(): Slide[] {
         width: 260,
         height: 240,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.7)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        backdropFilter: 'blur(5px)',
-        rx: 16
+        backdropFilter: 'blur(14px)',
+        rx: 20
       },
       // Description title
       {
@@ -625,16 +969,16 @@ function createEducationLearningTemplate(): Slide[] {
         width: 350,
         height: 180,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        backdropFilter: 'blur(10px)',
+        backdropFilter: 'blur(14px)',
         rx: 24,
         shadow: {
-          color: 'rgba(0, 0, 0, 0.1)',
-          blur: 20,
+          color: 'rgba(0, 0, 0, 0.3)',
+          blur: 22,
           offsetX: 0,
-          offsetY: 10
+          offsetY: 14
         }
       },
       {
@@ -670,16 +1014,16 @@ function createEducationLearningTemplate(): Slide[] {
         width: 350,
         height: 180,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        backdropFilter: 'blur(10px)',
+        backdropFilter: 'blur(14px)',
         rx: 24,
         shadow: {
-          color: 'rgba(0, 0, 0, 0.1)',
-          blur: 20,
+          color: 'rgba(0, 0, 0, 0.3)',
+          blur: 22,
           offsetX: 0,
-          offsetY: 10
+          offsetY: 14
         }
       },
       {
@@ -715,16 +1059,16 @@ function createEducationLearningTemplate(): Slide[] {
         width: 350,
         height: 120,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        backdropFilter: 'blur(10px)',
+        backdropFilter: 'blur(14px)',
         rx: 24,
         shadow: {
-          color: 'rgba(0, 0, 0, 0.1)',
-          blur: 20,
+          color: 'rgba(0, 0, 0, 0.3)',
+          blur: 22,
           offsetX: 0,
-          offsetY: 10
+          offsetY: 14
         }
       },
       {
@@ -760,16 +1104,16 @@ function createEducationLearningTemplate(): Slide[] {
         width: 350,
         height: 120,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        backdropFilter: 'blur(10px)',
+        backdropFilter: 'blur(14px)',
         rx: 24,
         shadow: {
-          color: 'rgba(0, 0, 0, 0.1)',
-          blur: 20,
+          color: 'rgba(0, 0, 0, 0.3)',
+          blur: 22,
           offsetX: 0,
-          offsetY: 10
+          offsetY: 14
         }
       },
       {
@@ -815,16 +1159,16 @@ function createEducationLearningTemplate(): Slide[] {
         width: 800,
         height: 300,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        backdropFilter: 'blur(10px)',
-        rx: 24,
+        backdropFilter: 'blur(14px)',
+        rx: 28,
         shadow: {
-          color: 'rgba(0, 0, 0, 0.1)',
-          blur: 20,
+          color: 'rgba(0, 0, 0, 0.35)',
+          blur: 28,
           offsetX: 0,
-          offsetY: 10
+          offsetY: 18
         }
       },
       // Quote text
@@ -903,6 +1247,27 @@ function createEducationLearningTemplate(): Slide[] {
   slides.push({
     id: `edu-${now}-8`,
     elements: [
+      // Background accent block
+      {
+        id: `comparison-accent-${now}`,
+        type: 'shape',
+        x: 40,
+        y: 40,
+        width: 880,
+        height: 420,
+        shapeType: 'rounded-rectangle',
+        fill: 'rgba(10, 10, 25, 0.55)',
+        stroke: 'rgba(255, 255, 255, 0.12)',
+        strokeWidth: 1,
+        backdropFilter: 'blur(12px)',
+        rx: 32,
+        shadow: {
+          color: 'rgba(0, 0, 0, 0.28)',
+          blur: 22,
+          offsetX: 0,
+          offsetY: 14
+        }
+      },
       // Title
       { 
         id: `title-${now}-8`, 
@@ -986,16 +1351,16 @@ shadow: {
         width: 840,
         height: 420,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        backdropFilter: 'blur(10px)',
-        rx: 24,
+        backdropFilter: 'blur(14px)',
+        rx: 28,
         shadow: {
-          color: 'rgba(0, 0, 0, 0.1)',
-          blur: 20,
+          color: 'rgba(0, 0, 0, 0.35)',
+          blur: 28,
           offsetX: 0,
-          offsetY: 10
+          offsetY: 18
         }
       },
       // Title
@@ -1251,16 +1616,16 @@ shadow: {
         width: 840,
         height: 380,
         shapeType: 'rounded-rectangle',
-        fill: 'rgba(255, 255, 255, 0.1)',
-        stroke: 'rgba(255, 255, 255, 0.15)',
+        fill: 'rgba(10, 10, 25, 0.65)',
+        stroke: 'rgba(255, 255, 255, 0.18)',
         strokeWidth: 1,
-        backdropFilter: 'blur(10px)',
-        rx: 24,
+        backdropFilter: 'blur(14px)',
+        rx: 28,
         shadow: {
-          color: 'rgba(0, 0, 0, 0.1)',
-          blur: 20,
+          color: 'rgba(0, 0, 0, 0.35)',
+          blur: 28,
           offsetX: 0,
-          offsetY: 10
+          offsetY: 18
         }
       },
       // Title with gradient text
@@ -1415,7 +1780,62 @@ export const presentationThemes: PresentationTheme[] = [
     description: 'Bright, approachable template for educational content with interactive elements (10 slides).',
     slides: createEducationLearningTemplate(),
     palette: educationLearningPalette,
-    thumbnail: null,
+    // Clean classroom / learning environment
+    thumbnail:
+      'https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'business-strategy-premium',
+    name: 'Business Strategy – Glass Corporate',
+    description:
+      'High-end 10-slide business strategy deck with real corporate photography, glassmorphism panels, SWOT grid, KPIs, financial table, and roadmap.',
+    slides: createBusinessStrategyTemplate(),
+    palette: {
+      slateBlack: '#1A1A1A',
+      royalBlue: '#0044FF',
+      aquaGlow: '#00C8FF',
+      white: '#FFFFFF',
+      silver: '#F0F0F0',
+    },
+    // Boardroom / skyline business scene
+    thumbnail:
+      'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'finance-analytics-dashboard',
+    name: 'Finance & Analytics – Premium Dashboard',
+    description:
+      'Dark graphite 10-slide finance & analytics dashboard deck with KPI cards, charts, cost tables, market comparison, forecast, and closing with QR.',
+    slides: createFinanceAnalyticsDashboardTemplate(),
+    palette: {
+      graphite: '#232931',
+      slate: '#393E46',
+      teal: '#4ECCA3',
+      silver: '#EEEEEE',
+      white: '#FFFFFF',
+    },
+    // Finance dashboard scene
+    thumbnail:
+      'https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'technology-innovation',
+    name: 'Technology & Innovation – Light Futuristic',
+    description:
+      'Clean, premium 10-slide technology & innovation deck with white backgrounds, real tech imagery, charts, metrics, and roadmap.',
+    slides: createTechnologyInnovationLightTemplate(),
+    palette: {
+      background: '#F8F9FA',
+      neonCyan: '#00E5FF',
+      electricBlue: '#2979FF',
+      vividPurple: '#8E2DE2',
+      signalGreen: '#39FF14',
+      accentOrange: '#FF9500',
+      black: '#000000',
+    },
+    // Light, modern tech workspace
+    thumbnail:
+      'https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'event-portfolio-cinematic',
@@ -1424,7 +1844,9 @@ export const presentationThemes: PresentationTheme[] = [
       'Modern, glossy cinematic deck for events and portfolios with glassmorphism panels, real-photo backdrops, and gradient overlays (10 slides).',
     slides: createEventPortfolioTemplate(),
     palette: eventPortfolioPalette,
-    thumbnail: null,
+    // Bright, wide event stage with clear lighting for better card visibility
+    thumbnail:
+      'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'film-production-cinematic',
@@ -1433,34 +1855,25 @@ export const presentationThemes: PresentationTheme[] = [
       'High-end cinematic film production deck with glassmorphism panels, BTS photography, production schedules, and storyboard layouts (10 slides).',
     slides: createFilmProductionTemplate(),
     palette: filmProductionPalette,
-    thumbnail: null,
+    // Film set / camera rig
+    thumbnail:
+      'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=800&q=80',
   },
   {
-    id: 'healthcare-medical',
-    name: 'Healthcare & Medical',
-    description: 'Clinical-grade healthcare template with patient statistics, treatment roadmap, and research highlights (10 slides).',
-    slides: createHealthcareMedicalTemplate(),
+    id: 'medical-clinical-blue',
+    name: 'Medical – Clinical Blue & White',
+    description:
+      'Clean 10-slide medical template with clinical imagery, blue-white palette, charts, condition infographic, stats table, team, timeline, and recommendations.',
+    slides: createMedicalClinicalTemplate(),
     palette: {
-      green: '#C4E538',
-      aqua: '#12CBC4',
-      cream: '#F8EFBA',
-      blue: '#1B9CFC',
-      slate: '#222F3E',
-    },
-    thumbnail: null,
-  },
-  {
-    id: 'technology-innovation',
-    name: 'Technology & Innovation',
-    description: 'Dark-mode, neon-accented technology & innovation deck with architecture, performance charts, roadmap, and pricing (10 slides).',
-    slides: createTechnologyInnovationTemplate(),
-    palette: {
-      background: '#0D1117',
-      neonCyan: '#00FFFF',
-      neonGreen: '#39FF14',
+      blue: '#007AFF',
+      green: '#34C759',
+      gray: '#E5E5EA',
       white: '#FFFFFF',
     },
-    thumbnail: null,
+    // Calm clinical setting thumbnail
+    thumbnail:
+      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'sports-fitness',
@@ -1474,7 +1887,9 @@ export const presentationThemes: PresentationTheme[] = [
       gray: '#F2F2F7',
       white: '#FFFFFF',
     },
-    thumbnail: null,
+    // Dynamic sports scene
+    thumbnail:
+      'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=800&q=80',
   },
 ];
 

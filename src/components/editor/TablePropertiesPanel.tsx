@@ -255,8 +255,8 @@ export const TablePropertiesPanel: React.FC<TablePropertiesPanelProps> = ({ sele
                     <Label className="text-sm font-medium">Text Color</Label>
                     <Input
                       type="color"
-                      value={localElement.color || '#000000'}
-                      onChange={(e) => handlePropertyChange('color', e.target.value)}
+                      value={localElement.textColor || '#000000'}
+                      onChange={(e) => handlePropertyChange('textColor', e.target.value)}
                       className="w-full"
                     />
                   </div>

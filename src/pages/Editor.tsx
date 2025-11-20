@@ -1018,7 +1018,7 @@ const Editor = () => {
             onOpen={() => setOpenDialogOpen(true)}
             onUndo={undo}
             onRedo={redo}
-            onPresent={() => setPresentationMode(true)}
+            onPresent={handlePresent}
             onHomeClick={() => navigate('/')}
             canUndo={canUndo}
             canRedo={canRedo}
@@ -1028,7 +1028,6 @@ const Editor = () => {
               document.title = `${newTitle} - GlassSlide`;
             }}
             onInsertImageFile={handleInsertImageFile}
-            isExporting={isExporting}
             zoom={zoom}
             onZoomIn={() => {
               setZoom((z) => {
@@ -1096,7 +1095,7 @@ const Editor = () => {
         {/* Main content area with canvas and sidebar */}
         <div className="flex-1 flex min-w-0 overflow-hidden">
           {/* Canvas Area - Takes remaining space */}
-          <div className="flex-1 min-w-0 flex items-center bg-[#f0f2f5] dark:bg-[#1e1e1e] overflow-auto p-4 px-12 transition-colors duration-300 transition-[width] ease-in-out">
+          <div className="flex-1 min-w-0 flex items-center bg-[#f0f2f5] dark:bg-[#1e1e1e] overflow-auto p-4 px-0 transition-colors duration-300 transition-[width] ease-in-out relative">
             <section className="w-full h-full" aria-label="Presentation canvas">
               <SimplePowerPointCanvas
                   elements={currentElements}
@@ -1116,6 +1115,35 @@ const Editor = () => {
                   zoom={zoom}
                 />
             </section>
+
+            {/* Bottom-centered Zoom Controls (always visible) */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+              <div className="flex items-center bg-white/80 dark:bg-gray-900/70 backdrop-blur-md rounded-full px-2 py-1 border border-gray-200 dark:border-gray-700 shadow-md">
+                <button
+                  onClick={() => setZoom((z) => Math.max(0.3, Math.round((z - 0.1) * 10) / 10))}
+                  className="w-9 h-9 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
+                  aria-label="Zoom out"
+                  title="Zoom out"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
+                  </svg>
+                </button>
+                <span className="mx-2 text-sm font-medium text-gray-800 dark:text-gray-100 w-12 text-center select-none">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  onClick={() => setZoom((z) => Math.min(1.2, Math.round((z + 0.1) * 10) / 10))}
+                  className="w-9 h-9 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
+                  aria-label="Zoom in"
+                  title="Zoom in"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Smart Sidebar - Context-aware Properties & Layouts */}

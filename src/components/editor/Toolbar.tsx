@@ -98,9 +98,9 @@ export const Toolbar = ({
   };
 
   return (
-    <div className="flex items-center justify-between w-full px-3 py-1 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 border-b border-gray-200 h-16" role="toolbar" aria-label="Editor tools">
+    <div className="flex items-center justify-between w-full px-3 lg:px-2 md:px-2 sm:px-2 py-1 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 border-b border-gray-200 h-16 lg:h-14 md:h-12 sm:h-11 xl:scale-100 lg:scale-95 md:scale-90 sm:scale-90 origin-left overflow-hidden" role="toolbar" aria-label="Editor tools">
       {/* LEFT ZONE - Navigation, History & Zoom */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 md:gap-1.5 sm:gap-1">
         {/* Logo + Brand */}
         <button 
           onClick={onHomeClick}
@@ -151,7 +151,7 @@ export const Toolbar = ({
             size="icon"
             onClick={onUndo}
             disabled={!canUndo}
-            className={`h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${!canUndo ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`h-8 w-8 md:h-7 md:w-7 sm:h-6 sm:w-6 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${!canUndo ? 'opacity-50 cursor-not-allowed' : ''}`}
             title="Undo (Ctrl+Z)"
             aria-label="Undo last action"
           >
@@ -162,7 +162,7 @@ export const Toolbar = ({
             size="icon"
             onClick={onRedo}
             disabled={!canRedo}
-            className={`h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${!canRedo ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`h-8 w-8 md:h-7 md:w-7 sm:h-6 sm:w-6 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${!canRedo ? 'opacity-50 cursor-not-allowed' : ''}`}
             title="Redo (Ctrl+Y)"
             aria-label="Redo last undone action"
           >
@@ -172,42 +172,17 @@ export const Toolbar = ({
 
         <Separator orientation="vertical" className="h-6 mx-1" aria-hidden="true" />
 
-        {/* Zoom Controls */}
-        <div className="flex items-center bg-white/70 backdrop-blur-md rounded-full px-2 border border-gray-200 shadow-sm">
-          <button
-            onClick={onZoomOut}
-            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-full"
-            aria-label="Zoom out"
-            title="Zoom out"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
-            </svg>
-          </button>
-          <span className="text-sm font-medium text-gray-700 w-12 text-center select-none">
-            {Math.round((zoom || 1) * 100)}%
-          </span>
-          <button
-            onClick={onZoomIn}
-            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-full"
-            aria-label="Zoom in"
-            title="Zoom in"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
-            </svg>
-          </button>
-        </div>
+        {/* Zoom Controls removed - moved below the canvas */}
       </div>
 
       {/* CENTER ZONE - Content Creation Tools */}
-      <div className="flex-1 flex justify-center px-4">
-        <div className="flex items-center gap-1 bg-white/50 rounded-lg p-1">
+      <div className="flex-1 flex justify-center px-4 md:px-3 sm:px-2">
+        <div className="flex items-center gap-1 md:gap-1 sm:gap-0.5 bg-white/50 rounded-lg p-1 sm:p-0.5">
           <Button
             variant="ghost"
             size="icon"
             onClick={onAddText}
-            className="h-8 w-8 p-0 flex items-center justify-center"
+            className="h-8 w-8 md:h-7 md:w-7 sm:h-6 sm:w-6 p-0 flex items-center justify-center"
             title="Add Text"
             aria-label="Add text element"
           >
@@ -218,7 +193,7 @@ export const Toolbar = ({
             variant="ghost"
             size="icon"
             onClick={onAddShape}
-            className="h-8 w-8 p-0 flex items-center justify-center"
+            className="h-8 w-8 md:h-7 md:w-7 sm:h-6 sm:w-6 p-0 flex items-center justify-center"
             title="Add Shape"
             aria-label="Add shape element"
           >
@@ -229,7 +204,7 @@ export const Toolbar = ({
             variant="ghost"
             size="icon"
             onClick={onAddChart}
-            className="h-8 w-8 p-0 flex items-center justify-center"
+            className="h-8 w-8 md:h-7 md:w-7 sm:h-6 sm:w-6 p-0 flex items-center justify-center"
             title="Add Chart"
             aria-label="Add chart element"
           >
@@ -240,7 +215,7 @@ export const Toolbar = ({
             variant="ghost"
             size="icon"
             onClick={onAddTable}
-            className="h-8 w-8 p-0 flex items-center justify-center"
+            className="h-8 w-8 md:h-7 md:w-7 sm:h-6 sm:w-6 p-0 flex items-center justify-center"
             title="Add Table"
             aria-label="Add table element"
           >
@@ -264,7 +239,7 @@ export const Toolbar = ({
             variant="ghost"
             size="icon"
             onClick={() => document.getElementById('toolbar-insert-image')?.click()}
-            className="h-8 w-8 p-0 flex items-center justify-center"
+            className="h-8 w-8 md:h-7 md:w-7 sm:h-6 sm:w-6 p-0 flex items-center justify-center"
             title="Add Image"
             aria-label="Add Image"
           >
@@ -275,7 +250,7 @@ export const Toolbar = ({
             variant="ghost"
             size="icon"
             onClick={() => setShowTemplateModal(true)}
-            className="h-8 w-8 p-0 flex items-center justify-center"
+            className="h-8 w-8 md:h-7 md:w-7 sm:h-6 sm:w-6 p-0 flex items-center justify-center"
             title="Add Template"
             aria-label="Add Template"
           >
@@ -302,7 +277,7 @@ export const Toolbar = ({
             <span className="hidden sm:inline ml-1">Present</span>
           </Button>
           
-          <div className="relative group w-[200px] mx-2 order-2">
+          <div className="relative group w-[200px] md:w-[180px] sm:w-[160px] mx-2 order-2">
             {isEditingTitle ? (
               <div className="relative w-full">
                 <input
@@ -315,7 +290,7 @@ export const Toolbar = ({
                   autoFocus
                   maxLength={MAX_TITLE_LENGTH}
                   className={`
-                    w-full h-8 px-2 pr-12 py-1 text-sm font-medium 
+                    w-full h-8 md:h-7 sm:h-6 px-2 pr-12 py-1 text-sm sm:text-xs font-medium 
                     bg-white dark:bg-gray-800 
                     border border-primary rounded 
                     transition-all duration-200 ease-in-out
@@ -345,7 +320,7 @@ export const Toolbar = ({
                   setIsEditingTitle(true);
                 }}
                 className={`
-                  w-full h-8 px-2 py-1 text-sm font-medium text-left
+                  w-full h-8 md:h-7 sm:h-6 px-2 py-1 text-sm sm:text-xs font-medium text-left
                   hover:bg-gray-100 dark:hover:bg-gray-800 rounded
                   transition-all duration-200 ease-in-out
                   border border-gray-200 dark:border-gray-600 

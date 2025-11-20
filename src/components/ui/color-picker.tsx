@@ -189,10 +189,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   const renderSlider = (label: string, value: number, slider: 'hue' | 'saturation' | 'lightness') => (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">
-        <label className="text-[11px] text-gray-500">
+        <label className="text-[11px] text-popover-foreground/70">
           {label}
         </label>
-        <span className="text-xs font-mono text-gray-700">
+        <span className="text-xs font-mono text-popover-foreground">
           {Math.round(value)}{slider === 'hue' ? '°' : '%'}
         </span>
       </div>
@@ -238,7 +238,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
           <div 
-            className="absolute top-1/2 -mt-1.5 w-3 h-3 bg-white rounded-full shadow-sm border border-gray-300"
+            className="absolute top-1/2 -mt-1.5 w-3 h-3 bg-popover rounded-full shadow-sm border border-popover-foreground/30"
             style={{
               left: `${(value / (slider === 'hue' ? 360 : 100)) * 100}%`,
               transform: 'translateX(-50%)',
@@ -266,12 +266,24 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   ];
 
   return (
-    <motion.div
-      initial={{ scale: 0.9, opacity: 0, y: 8 }}
-      animate={{ scale: 1, opacity: 1, y: 0 }}
-      exit={{ scale: 0.9, opacity: 0 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.5 }}
-      className="fixed z-[99999] bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-200/50 overflow-hidden"
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        className="fixed inset-0 z-[99998] bg-black/20 backdrop-blur-sm"
+        onClick={handleCancel}
+      />
+      
+      {/* Color Picker */}
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 8 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.5 }}
+        className="fixed z-[99999] bg-popover/95 backdrop-blur-xl rounded-xl shadow-2xl border border-popover-foreground/20 overflow-hidden"
       style={{
         left: `${x}px`,
         top: `${y}px`,
@@ -279,14 +291,14 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         maxWidth: 'calc(100vw - 32px)',
         maxHeight: 'calc(100vh - 32px)',
         boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.15)',
-        border: '1px solid rgba(0, 0, 0, 0.08)'
+        border: '1px solid hsl(var(--popover-foreground) / 0.2)'
       }}
     >
-      <div className="p-3 border-b border-gray-100 flex items-center justify-between">
-        <div className="text-sm font-medium text-gray-800">Colors</div>
+      <div className="p-3 border-b border-popover-foreground/20 flex items-center justify-between">
+        <div className="text-sm font-medium text-popover-foreground">Colors</div>
         <button
           onClick={handleCancel}
-          className="text-gray-400 hover:text-gray-600 transition-colors p-1 -mr-1"
+          className="text-popover-foreground/60 hover:text-popover-foreground transition-colors p-1 -mr-1"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
@@ -294,13 +306,13 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-gray-100 px-2">
+      <div className="flex border-b border-popover-foreground/20 px-2">
         <button
           onClick={() => setActiveTab('solid')}
           className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
             activeTab === 'solid'
               ? 'text-blue-600 border-b-2 border-blue-500'
-              : 'text-gray-500 hover:text-gray-700'
+              : 'text-popover-foreground/70 hover:text-popover-foreground'
           }`}
         >
           Color
@@ -310,7 +322,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
           className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
             activeTab === 'gradient'
               ? 'text-blue-600 border-b-2 border-blue-500'
-              : 'text-gray-500 hover:text-gray-700'
+              : 'text-popover-foreground/70 hover:text-popover-foreground'
           }`}
         >
           Gradient
@@ -352,7 +364,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
 
           {/* Color Sliders */}
           <div className="mt-4 space-y-3">
-            <div className="text-[11px] text-gray-500 font-medium mb-1">Color</div>
+            <div className="text-[11px] text-popover-foreground/70 font-medium mb-1">Color</div>
             <div className="space-y-2">
               {renderSlider('Hue', hue, 'hue')}
               {renderSlider('Saturation', saturation, 'saturation')}
@@ -361,13 +373,13 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             
             {/* Color Preview */}
             <div className="mt-4 flex items-center justify-between">
-              <div className="text-[11px] text-gray-500 font-medium">Preview</div>
+              <div className="text-[11px] text-popover-foreground/70 font-medium">Preview</div>
               <div className="flex items-center gap-2">
                 <div 
-                  className="w-6 h-6 rounded border border-gray-300"
+                  className="w-6 h-6 rounded border border-popover-foreground/30"
                   style={{ backgroundColor: previewColor }}
                 />
-                <div className="text-xs font-mono text-gray-700">
+                <div className="text-xs font-mono text-popover-foreground">
                   {previewColor.startsWith('#') ? previewColor.toUpperCase() : 'Gradient'}
                 </div>
               </div>
@@ -376,22 +388,22 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
 
           {/* Color Input */}
           <div className="mt-4">
-            <div className="text-[11px] text-gray-500 font-medium mb-1.5">Hex Color</div>
+            <div className="text-[11px] text-popover-foreground/70 font-medium mb-1.5">Hex Color</div>
             <div className="flex items-center gap-2">
               <div className="relative">
                 <input
                   type="color"
                   value={previewColor.startsWith('#') ? previewColor : '#ffffff'}
                   onChange={(e) => setPreviewColor(e.target.value)}
-                  className="w-8 h-8 rounded-md border border-gray-300 cursor-pointer appearance-none p-0 bg-transparent"
+                  className="w-8 h-8 rounded-md border border-popover-foreground/30 cursor-pointer appearance-none p-0 bg-transparent"
                   style={{
                     WebkitAppearance: 'none',
-                    border: '1px solid rgba(0,0,0,0.1)',
+                    border: '1px solid hsl(var(--popover-foreground) / 0.3)',
                     borderRadius: '4px'
                   }}
                 />
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <Palette className="w-3.5 h-3.5 text-gray-400" />
+                  <Palette className="w-3.5 h-3.5 text-popover-foreground/40" />
                 </div>
               </div>
               <div className="flex-1 relative">
@@ -405,7 +417,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                     }
                   }}
                   placeholder="#FFFFFF"
-                  className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-2.5 py-1.5 text-xs border border-popover-foreground/30 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-transparent text-popover-foreground"
                   style={{
                     height: '32px',
                     lineHeight: '1'
@@ -420,14 +432,14 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
       {activeTab === 'gradient' && (
         <div className="space-y-4 pr-2">
           {/* Gradient Presets */}
-          <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-            <p className="text-xs text-gray-600 mb-3 font-medium">Gradient Presets</p>
+          <div className="p-4 bg-popover/50 rounded-xl border border-popover-foreground/20 shadow-sm">
+            <p className="text-xs text-popover-foreground mb-3 font-medium">Gradient Presets</p>
             <div className="grid grid-cols-2 gap-3">
               {gradientPresets.map((preset, index) => (
                 <button
                   key={index}
                   className={`relative h-16 rounded-lg border-2 transition-all hover:scale-105 hover:shadow-md ${
-                    previewColor === preset.gradient ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
+                    previewColor === preset.gradient ? 'border-blue-500 ring-2 ring-blue-200' : 'border-popover-foreground/30 hover:border-popover-foreground/50'
                   }`}
                   style={{ background: preset.gradient }}
                   onClick={() => handleGradientSelect(preset.gradient)}
@@ -438,7 +450,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                     </div>
                   )}
                   <div className="absolute bottom-1 left-1 right-1">
-                    <div className="text-xs text-white font-medium bg-black bg-opacity-50 rounded px-1 text-center">
+                    <div className="text-xs text-popover-foreground font-medium bg-popover/80 rounded px-1 text-center">
                       {preset.name}
                     </div>
                   </div>
@@ -451,16 +463,16 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         </div>
         
         {/* Scroll Fade Indicators */}
-        <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-white to-transparent pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+        <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-popover to-transparent pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-popover to-transparent pointer-events-none"></div>
       </div>
 
       {/* Action Buttons */}
-      <div className="border-t border-gray-100 px-3 py-2.5 bg-gray-50">
+      <div className="border-t border-popover-foreground/20 px-3 py-2.5 bg-popover/50">
         <div className="flex justify-end gap-2">
           <button
             onClick={handleCancel}
-            className="px-4 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded transition-colors"
+            className="px-4 py-1.5 text-xs font-medium text-popover-foreground hover:bg-popover rounded transition-colors"
           >
             Cancel
           </button>
@@ -473,5 +485,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         </div>
       </div>
     </motion.div>
+    </>
   );
 };

@@ -51,6 +51,7 @@ export interface SlideElement {
   header?: boolean;
   headerBg?: string;
   headerTextColor?: string;
+  textColor?: string;
   rowAltBg?: string | null;
   columnWidths?: number[];
   themeId?: string;

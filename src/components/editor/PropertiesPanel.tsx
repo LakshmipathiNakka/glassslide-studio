@@ -36,9 +36,28 @@ const CHART_COLOR_PALETTE = [
 // System UI full stack (canonical default for all text)
 const SYSTEM_UI_STACK = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif';
 
+// Helper function to get the actual CSS font stack for a font name
+const getFontStack = (fontName: string) => {
+  switch (fontName) {
+    case 'System UI':
+      return SYSTEM_UI_STACK;
+    default:
+      return fontName;
+  }
+};
+
+// Helper function to convert CSS font stack back to simple font name
+const getSimpleFontName = (fontStack: string) => {
+  if (fontStack.includes(',')) {
+    // This is a CSS font stack, return "System UI"
+    return 'System UI';
+  }
+  return fontStack;
+};
+
 // Font family options
 const FONT_FAMILIES = [
-  { value: SYSTEM_UI_STACK, label: 'System UI' },
+  { value: 'System UI', label: 'System UI' },
   { value: 'Arial', label: 'Arial' },
   { value: 'Helvetica', label: 'Helvetica' },
   { value: 'Times New Roman', label: 'Times New Roman' },
@@ -82,7 +101,7 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
   }
   const [properties, setProperties] = useState({
     fontSize: 18,
-    fontFamily: SYSTEM_UI_STACK,
+    fontFamily: 'System UI',
     fontWeight: 'normal' as 'normal' | 'medium' | 'bold',
     fontStyle: 'normal' as 'normal' | 'italic',
     textDecoration: 'none' as string,
@@ -124,9 +143,9 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
 
   useEffect(() => {
     if (selectedElement) {
-      setProperties({
+      const updates: any = {
         fontSize: selectedElement.fontSize || 18,
-        fontFamily: selectedElement.fontFamily || SYSTEM_UI_STACK,
+        fontFamily: getSimpleFontName(selectedElement.fontFamily || 'System UI'),
         fontWeight: selectedElement.fontWeight || 'normal',
         fontStyle: selectedElement.fontStyle || 'normal',
         textDecoration: (selectedElement as any).textDecoration || 'none',
@@ -144,7 +163,16 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
         backgroundColor: selectedElement.backgroundColor || 'transparent',
         borderColor: selectedElement.borderColor || '#000000',
         fill: selectedElement.fill || '#000000',
-      });
+      };
+      
+      // For text elements, ensure they have a default border color if they have border width
+      if (selectedElement.type === 'text' && selectedElement.borderWidth && selectedElement.borderWidth > 0 && !selectedElement.borderColor) {
+        updates.borderColor = '#000000';
+        // Apply the border color to the element
+        onElementUpdate(selectedElement.id, { borderColor: '#000000' });
+      }
+      
+      setProperties(updates);
     }
   }, [selectedElement]);
 
@@ -209,6 +237,24 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
     if (key === 'chartData') {
       // For chart data updates, we need to merge the existing chartData with the new values
       onElementUpdate(selectedElement.id, { chartData: { ...(selectedElement as any).chartData, ...value } });
+    } else if (key === 'fontFamily') {
+      // Store only the simple font name in properties
+      setProperties(prev => ({ ...prev, [key]: value }));
+      // Convert to CSS stack for canvas rendering
+      const canvasFontValue = getFontStack(value);
+      onElementUpdate(selectedElement.id, { [key]: canvasFontValue });
+    } else if (key === 'borderWidth' && selectedElement.type === 'text' && value > 0) {
+      // For text elements, if border width is being set and no border color exists, set default black
+      const updates: any = { [key]: value };
+      if (!selectedElement.borderColor) {
+        updates.borderColor = '#000000';
+      }
+      setProperties(prev => ({ ...prev, ...updates }));
+      onElementUpdate(selectedElement.id, updates);
+    } else if (key === 'borderColor') {
+      // For border color, ensure it gets applied to the element
+      setProperties(prev => ({ ...prev, [key]: value }));
+      onElementUpdate(selectedElement.id, { [key]: value });
     } else {
       // For regular properties, update as before
       setProperties(prev => ({ ...prev, [key]: value }));
@@ -466,15 +512,15 @@ export const PropertiesPanel = ({ selectedElement, onElementUpdate, onElementDel
                   <div className="w-full">
                     <Label className="text-xs text-gray-500 mb-1 block">Font</Label>
                     <Select
-                      value={properties.fontFamily || SYSTEM_UI_STACK}
+                      value={properties.fontFamily || 'System UI'}
                       onValueChange={(value) => handlePropertyChange('fontFamily', value)}
                     >
                       <SelectTrigger className="h-8 text-sm w-full">
-                        <SelectValue className="truncate" />
+                        <SelectValue className="truncate" placeholder="System UI" />
                       </SelectTrigger>
                       <SelectContent>
                         {FONT_FAMILIES.map((font) => (
-                          <SelectItem key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                          <SelectItem key={font.value} value={font.value} style={{ fontFamily: getFontStack(font.value) }}>
                             {font.label}
                           </SelectItem>
                         ))}

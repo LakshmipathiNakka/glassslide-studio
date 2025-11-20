@@ -13,7 +13,6 @@ const features = [
   { icon: <ImageIcon className="w-6 h-6" />, text: '1GB storage' },
   { icon: <BarChart3 className="w-6 h-6" />, text: 'Basic analytics' },
   { icon: <MousePointerClick className="w-6 h-6" />, text: 'Drag & drop editor' },
-  { icon: <Code2 className="w-6 h-6" />, text: 'Developer API access' },
 ];
 
 const PricingCard = () => {
@@ -60,6 +59,26 @@ const PricingCard = () => {
       variants={container}
       className="relative max-w-2xl mx-auto bg-white/80 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-gray-100 shadow-lg overflow-hidden"
     >
+      {/* Limited Time Badge */}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        whileInView={{ 
+          scale: 1, 
+          opacity: 1,
+          transition: { 
+            type: 'spring',
+            stiffness: 400,
+            damping: 10,
+            delay: 0.2
+          }
+        }}
+        viewport={{ once: true }}
+        className="absolute top-4 right-4 inline-flex items-center px-3 py-1.5 rounded-full bg-red-50 border border-red-100"
+      >
+        <Clock className="w-3.5 h-3.5 text-red-500 mr-1.5" />
+        <span className="text-xs font-medium text-red-700">Limited time</span>
+      </motion.div>
+      
       {/* Decorative elements */}
       <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20" />
       <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20" />
@@ -84,7 +103,7 @@ const PricingCard = () => {
         <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white mr-2">
           <Check className="w-4 h-4" />
         </div>
-        <span className="text-sm font-medium text-green-700">Free Forever</span>
+        <span className="text-sm font-medium text-green-700">Free now</span>
       </motion.div>
 
       <motion.h2 

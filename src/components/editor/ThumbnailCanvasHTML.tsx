@@ -607,13 +607,13 @@ const ThumbnailCanvasHTML: React.FC<ThumbnailCanvasProps> = ({
           TABLE_THEMES.find(t => t.id === (element as any).themeId) : null;
           
         // Use theme colors with proper fallbacks to match the editor's theme system
-        const headerBg = theme?.headerBg || (element as any).headerBg || '#3B82F6';
-        const headerTextColor = theme?.headerTextColor || (element as any).headerTextColor || '#FFFFFF';
-        const rowEvenBg = theme?.rowEvenBg || (element as any).rowEvenBg || '#F8FAFC';
-        const rowOddBg = theme?.rowOddBg || (element as any).rowAltBg || (theme?.rowEvenBg ? 'rgba(0,0,0,0.02)' : '#F1F5F9');
-        const textColor = theme?.textColor || (element as any).color || '#1E293B';
-        const borderColor = theme?.borderColor || (element as any).borderColor || '#E2E8F0';
+        const borderColor = (element as any).borderColor || theme?.borderColor || '#E2E8F0';
         const textAlign = (element as any).cellTextAlign || 'left';
+        const headerBg = (element as any).headerBg || theme?.headerBg || '#E7E6E6';
+        const headerTextColor = (element as any).headerTextColor || theme?.headerTextColor || '#111827';
+        const rowEvenBg = (element as any).backgroundColor || theme?.rowEvenBg || '#FFFFFF';
+        const rowOddBg = (element as any).rowAltBg || theme?.rowOddBg || 'transparent';
+        const textColor = (element as any).textColor || (element as any).color || theme?.textColor || '#1E293B';
         const fontFamily = (element as any).fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif';
         const fontSize = ((element as any).fontSize || 16) * scale;
 

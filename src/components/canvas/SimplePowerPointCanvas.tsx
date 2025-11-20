@@ -144,12 +144,15 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
     const containerHeight = container.clientHeight;
     
     // Calculate scale to fit container while maintaining aspect ratio
-    const scaleX = (containerWidth - 40) / slideWidth; // 20px padding on each side
-    const scaleY = (containerHeight - 40) / slideHeight; // 20px padding top/bottom
+    // Use full container size to maximize fit (padding is already handled by layout)
+    const scaleX = containerWidth / slideWidth;
+    const scaleY = containerHeight / slideHeight;
+    
     const newScale = Math.min(scaleX, scaleY);
     
     // Apply minimum and maximum scale limits
-    const boundedScale = Math.min(Math.max(newScale, 0.2), 2); // Min 20%, Max 200%
+    // Do not auto-upscale beyond 100% on large screens; let explicit zoom control that
+    const boundedScale = Math.min(Math.max(newScale, 0.2), 1); // Min 20%, Max 100%
     
     setScale(boundedScale);
   }, [slideWidth, slideHeight]);
@@ -1306,13 +1309,13 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         Array.from({ length: cols }, (_, c) => (el.tableData?.[r]?.[c] ?? ''))
       );
 
-      // Get theme-based colors first
+      // Get theme-based colors as fallbacks only
       const theme = TABLE_THEMES.find(t => t.id === el.themeId) || {} as any;
       
-      // Border properties with theme fallbacks (match thumbnail defaults)
+      // Border properties - prioritize element colors over theme
       const borderWidth = (el.borderWidth ?? 1);
       const borderStyle = (el as any).borderStyle || 'solid';
-      const borderColor = theme.borderColor || el.borderColor || '#E2E8F0';
+      const borderColor = el.borderColor || theme.borderColor || '#E2E8F0';
       
       // Other table properties
       const cellPadding = el.cellPadding ?? 8;
@@ -1320,14 +1323,14 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
       const opacity = (el as any).opacity ?? 1;
       const header = (el as any).header ?? false;
       
-      // Header styling with theme fallbacks (match thumbnail/table theme defaults)
-      const headerBg = theme.headerBg || (el as any).headerBg || '#3B82F6';
-      // Row and text colors with theme fallbacks - keep in sync with ThumbnailCanvasHTML
-      const rowEvenBg = theme.rowEvenBg || (el as any).rowEvenBg || '#F8FAFC';
-      const rowOddBg = theme.rowOddBg || (el as any).rowAltBg || (theme.rowEvenBg ? 'rgba(0,0,0,0.02)' : '#F1F5F9');
-      // Prefer theme text color, then element color, then fallback
-      const textColor = theme.textColor || el.color || '#1E293B';
-      // For header, use theme header text color first, then element override, then fallback to white
+      // Header styling - prioritize element colors over theme
+      const headerBg = (el as any).headerBg || theme.headerBg || '#3B82F6';
+      // Row and text colors - prioritize element colors over theme
+      const rowEvenBg = (el as any).backgroundColor || (el as any).rowEvenBg || theme.rowEvenBg || '#F8FAFC';
+      const rowOddBg = (el as any).rowAltBg || theme.rowOddBg || (theme.rowEvenBg ? 'rgba(0,0,0,0.02)' : '#F1F5F9');
+      // Prefer element text color, then theme text color, then fallback
+      const textColor = (el as any).textColor || el.color || theme.textColor || '#1E293B';
+      // For header, use element override first, then theme, then fallback
       const effectiveHeaderTextColor = (el as any).headerTextColor || theme.headerTextColor || '#FFFFFF';
 
       const handleCellCommit = (r: number, c: number, html: string) => {

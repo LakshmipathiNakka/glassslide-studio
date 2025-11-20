@@ -31,16 +31,16 @@ const MenuItem: React.FC<{
       disabled={disabled}
       className={cn(
         'w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors',
-        'focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700/50',
+        'focus:outline-none focus:bg-popover/50',
         danger
-          ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-          : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700/50',
+          ? 'text-red-500 hover:bg-red-50/50'
+          : 'text-popover-foreground hover:bg-popover/50',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
     >
       <span className={cn(
         'flex-shrink-0',
-        danger ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'
+        danger ? 'text-red-500' : 'text-popover-foreground/50'
       )}>
         {React.cloneElement(icon as React.ReactElement, { className: 'w-4 h-4' })}
       </span>
@@ -179,8 +179,8 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
             }
           }}
           className={cn(
-            'fixed z-[999] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl',
-            'rounded-xl shadow-2xl border border-white/20 dark:border-gray-700/50',
+            'fixed z-[999] bg-popover/95 backdrop-blur-xl',
+            'rounded-xl shadow-2xl border border-popover-foreground/20',
             'py-1.5 overflow-hidden w-56',
             'transform-gpu' // Better performance for animations
           )}
@@ -210,7 +210,7 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
               label="Duplicate"
               onClick={() => handleAction('duplicate')}
             />
-            <div className="my-1 h-px bg-gray-200 dark:bg-gray-700/50" />
+            <div className="my-1 h-px bg-popover-foreground/20" />
             <MenuItem
               icon={<Palette />}
               label="Change Theme"
@@ -221,7 +221,7 @@ const SlideContextMenu: React.FC<SlideContextMenuProps> = ({
               label="Rename"
               onClick={() => handleAction('rename')}
             />
-            <div className="my-1 h-px bg-gray-200 dark:bg-gray-700/50" />
+            <div className="my-1 h-px bg-popover-foreground/20" />
             <MenuItem
               icon={<Trash2 />}
               label="Delete"

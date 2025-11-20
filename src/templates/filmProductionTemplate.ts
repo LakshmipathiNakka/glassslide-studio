@@ -271,16 +271,16 @@ const createFilmProductionTemplate = (): Slide[] => {
         fill: COLORS.CINEMATIC_BLACK,
         stroke: 'transparent',
       }),
-      // Title
-      createTextElement('highlights-title', 'CREATIVE BREAKDOWN', 80, 60, 800, 32, {
+      // Title with top margin
+      createTextElement('highlights-title', 'CREATIVE BREAKDOWN', 80, 50, 800, 32, {
         fontSize: 20,
         fontWeight: '600',
         color: COLORS.CINEMATIC_GOLD,
         textAlign: 'left',
       }),
-      // Left glass panel – Visual Pillars
-      createGlassPanel('highlights-left', 80, 110, 380, 340, {}),
-      createTextElement('highlights-left-title', 'VISUAL PILLARS', 100, 130, 340, 24, {
+      // Left glass panel – Visual Pillars, inset from edges for margin
+      createGlassPanel('highlights-left', 70, 110, 370, 340, {}),
+      createTextElement('highlights-left-title', 'VISUAL PILLARS', 90, 130, 330, 24, {
         fontSize: 14,
         fontWeight: '600',
         color: COLORS.CINEMATIC_GOLD,
@@ -288,17 +288,17 @@ const createFilmProductionTemplate = (): Slide[] => {
       createTextElement(
         'highlights-left-body',
         '• Gold accents for premium tone\n• Deep blacks with controlled contrast\n• Lens flares and anamorphic streaks\n• Layered glass panels for depth',
-        100,
+        90,
         160,
-        340,
+        330,
         120,
         {
           fontSize: 12,
         },
       ),
-      // Right glass panel – Story & Tone
-      createGlassPanel('highlights-right', 460, 110, 380, 160, {}),
-      createTextElement('highlights-right-title', 'STORY & TONE', 480, 130, 340, 24, {
+      // Right glass panel – Story & Tone, inset from right edge for margin
+      createGlassPanel('highlights-right', 510, 110, 370, 160, {}),
+      createTextElement('highlights-right-title', 'STORY & TONE', 530, 130, 330, 24, {
         fontSize: 14,
         fontWeight: '600',
         color: COLORS.CINEMATIC_GOLD,
@@ -306,17 +306,17 @@ const createFilmProductionTemplate = (): Slide[] => {
       createTextElement(
         'highlights-right-body',
         'Grounded, character-driven drama with cinematic scale. Balancing intimate close-ups with wide establishing frames.',
-        480,
+        530,
         160,
-        340,
+        330,
         80,
         {
           fontSize: 12,
         },
       ),
-      // Bottom glass strip – Audience Experience
-      createGlassPanel('highlights-bottom', 460, 290, 380, 160, {}),
-      createTextElement('highlights-bottom-title', 'AUDIENCE EXPERIENCE', 480, 300, 340, 24, {
+      // Bottom glass strip – Audience Experience, also inset
+      createGlassPanel('highlights-bottom', 510, 290, 370, 160, {}),
+      createTextElement('highlights-bottom-title', 'AUDIENCE EXPERIENCE', 530, 300, 330, 24, {
         fontSize: 14,
         fontWeight: '600',
         color: COLORS.CINEMATIC_GOLD,
@@ -324,9 +324,9 @@ const createFilmProductionTemplate = (): Slide[] => {
       createTextElement(
         'highlights-bottom-body',
         'Immersive, big-screen visuals that still work on streaming. Designed for strong trailer moments and festival screenings.',
-        480,
+        530,
         330,
-        340,
+        330,
         80,
         {
           fontSize: 12,
@@ -667,14 +667,7 @@ const createFilmProductionTemplate = (): Slide[] => {
     background: COLORS.CINEMATIC_BLACK,
     createdAt,
     elements: [
-      createImageElement('bts-bg', BTS_1, 0, 0, 960, 540, {
-        opacity: 0.45,
-      }),
-      createShape('bts-overlay', 'rectangle', 0, 0, 960, 540, {
-        fill: 'linear-gradient(135deg, rgba(13,13,13,0.8), rgba(13,13,13,0.6))',
-        stroke: 'transparent',
-        zIndex: 0,
-      }),
+      // Solid background only – removed full-screen background image for better compatibility
       createTextElement('bts-title', 'BEHIND THE SCENES', 80, 60, 800, 40, {
         fontSize: 20,
         fontWeight: '600',
@@ -702,16 +695,7 @@ const createFilmProductionTemplate = (): Slide[] => {
         opacity: 0.8,
         zIndex: 1,
       }),
-      // Anamorphic light streak
-      createShape('bts-streak', 'rectangle', 40, 260, 880, 6, {
-        fill:
-          'linear-gradient(90deg, rgba(212,175,55,0), rgba(212,175,55,0.9), rgba(212,175,55,0))',
-        stroke: 'transparent',
-        opacity: 0.6,
-      }),
-      createGlassPanel('bts-tag', 80, 430, 200, 40, {
-        rx: 20,
-      }),
+      // Tag text floating directly on image (no glass background shape)
       createTextElement('bts-tag-text', 'Behind the Scenes', 80, 437, 200, 26, {
         fontSize: 13,
         textAlign: 'center',
@@ -726,69 +710,69 @@ const createFilmProductionTemplate = (): Slide[] => {
     background: COLORS.CINEMATIC_BLACK,
     createdAt,
     elements: [
-      createImageElement('test-bg', CLOSING_IMG, 0, 0, 960, 540, {
-        opacity: 0.4,
-      }),
-      createShape('test-overlay', 'rectangle', 0, 0, 960, 540, {
-        fill: 'linear-gradient(135deg, rgba(13,13,13,0.96), rgba(13,13,13,0.9))',
-        stroke: 'transparent',
-      }),
-      createTextElement('test-title', 'CRITIC QUOTES & TESTIMONIALS', 80, 60, 800, 40, {
+      // Solid background; structured layout with contained cards (not full-screen background shapes)
+      createTextElement('test-title', 'CRITIC QUOTES & TESTIMONIALS', 80, 50, 800, 40, {
         fontSize: 20,
         fontWeight: '600',
         color: COLORS.CINEMATIC_GOLD,
+        textAlign: 'center',
       }),
-      // Three glass quote cards
-      ...[0, 1, 2].map((index) => {
+      // Three testimonial cards with rounded rectangles
+      ...[0, 1, 2].flatMap((index) => {
         const x = 80 + index * 290;
-        return createGlassPanel(`test-card-${index}`, x, 130, 260, 260, {
-          rx: 20,
-        });
+        return [
+          createShape(
+            `test-card-${index}`,
+            'rounded-rectangle',
+            x,
+            120,
+            260,
+            220,
+            {
+              fill: 'rgba(13,13,13,0.85)',
+              stroke: 'rgba(212,175,55,0.8)',
+              strokeWidth: 1,
+              rx: 20,
+              zIndex: 1,
+              shadow: {
+                color: 'rgba(0,0,0,0.6)',
+                blur: 18,
+                offsetX: 0,
+                offsetY: 8,
+              },
+            },
+          ),
+          createTextElement(
+            `test-quote-${index}`,
+            '“A rich, cinematic experience with powerful visual storytelling.”',
+            x + 20,
+            140,
+            220,
+            100,
+            {
+              fontSize: 13,
+              color: 'rgba(229,229,229,0.96)',
+              textAlign: 'left',
+              zIndex: 2,
+            },
+          ),
+          createTextElement(
+            `test-name-${index}`,
+            'Critic Name, Publication',
+            x + 20,
+            230,
+            220,
+            26,
+            {
+              fontSize: 12,
+              fontStyle: 'italic',
+              color: 'rgba(229,229,229,0.85)',
+              textAlign: 'left',
+              zIndex: 2,
+            },
+          ),
+        ];
       }),
-      ...[0, 1, 2].map((index) =>
-        createTextElement(
-          `test-quote-${index}`,
-          '“A rich, cinematic experience with powerful visual storytelling.”',
-          100 + index * 290,
-          150,
-          220,
-          120,
-          {
-            fontSize: 13,
-            color: 'rgba(229,229,229,0.96)',
-          },
-        ),
-      ),
-      ...[0, 1, 2].map((index) =>
-        createTextElement(
-          `test-name-${index}`,
-          'Critic Name, Publication',
-          100 + index * 290,
-          260,
-          220,
-          26,
-          {
-            fontSize: 12,
-            fontStyle: 'italic',
-            color: 'rgba(229,229,229,0.85)',
-          },
-        ),
-      ),
-      // Gold accent bars
-      ...[0, 1, 2].map((index) =>
-        createShape(
-          `test-bar-${index}`,
-          'rectangle',
-          100 + index * 290,
-          250,
-          80,
-          3,
-          {
-            fill: COLORS.CINEMATIC_GOLD,
-            stroke: 'transparent',
-          },
-        ),
-      ),
     ],
   };
 
@@ -798,14 +782,7 @@ const createFilmProductionTemplate = (): Slide[] => {
     background: COLORS.CINEMATIC_BLACK,
     createdAt,
     elements: [
-      createImageElement('closing-bg', CLOSING_IMG, 0, 0, 960, 540, {
-        opacity: 0.6,
-      }),
-      createShape('closing-overlay', 'rectangle', 0, 0, 960, 540, {
-        fill: 'linear-gradient(135deg, rgba(13,13,13,0.9), rgba(13,13,13,0.98))',
-        stroke: 'transparent',
-      }),
-      createGlassPanel('closing-glass', 140, 150, 680, 200, {}),
+      // Solid background only – removed full-screen background image and glass background shapes
       createTextElement('closing-title', 'THANK YOU FOR WATCHING', 170, 180, 620, 50, {
         fontSize: 26,
         fontWeight: '600',

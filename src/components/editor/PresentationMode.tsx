@@ -8,6 +8,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { sanitizeSlidesForPresentation } from '@/utils/presentationValidator';
 import { ChartJSChart } from './ChartJSChart';
+import { TABLE_THEMES } from '@/components/canvas/SimplePowerPointCanvas';
 
 interface PresentationModeProps {
   onClose: () => void;
@@ -472,6 +473,20 @@ export const PresentationMode = ({
         );
 
       case 'table':
+        // Get theme-based colors as fallbacks only
+        const theme = TABLE_THEMES.find(t => t.id === element.themeId) || {} as any;
+        const borderColor = element.borderColor || theme.borderColor || '#D9D9D9';
+        const borderWidth = element.borderWidth ?? 1;
+        const borderStyle = element.borderStyle || 'solid';
+        const cellPadding = element.cellPadding ?? 8;
+        const textAlign = element.cellTextAlign || 'left';
+        const header = element.header ?? false;
+        const headerBg = element.headerBg || theme.headerBg || '#E7E6E6';
+        const headerTextColor = element.headerTextColor || theme.headerTextColor || '#111827';
+        const rowEvenBg = element.backgroundColor || theme.rowEvenBg || '#FFFFFF';
+        const rowAltBg = element.rowAltBg || theme.rowOddBg || 'transparent';
+        const textColor = element.textColor || element.color || theme.textColor || '#000000';
+        
         return (
           <div
             key={element.id}
@@ -483,21 +498,40 @@ export const PresentationMode = ({
               height: isFullscreen ? element.height * (baseHeight / 540) : element.height,
             }}
           >
-            <table className="w-full h-full border-collapse">
+            <table 
+              className="w-full h-full border-collapse"
+              style={{
+                border: borderStyle === 'none' || borderWidth === 0 ? 'none' : `${borderWidth}px ${borderStyle} ${borderColor}`,
+              }}
+            >
               <tbody>
                 {element.tableData?.map((row: any[], rowIndex: number) => (
                   <tr key={rowIndex}>
-                    {row.map((cell: any, cellIndex: number) => (
-                      <td
-                        key={cellIndex}
-                        className="border border-gray-300 p-2 text-sm"
-                        style={{
-                          fontSize: (element.fontSize || 14) * scaleFactor,
-                        }}
-                      >
-                        {cell}
-                      </td>
-                    ))}
+                    {row.map((cell: any, cellIndex: number) => {
+                      const isHeader = header && rowIndex === 0;
+                      const isEvenRow = ((header ? rowIndex - 1 : rowIndex) % 2 === 0);
+                      const bgColor = isHeader ? headerBg : (isEvenRow ? rowEvenBg : rowAltBg);
+                      const cellTextColor = isHeader ? headerTextColor : textColor;
+                      
+                      return (
+                        <td
+                          key={cellIndex}
+                          className="border"
+                          style={{
+                            borderRight: borderStyle === 'none' || borderWidth === 0 ? 'none' : `${borderWidth}px ${borderStyle} ${borderColor}`,
+                            borderBottom: borderStyle === 'none' || borderWidth === 0 ? 'none' : `${borderWidth}px ${borderStyle} ${borderColor}`,
+                            padding: cellPadding,
+                            fontSize: (element.fontSize || 14) * scaleFactor,
+                            backgroundColor: bgColor,
+                            color: cellTextColor,
+                            fontWeight: isHeader ? '600' : 'normal',
+                            textAlign: textAlign as any,
+                            fontFamily: element.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+                          }}
+                          dangerouslySetInnerHTML={{ __html: cell }}
+                        />
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

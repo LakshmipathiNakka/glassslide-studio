@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Star, Users, FileText, PlayCircle } from "lucide-react";
+import { ArrowRight, Star, Users, FileText, PlayCircle, LayoutGrid, Eye } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/use-scroll-animations";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
@@ -221,8 +221,8 @@ export const CTA = ({ id = 'cta' }: CTAProps) => {
                 </span>
               ) : (
                 <>
-                  Get Started Free
-                  <ArrowRight className="w-5 h-5 ml-2 md:ml-3 transition-transform group-hover:translate-x-1" />
+                  <Eye className="w-5 h-5 mr-2 md:mr-3" />
+                  See What's Inside
                 </>
               )}
             </AppleButton>
@@ -230,9 +230,10 @@ export const CTA = ({ id = 'cta' }: CTAProps) => {
             <AppleButton 
               variant="secondary"
               className="px-8 py-5 md:px-10 md:py-6 text-base md:text-lg font-medium group"
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              <PlayCircle className="w-5 h-5 mr-2 md:mr-3 text-blue-500 group-hover:text-blue-600 transition-colors" />
-              Watch Demo
+              <LayoutGrid className="w-5 h-5 mr-2 md:mr-3 text-blue-500 group-hover:text-blue-600 transition-colors" />
+              Discover Features
             </AppleButton>
           </motion.div>
 

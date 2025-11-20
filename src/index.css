@@ -33,6 +33,107 @@
     hover:bg-red-50 dark:hover:bg-red-900/30
     transition-all duration-200;
   }
+
+  /* Template gallery (BEM) */
+  .template-gallery {
+    @apply w-full;
+  }
+
+  .template-gallery__grid {
+    @apply grid gap-6;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  .template-card {
+    @apply relative flex flex-col bg-white dark:bg-gray-900/90 border border-gray-200/80 dark:border-gray-700/70 rounded-2xl overflow-hidden;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    transition:
+      transform 180ms ease-out,
+      box-shadow 180ms ease-out,
+      border-color 180ms ease-out,
+      background-color 180ms ease-out;
+  }
+
+  .template-card__click-surface {
+    @apply flex flex-col text-left h-full focus:outline-none;
+  }
+
+  .template-card__click-surface:focus-visible {
+    @apply ring-2 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900;
+  }
+
+  .template-card__thumbnail-wrapper {
+    @apply relative overflow-hidden bg-gray-50 dark:bg-gray-800/80;
+    aspect-ratio: 16 / 9;
+  }
+
+  .template-card__thumbnail-image {
+    @apply w-full h-full object-cover;
+    transform-origin: center;
+    transition: transform 200ms ease-out;
+  }
+
+  .template-card__thumbnail-placeholder {
+    @apply w-full h-full flex items-center justify-center text-xs text-gray-500 dark:text-gray-400;
+    background-image: linear-gradient(135deg, rgba(148, 163, 184, 0.12), rgba(148, 163, 184, 0.02));
+  }
+
+  .template-card__badge {
+    @apply absolute bottom-2 left-2 px-2 py-0.5 text-[11px] font-medium rounded-full;
+    background-color: rgba(15, 23, 42, 0.85);
+    color: #f9fafb;
+  }
+
+  .template-card__body {
+    @apply flex flex-col gap-2 p-4;
+  }
+
+  .template-card__title {
+    @apply text-sm font-semibold text-gray-900 dark:text-gray-50 line-clamp-1;
+  }
+
+  .template-card__description {
+    @apply text-xs text-gray-600 dark:text-gray-300 line-clamp-2;
+  }
+
+  .template-card__meta-row {
+    @apply mt-3 flex items-center justify-between gap-2;
+  }
+
+  .template-card__meta {
+    @apply text-[11px] text-gray-500 dark:text-gray-400;
+  }
+
+  .template-card__actions {
+    @apply flex items-center justify-end;
+  }
+
+  .template-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+    border-color: rgba(59, 130, 246, 0.4);
+  }
+
+  .template-card:hover .template-card__thumbnail-image {
+    transform: scale(1.05);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .template-card {
+      transition: border-color 150ms ease-out, background-color 150ms ease-out;
+    }
+
+    .template-card,
+    .template-card:hover {
+      transform: none;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    }
+
+    .template-card__thumbnail-image,
+    .template-card:hover .template-card__thumbnail-image {
+      transform: none;
+    }
+  }
 }
 
 /* Keynote-style design system */

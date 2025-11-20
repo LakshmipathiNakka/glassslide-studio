@@ -1019,19 +1019,19 @@ export const SimplePresentationMode = ({
         // Get theme if exists
         const theme = TABLE_THEMES.find(t => t.id === element.themeId) || {} as any;
         
-        // Use theme colors with fallbacks
-        const borderColor = theme.borderColor || element.borderColor || '#D9D9D9';
+        // Use element colors with theme fallbacks - prioritize element properties
+        const borderColor = element.borderColor || theme.borderColor || '#D9D9D9';
         const borderWidth = (element.borderWidth ?? 1);
         const borderStyle = (element as any).borderStyle || 'solid';
         const textAlign = element.cellTextAlign || 'left';
         const header = (element as any).header ?? false;
         
-        // Theme colors with fallbacks
-        const headerBg = theme.headerBg || (element as any).headerBg || '#E7E6E6';
-        const headerTextColor = theme.headerTextColor || (element as any).headerTextColor || '#111827';
-        const rowEvenBg = theme.rowEvenBg || element.backgroundColor || '#FFFFFF';
-        const rowOddBg = theme.rowOddBg || (element as any).rowAltBg || 'transparent';
-        const textColor = theme.textColor || element.color || '#000000';
+        // Element colors with theme fallbacks
+        const headerBg = (element as any).headerBg || theme.headerBg || '#E7E6E6';
+        const headerTextColor = (element as any).headerTextColor || theme.headerTextColor || '#111827';
+        const rowEvenBg = element.backgroundColor || theme.rowEvenBg || '#FFFFFF';
+        const rowOddBg = (element as any).rowAltBg || theme.rowOddBg || 'transparent';
+        const textColor = (element as any).textColor || element.color || theme.textColor || '#000000';
         const cellPadding = element.cellPadding ?? 8;
 
         return (
@@ -1321,7 +1321,7 @@ export const SimplePresentationMode = ({
       <AnimatePresence>
         {!showEndOverlay && showControls && (
           <motion.div 
-            className="fixed bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2 z-50"
+            className="fixed inset-x-0 bottom-8 flex justify-center items-end z-50"
             initial={{ opacity: 0, y: 30 }}
             animate={{ 
               opacity: 1, 
@@ -1341,7 +1341,7 @@ export const SimplePresentationMode = ({
             }}
             onMouseEnter={resetControlsTimer}
           >
-            <div className="flex items-center gap-2 sm:gap-3 px-4 py-2 sm:px-6 sm:py-3 bg-white/25 backdrop-blur-xl rounded-2xl border border-white/40 shadow-lg -translate-x-1">
+            <div className="flex items-center gap-2 sm:gap-3 px-4 py-2 sm:px-6 sm:py-3 bg-white/25 backdrop-blur-xl rounded-2xl border border-white/40 shadow-lg">
               {/* Slide counter */}
               <div className="hidden sm:flex items-center justify-center text-sm font-medium text-gray-800 bg-white/50 rounded-full px-3 h-8">
                 {safeCurrentSlide + 1} / {slides.length}
@@ -1412,22 +1412,20 @@ export const SimplePresentationMode = ({
                 <RotateCcw className="w-5 h-5" />
               </button>
 
-              {/* Fullscreen toggle */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFullscreen();
-                }}
-                className="control-btn hover:bg-white/80"
-                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                title={isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
-              >
-                {isFullscreen ? (
-                  <Minimize className="w-5 h-5" />
-                ) : (
+              {/* Fullscreen control: only show when not already in fullscreen */}
+              {!isFullscreen && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFullscreen();
+                  }}
+                  className="control-btn hover:bg-white/80"
+                  aria-label="Enter fullscreen"
+                  title="Fullscreen (F)"
+                >
                   <Maximize className="w-5 h-5" />
-                )}
-              </button>
+                </button>
+              )}
             </div>
           </motion.div>
         )}
@@ -1437,7 +1435,7 @@ export const SimplePresentationMode = ({
       <AnimatePresence>
         {!showEndOverlay && !showControls && (
           <motion.div 
-            className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50"
+            className="fixed inset-x-0 bottom-8 flex justify-center items-end z-50"
             initial={{ opacity: 0, y: 20 }}
             animate={{ 
               opacity: 0.7, 

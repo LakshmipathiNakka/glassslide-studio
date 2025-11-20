@@ -52,11 +52,13 @@ export interface Element {
   header?: boolean;
   headerBg?: string;
   headerTextColor?: string;
+  textColor?: string;
   rowAltBg?: string | null;
   columnWidths?: number[];
   shadow?: boolean;
   shadowBlur?: number;
   animateIn?: boolean;
+  themeId?: string;
 }
 
 interface Slide {
