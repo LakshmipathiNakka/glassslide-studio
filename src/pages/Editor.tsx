@@ -178,26 +178,38 @@ const Editor = () => {
 
   useEffect(() => {
     const snap = snapshot as any;
+    console.log('[Editor] Snapshot effect triggered. Snapshot:', snap);
+
     if (typeof snap?.currentSlide === 'number' && snap.currentSlide !== currentSlide) {
+      console.log('[Editor] Restoring currentSlide from snapshot:', snap.currentSlide);
       setCurrentSlide(snap.currentSlide);
     }
     if (typeof snap?.zoom === 'number' && snap.zoom !== zoom) {
+      console.log('[Editor] Restoring zoom from snapshot:', snap.zoom);
       setZoom(snap.zoom);
     }
     if (typeof snap?.selectedElementId !== 'undefined') {
       const selId = snap.selectedElementId as string | null;
+      console.log('[Editor] Snapshot has selectedElementId:', selId, 'Previous:', prevSnapshotSelectedId.current);
 
       // Only restore if the snapshot's selectedElementId actually changed
       // This prevents restoration when just the snapshot object reference changes
       if (selId !== prevSnapshotSelectedId.current) {
+        console.log('[Editor] ✅ Snapshot selectedElementId changed from', prevSnapshotSelectedId.current, 'to', selId);
         prevSnapshotSelectedId.current = selId;
 
         const currentId = selectedElement?.id || null;
+        console.log('[Editor] Current selectedElement ID:', currentId);
         // Only update if different from current selection
         if (selId !== currentId) {
           const el = slides[snap.currentSlide ?? currentSlide]?.elements?.find((e: any) => e.id === selId) || null;
+          console.log('[Editor] 🔄 Restoring selection from snapshot:', selId, 'Element:', el?.type);
           setSelectedElement(el);
+        } else {
+          console.log('[Editor] ℹ️ Snapshot selectedElementId same as current, skipping restore');
         }
+      } else {
+        console.log('[Editor] ⏭️ Snapshot selectedElementId unchanged, skipping restore');
       }
     }
   }, [snapshot, currentSlide, zoom]); // Removed 'slides' and 'selectedElement' to prevent re-selection on localStorage sync

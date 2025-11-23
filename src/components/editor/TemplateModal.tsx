@@ -87,7 +87,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
   const [activeTab, setActiveTab] = useState<'demos' | 'themes'>('demos');
   const [direction, setDirection] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Minimal icon component to match Lucide's style
   const MinimalIcon = () => (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -107,7 +107,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
     overflow: 'auto',
     minHeight: 0, // Allows the container to shrink below content size
   };
-  
+
   const modalContentStyle = {
     height: '85vh', // Increased from 70vh to 85vh
     width: '100%',
@@ -127,16 +127,16 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
   // Handle tab change with animation
   const handleTabChange = useCallback((newTab: 'demos' | 'themes') => {
     if (isAnimating.current || newTab === activeTab) return;
-    
+
     const newDirection = newTab === 'themes' ? 1 : -1;
     setDirection(newDirection);
-    
+
     // Start exit animation
     isAnimating.current = true;
     tabControls.start('exit').then(() => {
       // Update active tab after exit animation
       setActiveTab(newTab);
-      
+
       // Preload content for smooth transition
       requestAnimationFrame(() => {
         tabControls.start('enter').then(() => {
@@ -171,7 +171,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
       const imageUrls = [
         // Add any image URLs that need to be preloaded
       ];
-      
+
       imageUrls.forEach(url => {
         const img = new Image();
         img.src = url;
@@ -192,13 +192,13 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
       Jumpstart your presentation with <span className="text-blue-600 dark:text-blue-400">stunning designs</span> and <span className="text-emerald-600 dark:text-emerald-400">professional layouts</span>
     </span>
   ), []);
-  
+
   const demosDescription = useMemo(() => (
     <span>
       Choose from our <span className="text-amber-600 dark:text-amber-400 font-medium">pre-designed templates</span> to create presentations that <span className="text-blue-600 dark:text-blue-400 font-medium">impress and engage</span>
     </span>
   ), []);
-  
+
   const themesDescription = useMemo(() => (
     <span>
       Select a <span className="text-emerald-600 dark:text-emerald-400 font-medium">color scheme</span> that matches your <span className="text-amber-600 dark:text-amber-400 font-medium">brand and style</span>
@@ -208,7 +208,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
   const handleApplyTemplate = (templateName: string) => {
     try {
       console.log(`[TEMPLATE] Applying: ${templateName}`);
-      
+
       // If a custom handler is provided, use it
       if (onApplyTemplate) {
         onApplyTemplate(templateName);
@@ -216,7 +216,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
         // Fallback behavior
         console.log(`Template applied: ${templateName}`);
       }
-      
+
       // Close the modal after applying
       onClose();
     } catch (err) {
@@ -227,7 +227,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
 
   // Create portal target
   const [mounted, setMounted] = useState(false);
-// No demo previews generated — placeholder content only.
+  // No demo previews generated — placeholder content only.
 
   useEffect(() => {
     setMounted(true);
@@ -258,7 +258,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                   <span className="text-blue-500 font-medium">A smart design engine</span> that turns ideas into <span className="text-purple-500 font-medium">polished, ready-to-use</span> presentation blueprints instantly.
                 </p>
               </div>
-              <button 
+              <button
                 onClick={onClose}
                 className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 aria-label="Close template gallery"
@@ -266,12 +266,12 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                 <X className="w-5 h-5 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white" />
               </button>
             </div>
-            
+
             {/* Tab Navigation */}
             <div className="relative mb-6">
               <div className="flex justify-center border-b border-gray-200 dark:border-gray-700">
                 <div className="flex space-x-1">
-                                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -333,8 +333,8 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                                   stiffness: 400,
                                   damping: 20
                                 }}
-                                whileHover={{ 
-                                  y: -4, 
+                                whileHover={{
+                                  y: -4,
                                   boxShadow: '0 15px 30px -10px rgba(0, 0, 0, 0.1)',
                                   borderColor: 'rgba(0, 0, 0, 0.1)'
                                 }}
@@ -381,26 +381,26 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                                 {/* Theme Info */}
                                 <div className="p-4 flex-1 flex flex-col">
                                   <div className="flex items-center justify-between mb-2">
-                                    <h3 
+                                    <h3
                                       id={`demo-${theme.id}-title`}
                                       className="text-[15px] font-semibold text-gray-900 dark:text-white truncate"
                                     >
                                       {theme.name}
                                     </h3>
-                                    <button 
+                                    <button
                                       className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
                                       aria-label="Quick preview"
                                     >
                                       <Eye className="w-4 h-4" />
                                     </button>
                                   </div>
-                                  
+
                                   <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-3">
                                     {theme.description}
                                   </p>
-                                  
+
                                   <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/50">
-                                    <Button 
+                                    <Button
                                       variant="outline"
                                       size="sm"
                                       className="w-full text-[13px] h-8 group-hover:bg-blue-50 group-hover:text-blue-600 dark:group-hover:bg-blue-900/20 dark:group-hover:text-blue-300 transition-colors duration-200 border-gray-200 dark:border-gray-600"
@@ -425,7 +425,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Demos Section Footer */}
                     <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/10 dark:to-blue-800/5 rounded-xl border border-blue-100 dark:border-blue-900/30">
                       <div className="flex items-start">
@@ -435,7 +435,7 @@ export default function TemplateModal({ onClose, onApplyTemplate }: TemplateModa
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Inspiration at Your Fingertips</h3>
                           <p className="text-sm text-gray-600 dark:text-gray-300">
-                            Our demo templates are designed to spark your creativity. Each one is fully customizable to match your unique style and content needs. 
+                            Our demo templates are designed to spark your creativity. Each one is fully customizable to match your unique style and content needs.
                             <span className="block mt-2 text-blue-600 dark:text-blue-400 font-medium">
                               Tip: Click on any template to start creating your presentation!
                             </span>
