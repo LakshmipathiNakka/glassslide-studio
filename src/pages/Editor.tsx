@@ -145,8 +145,8 @@ const Editor = () => {
     };
   }, [presentationTitle]);
 
-  const initialSlides: Slide[] = [{ 
-    id: '1', 
+  const initialSlides: Slide[] = [{
+    id: '1',
     elements: createTitleSlidePlaceholders(Date.now()),
     background: '#ffffff',
     createdAt: new Date(),
@@ -174,6 +174,8 @@ const Editor = () => {
   const [tableModalOpen, setTableModalOpen] = useState(false);
 
   // Keep local UI state in sync with history snapshot (for undo/redo reliability)
+  const prevSnapshotSelectedId = useRef<string | null | undefined>(undefined);
+
   useEffect(() => {
     const snap = snapshot as any;
     if (typeof snap?.currentSlide === 'number' && snap.currentSlide !== currentSlide) {
@@ -184,10 +186,21 @@ const Editor = () => {
     }
     if (typeof snap?.selectedElementId !== 'undefined') {
       const selId = snap.selectedElementId as string | null;
-      const el = slides[snap.currentSlide ?? currentSlide]?.elements?.find((e: any) => e.id === selId) || null;
-      setSelectedElement(el);
+
+      // Only restore if the snapshot's selectedElementId actually changed
+      // This prevents restoration when just the snapshot object reference changes
+      if (selId !== prevSnapshotSelectedId.current) {
+        prevSnapshotSelectedId.current = selId;
+
+        const currentId = selectedElement?.id || null;
+        // Only update if different from current selection
+        if (selId !== currentId) {
+          const el = slides[snap.currentSlide ?? currentSlide]?.elements?.find((e: any) => e.id === selId) || null;
+          setSelectedElement(el);
+        }
+      }
     }
-  }, [snapshot, slides]);
+  }, [snapshot, currentSlide, zoom]); // Removed 'slides' and 'selectedElement' to prevent re-selection on localStorage sync
 
   // Insert Image handler (Toolbar)
   const handleInsertImageFile = useCallback((file: File) => {
@@ -250,7 +263,7 @@ const Editor = () => {
       if (templateName.toUpperCase().startsWith('DEMO:')) {
         const demoName = templateName.substring('DEMO:'.length).trim().toLowerCase();
         console.log(`[Template] Processing DEMO template: ${demoName}`);
-        
+
         // Handle demos by matching theme id
         const themeId = demoName.replace(/_/g, '-');
         const theme = presentationThemes.find(t => t.id === themeId);
@@ -264,16 +277,16 @@ const Editor = () => {
         const theme = presentationThemes.find(t => t.id === id);
         if (!theme) throw new Error(`Theme not found: ${id}`);
         newSlides = theme.slides;
-      } 
+      }
       // Fallback by theme name (with Education alias)
       else {
         const lowerName = templateName.toLowerCase();
         let themeFound = false;
-        
+
         // Handle education theme alias
         if (lowerName === 'education' || lowerName === 'education-learning' || lowerName === 'education_learning') {
-          const matched = presentationThemes.find(t => 
-            t.id === 'education-learning' || 
+          const matched = presentationThemes.find(t =>
+            t.id === 'education-learning' ||
             t.name.toLowerCase().includes('education')
           );
           if (matched) {
@@ -286,8 +299,8 @@ const Editor = () => {
         }
         // Handle other themes by name
         else {
-          const matched = presentationThemes.find(t => 
-            t.name.toLowerCase() === lowerName || 
+          const matched = presentationThemes.find(t =>
+            t.name.toLowerCase() === lowerName ||
             t.id === lowerName ||
             t.id.replace(/-/g, '') === lowerName.replace(/-/g, '')
           );
@@ -297,7 +310,7 @@ const Editor = () => {
             themeFound = true;
           }
         }
-        
+
         // If no theme was found, create a default blank slide
         if (!themeFound) {
           newSlides.push({
@@ -351,9 +364,9 @@ const Editor = () => {
       const customEvent = event as CustomEvent<{ templateName: string }>;
       await handleApplyTemplate(customEvent.detail.templateName);
     };
-    
+
     window.addEventListener('applyTemplate', handleTemplateApply as EventListener);
-    
+
     return () => {
       window.removeEventListener('applyTemplate', handleTemplateApply as EventListener);
     };
@@ -375,15 +388,15 @@ const Editor = () => {
         createdAt: Date.now(),
         lastModified: Date.now(),
       };
-      
+
       saveUserProject(getCurrentUser(), project);
       setPresentationTitle(projectName);
-      
+
       toast({
         title: "Project Saved",
         description: `${projectName} has been saved successfully.`,
       });
-      
+
       return Promise.resolve();
     } catch (error) {
       console.error('Failed to save project:', error);
@@ -402,7 +415,7 @@ const Editor = () => {
       pushSlides(project.slides);
       setPresentationTitle(project.name);
       setCurrentSlide(0);
-      
+
       toast({
         title: "Project Opened",
         description: `${project.name} has been loaded.`,
@@ -436,7 +449,7 @@ const Editor = () => {
           if (JSON.stringify(parsedData) !== JSON.stringify(slides)) {
             console.log('[Editor] Slides updated externally, reloading...');
             pushSlides(parsedData);
-            
+
             // Show notification
             toast({
               title: 'Presentation Updated',
@@ -469,7 +482,7 @@ const Editor = () => {
           if (JSON.stringify(parsedData) !== JSON.stringify(slides)) {
             console.log('[Editor] Syncing slides from storage event');
             pushSlides(parsedData);
-            
+
             toast({
               title: 'Auto-Sync Complete',
               description: 'Slides synchronized in real-time',
@@ -491,19 +504,19 @@ const Editor = () => {
   // Handle slide updates with synchronization
   const handleSlideUpdate = useCallback((elements: Element[]) => {
     if (!slides[currentSlide]) return;
-    
+
     const updatedSlides = [...slides];
     updatedSlides[currentSlide] = {
       ...updatedSlides[currentSlide],
       elements,
       lastUpdated: Date.now()
     };
-    
+
     pushSlides(updatedSlides);
-    
+
     // Update the current slide reference to trigger re-renders
     setCurrentSlide(currentSlide);
-    
+
   }, [currentSlide, pushSlides, slides]);
 
   // Note: useSlideSync removed - not compatible with SimplePowerPointCanvas
@@ -528,7 +541,7 @@ const Editor = () => {
   };
 
   const handleElementUpdate = (updatedElement: Element) => {
-    const newElements = currentElements.map(el => 
+    const newElements = currentElements.map(el =>
       el.id === updatedElement.id ? updatedElement : el
     );
     updateCurrentSlide(newElements);
@@ -558,14 +571,14 @@ const Editor = () => {
 
   const handleUpdateChart = (chartType: 'bar' | 'line' | 'pie', chartData: any) => {
     if (editingChart) {
-      const newElements = currentElements.map(el => 
-        el.id === selectedElement?.id 
+      const newElements = currentElements.map(el =>
+        el.id === selectedElement?.id
           ? { ...el, chartType, chartData }
           : el
       );
       updateCurrentSlide(newElements);
       setEditingChart(null);
-      
+
       toast({
         title: "Chart Updated",
         description: "Chart data has been updated.",
@@ -704,7 +717,7 @@ const Editor = () => {
     } as any;
     updateCurrentSlide([...currentElements, newElement]);
     setSelectedElement(newElement);
-    
+
     toast({
       title: "Shape Added",
       description: `${shapeType.charAt(0).toUpperCase() + shapeType.slice(1)} shape has been added to the slide.`,
@@ -751,7 +764,7 @@ const Editor = () => {
 
     // Get the blue theme
     const blueTheme = TABLE_THEMES.find(theme => theme.id === 'keynote1');
-    
+
     // Create new element with blue theme applied by default
     const newElement: Element = {
       id: Date.now().toString(),
@@ -791,7 +804,7 @@ const Editor = () => {
     a.href = url;
     a.download = 'presentation.json';
     a.click();
-    
+
     toast({
       title: "Saved!",
       description: "Your presentation has been downloaded as JSON.",
@@ -803,7 +816,7 @@ const Editor = () => {
 
   const handleExport = async () => {
     if (isExporting) return; // Prevent double-clicks
-    
+
     setIsExporting(true);
     try {
       const { exportSlidesToPPTX } = await import('@/utils/exporter');
@@ -811,16 +824,16 @@ const Editor = () => {
       const sanitizedTitle = presentationTitle.replace(/[<>:"/\\|?*]/g, '-');
       const filename = `${sanitizedTitle}.pptx`;
       await exportSlidesToPPTX(slides, filename);
-      toast({ 
-        title: 'Export Successful!', 
-        description: 'Your presentation has been exported to PowerPoint.' 
+      toast({
+        title: 'Export Successful!',
+        description: 'Your presentation has been exported to PowerPoint.'
       });
     } catch (error) {
       console.error('Export error:', error);
-      toast({ 
-        title: 'Export Failed', 
-        description: 'Failed to export presentation. Please check your content and try again.', 
-        variant: 'destructive' 
+      toast({
+        title: 'Export Failed',
+        description: 'Failed to export presentation. Please check your content and try again.',
+        variant: 'destructive'
       });
     } finally {
       setIsExporting(false);
@@ -835,8 +848,8 @@ const Editor = () => {
       ? createTitleSlidePlaceholders(now)
       : createContentSlidePlaceholders(now);
 
-    const newSlide: Slide = { 
-      id: now.toString(), 
+    const newSlide: Slide = {
+      id: now.toString(),
       elements,
       background: '#ffffff',
       createdAt: new Date(),
@@ -850,8 +863,8 @@ const Editor = () => {
   const handleAddSlideAtIndex = (index: number) => {
     const now = Date.now();
     const elements = createContentSlidePlaceholders(now);
-    const newSlide: Slide = { 
-      id: now.toString(), 
+    const newSlide: Slide = {
+      id: now.toString(),
       elements,
       background: '#ffffff',
       title: `Slide ${slides.length + 1}`,
@@ -894,7 +907,7 @@ const Editor = () => {
 
     const newSlides = slides.filter((_, i) => i !== index);
     pushSlides(newSlides);
-    
+
     // Adjust current slide if necessary
     if (currentSlide >= newSlides.length) {
       setCurrentSlide(newSlides.length - 1);
@@ -921,7 +934,7 @@ const Editor = () => {
     // Update slides with timestamp
     const updatedSlides = reorderedSlides.map(slide => ({ ...slide, lastUpdated: Date.now() }));
     pushSlides(updatedSlides);
-    
+
     // Keep the same current slide index - the content will stay with the same slide
   };
 
@@ -966,12 +979,12 @@ const Editor = () => {
   const handlePresent = useCallback(async () => {
     try {
       console.log('[Editor] Starting presentation mode');
-      
+
       // Sanitize slides for presentation (remove placeholders and empty elements)
       const sanitizedSlides = sanitizeSlidesForPresentation(slides);
-      
+
       console.log('[Editor] Sanitized slides:', sanitizedSlides.length);
-      
+
       // Save to localStorage for presentation mode
       const deckId = `deck-${Date.now()}`;
       const deckPayload = {
@@ -981,13 +994,13 @@ const Editor = () => {
         createdAt: Date.now(),
         lastUpdated: Date.now(),
       };
-      
+
       localStorage.setItem(`presentation-${deckId}`, JSON.stringify(deckPayload));
       console.log('[Editor] Saved presentation to localStorage');
-      
+
       // Enter presentation mode
       setPresentationMode(true);
-      
+
       // Try to enter fullscreen after a small delay
       setTimeout(async () => {
         try {
@@ -997,7 +1010,7 @@ const Editor = () => {
           console.warn('Fullscreen not supported or was denied:', e);
         }
       }, 100);
-      
+
     } catch (error) {
       console.error('Error entering presentation mode:', error);
       toast({
@@ -1022,14 +1035,14 @@ const Editor = () => {
         onClose={() => setShapeModalOpen(false)}
         onSelectShape={handleSelectShape}
       />
-      
+
       {/* Table Modal */}
       <TableModal
         isOpen={tableModalOpen}
         onClose={() => setTableModalOpen(false)}
         onConfirm={handleConfirmTable}
       />
-      
+
       {/* Header */}
       <header className="border-b border-border bg-white shadow-sm">
         <div className="h-16">
@@ -1134,22 +1147,22 @@ const Editor = () => {
             <div aria-hidden="true" className="pointer-events-none absolute right-0 top-0 h-full w-4 bg-gradient-to-l from-black/5 to-transparent dark:from-white/10" />
             <section className="w-full h-full" aria-label="Presentation canvas">
               <SimplePowerPointCanvas
-                  elements={currentElements}
-                  background={slides[currentSlide]?.background || '#ffffff'}
-                  onElementSelect={handleElementSelect}
-                  onElementUpdate={(element) => {
-                    const newElements = currentElements.map(el => 
-                      el.id === element.id ? element : el
-                    );
-                    updateCurrentSlide(newElements);
-                  }}
-                  onElementAdd={(element) => {
-                    const newElements = [...currentElements, element];
-                    updateCurrentSlide(newElements);
-                  }}
-                  onLiveElementsChange={(els) => setLiveElements(els as any)}
-                  zoom={zoom}
-                />
+                elements={currentElements}
+                background={slides[currentSlide]?.background || '#ffffff'}
+                onElementSelect={handleElementSelect}
+                onElementUpdate={(element) => {
+                  const newElements = currentElements.map(el =>
+                    el.id === element.id ? element : el
+                  );
+                  updateCurrentSlide(newElements);
+                }}
+                onElementAdd={(element) => {
+                  const newElements = [...currentElements, element];
+                  updateCurrentSlide(newElements);
+                }}
+                onLiveElementsChange={(els) => setLiveElements(els as any)}
+                zoom={zoom}
+              />
             </section>
 
             {/* Bottom-centered Zoom Controls (always visible) */}
@@ -1190,7 +1203,7 @@ const Editor = () => {
                 const currentElement = slides[currentSlide]?.elements.find(el => el.id === elementId);
                 if (currentElement) {
                   const updatedElement = { ...currentElement, ...updates };
-                  const newElements = currentElements.map(el => 
+                  const newElements = currentElements.map(el =>
                     el.id === elementId ? updatedElement : el
                   );
                   updateCurrentSlide(newElements);
@@ -1206,7 +1219,7 @@ const Editor = () => {
       </main>
 
       {layoutModal}
-      
+
       <ChartPanel
         open={chartPanelOpen}
         onClose={() => {
@@ -1217,8 +1230,8 @@ const Editor = () => {
         onEditChart={handleUpdateChart}
         editingChart={editingChart}
       />
-      
-      
+
+
       {presentationMode && (
         <SimplePresentationMode
           slides={slides}

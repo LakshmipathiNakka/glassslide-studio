@@ -1492,6 +1492,7 @@ const SimplePowerPointCanvas: React.FC<Props> = ({
         <div
           ref={slideRef}
           className="ppt-slide"
+          onClick={handleCanvasClick}
           style={{
             width: slideWidth,
             height: slideHeight,

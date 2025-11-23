@@ -57,8 +57,8 @@ export const Toolbar = ({
 
   const handleApplyTemplate = (templateName: string) => {
     // Emit a custom event that the parent component can listen to
-    const event = new CustomEvent('applyTemplate', { 
-      detail: { templateName } 
+    const event = new CustomEvent('applyTemplate', {
+      detail: { templateName }
     });
     window.dispatchEvent(event);
     setShowTemplateModal(false);
@@ -102,7 +102,7 @@ export const Toolbar = ({
       {/* LEFT ZONE - Navigation, History & Zoom */}
       <div className="flex items-center gap-2 md:gap-1.5 sm:gap-1">
         {/* Logo + Brand */}
-        <button 
+        <button
           onClick={onHomeClick}
           className="flex items-center gap-2 flex-shrink-0 group"
           aria-label="Return to home page"
@@ -120,10 +120,10 @@ export const Toolbar = ({
           </span>
         </button>
 
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={onOpen} 
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onOpen}
           title="Open Project"
           className="h-8 w-8 p-0 sm:w-auto sm:px-2 ml-2"
         >
@@ -245,8 +245,8 @@ export const Toolbar = ({
           >
             <ImageIcon className="w-4 h-4" />
           </Button>
-          
-          <Button 
+
+          <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowTemplateModal(true)}
@@ -266,17 +266,17 @@ export const Toolbar = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onPresent} 
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onPresent}
             title="Present"
             className="h-8 w-8 p-0 sm:w-auto sm:px-2 order-1"
           >
             <Play className="w-4 h-4" />
             <span className="hidden sm:inline ml-1">Present</span>
           </Button>
-          
+
           <div className="relative group w-[200px] md:w-[180px] sm:w-[160px] mx-2 order-2">
             {isEditingTitle ? (
               <div className="relative w-full">
@@ -339,11 +339,11 @@ export const Toolbar = ({
               </button>
             )}
           </div>
-          
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onSave} 
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onSave}
             title="Save"
             className="h-8 w-8 p-0 sm:w-auto sm:px-2 order-3"
           >
@@ -354,7 +354,7 @@ export const Toolbar = ({
       </div>
 
       {showTemplateModal && (
-        <TemplateModal 
+        <TemplateModal
           onClose={() => setShowTemplateModal(false)}
           onApplyTemplate={handleApplyTemplate}
         />

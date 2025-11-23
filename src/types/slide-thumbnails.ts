@@ -37,7 +37,7 @@ export interface SlideContextMenuProps {
   anchorElement?: HTMLElement | null;
 }
 
-export type SlideAction = 
+export type SlideAction =
   | 'add'
   | 'duplicate'
   | 'delete'
