@@ -178,41 +178,27 @@ const Editor = () => {
 
   useEffect(() => {
     const snap = snapshot as any;
-    console.log('[Editor] Snapshot effect triggered. Snapshot:', snap);
 
     if (typeof snap?.currentSlide === 'number' && snap.currentSlide !== currentSlide) {
-      console.log('[Editor] Restoring currentSlide from snapshot:', snap.currentSlide);
       setCurrentSlide(snap.currentSlide);
     }
     if (typeof snap?.zoom === 'number' && snap.zoom !== zoom) {
-      console.log('[Editor] Restoring zoom from snapshot:', snap.zoom);
       setZoom(snap.zoom);
     }
     if (typeof snap?.selectedElementId !== 'undefined') {
       const selId = snap.selectedElementId as string | null;
-      console.log('[Editor] Snapshot has selectedElementId:', selId, 'Previous:', prevSnapshotSelectedId.current);
 
-      // Only restore if the snapshot's selectedElementId actually changed
-      // This prevents restoration when just the snapshot object reference changes
       if (selId !== prevSnapshotSelectedId.current) {
-        console.log('[Editor] ✅ Snapshot selectedElementId changed from', prevSnapshotSelectedId.current, 'to', selId);
         prevSnapshotSelectedId.current = selId;
 
         const currentId = selectedElement?.id || null;
-        console.log('[Editor] Current selectedElement ID:', currentId);
-        // Only update if different from current selection
         if (selId !== currentId) {
           const el = slides[snap.currentSlide ?? currentSlide]?.elements?.find((e: any) => e.id === selId) || null;
-          console.log('[Editor] 🔄 Restoring selection from snapshot:', selId, 'Element:', el?.type);
           setSelectedElement(el);
-        } else {
-          console.log('[Editor] ℹ️ Snapshot selectedElementId same as current, skipping restore');
         }
-      } else {
-        console.log('[Editor] ⏭️ Snapshot selectedElementId unchanged, skipping restore');
       }
     }
-  }, [snapshot, currentSlide, zoom]); // Removed 'slides' and 'selectedElement' to prevent re-selection on localStorage sync
+  }, [snapshot, currentSlide, zoom]);
 
   // Insert Image handler (Toolbar)
   const handleInsertImageFile = useCallback((file: File) => {
@@ -444,15 +430,12 @@ const Editor = () => {
 
   // Auto-save to localStorage
   usePersistence(slides, (loadedSlides) => {
-    // This will be called when data is loaded from localStorage
-    // We need to update the history with the loaded data
-    console.log('[Editor] Loaded slides from localStorage:', loadedSlides?.length || 0);
+    // Data loaded from localStorage
   });
 
   // Reload slides when window regains focus (e.g., returning from presentation mode)
   useEffect(() => {
     const handleFocus = () => {
-      console.log('[Editor] Window focused - checking for updated slides');
       try {
         const saved = localStorage.getItem('glassslide-presentation');
         if (saved) {

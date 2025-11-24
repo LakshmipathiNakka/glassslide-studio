@@ -1,9 +1,11 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { X, Trash2, FileText, RefreshCw, FolderOpen, Sparkles, AlertTriangle } from 'lucide-react';
+import { X, Trash2, FileText, RefreshCw, FolderOpen, Sparkles, AlertTriangle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 import { getUserProjects, deleteUserProject, GSlideProject } from '@/utils/userProjectStorage';
+import { exportSlidesToPPTX } from '@/utils/exporter';
 import { format } from 'date-fns';
 
 interface OpenFileModalProps {
@@ -19,11 +21,13 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
   onOpenProject,
   currentUsername,
 }) => {
+  const { toast } = useToast();
   const [projects, setProjects] = useState<GSlideProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'saved' | 'themes'>('saved');
-  const [deleteConfirm, setDeleteConfirm] = useState<{open: boolean, projectId: string | null}>({open: false, projectId: null});
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean, projectId: string | null }>({ open: false, projectId: null });
+  const [exportingId, setExportingId] = useState<string | null>(null);
 
   // Creative descriptions with color-coded highlights
   const headerDescription = (
@@ -31,10 +35,10 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
       Continue your <span className="text-blue-600 dark:text-blue-400">creative journey</span>. Pick up where you left off.
     </span>
   );
-  
+
   const footerDescription = (
     <span>
-      Your presentations are where <span className="text-emerald-600 dark:text-emerald-400 font-medium">ideas come to life</span>. 
+      Your presentations are where <span className="text-emerald-600 dark:text-emerald-400 font-medium">ideas come to life</span>.
       Select one to begin <span className="text-amber-600 dark:text-amber-400 font-medium">crafting your next masterpiece</span>.
     </span>
   );
@@ -62,12 +66,12 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
 
   const handleDelete = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
-    setDeleteConfirm({open: true, projectId});
+    setDeleteConfirm({ open: true, projectId });
   };
 
   const confirmDelete = () => {
     if (!deleteConfirm.projectId) return;
-    
+
     try {
       deleteUserProject(currentUsername, deleteConfirm.projectId);
       loadProjects();
@@ -75,14 +79,45 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
       console.error('Failed to delete project:', err);
       setError('Failed to delete project. Please try again.');
     } finally {
-      setDeleteConfirm({open: false, projectId: null});
+      setDeleteConfirm({ open: false, projectId: null });
     }
   };
 
   const cancelDelete = () => {
-    setDeleteConfirm({open: false, projectId: null});
+    setDeleteConfirm({ open: false, projectId: null });
   };
 
+  const handleExportPPT = async (e: React.MouseEvent, project: GSlideProject) => {
+    e.stopPropagation();
+
+    if (exportingId) return; // Prevent multiple exports at once
+
+    setExportingId(project.id);
+
+    try {
+      // Sanitize filename by removing invalid characters
+      const sanitizedName = project.name.replace(/[<>:"/\\|?*]/g, '-');
+      const filename = `${sanitizedName}.pptx`;
+
+      await exportSlidesToPPTX(project.slides, filename);
+
+      toast({
+        title: 'Export Successful!',
+        description: `${project.name} has been exported to PowerPoint.`,
+      });
+
+      // Close the modal after successful export
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: 'Export Failed',
+        description: 'Failed to export presentation. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setExportingId(null);
+    }
+  };
 
   if (!open) return null;
 
@@ -90,7 +125,7 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
     <AnimatePresence>
       {/* Delete Confirmation Dialog */}
       {deleteConfirm.open && (
-        <motion.div 
+        <motion.div
           className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -137,7 +172,7 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
       )}
 
       {open && (
-        <motion.div 
+        <motion.div
           className="fixed inset-0 z-[99999] flex items-center justify-center px-4 py-6 sm:px-6 backdrop-blur-md bg-black/40"
           initial="closed"
           animate="open"
@@ -165,11 +200,11 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
               <p className="text-gray-700 dark:text-gray-300 mt-2 text-sm font-normal">
                 {headerDescription}
               </p>
-              
+
               {/* Close button */}
-              <button 
-                onClick={() => onOpenChange(false)} 
-                title="Close modal" 
+              <button
+                onClick={() => onOpenChange(false)}
+                title="Close modal"
                 className="absolute right-0 top-0 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors"
                 disabled={isLoading}
               >
@@ -180,11 +215,11 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
             {/* Main Content */}
             <div className="flex flex-col flex-1 overflow-hidden">
 
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-              {/* Saved projects list (themes removed from Open modal) */}
-              <>
-                {isLoading ? (
+              {/* Tab Content */}
+              <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+                {/* Saved projects list (themes removed from Open modal) */}
+                <>
+                  {isLoading ? (
                     <div className="flex flex-col items-center justify-center p-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                       <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Loading projects...</p>
@@ -192,7 +227,7 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
                   ) : error ? (
                     <div className="text-center p-6">
                       <p className="text-red-500 dark:text-red-400 mb-4">{error}</p>
-                      <Button 
+                      <Button
                         variant="outline"
                         onClick={loadProjects}
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
@@ -233,23 +268,37 @@ export const OpenFileModal: React.FC<OpenFileModalProps> = ({
                                 Last modified: {format(new Date(project.lastModified), 'MMM d, yyyy h:mm a')}
                               </p>
                             </div>
-                            <button
-                              className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(e, project.id);
-                              }}
-                              title="Delete presentation"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={(e) => handleExportPPT(e, project)}
+                                title="Export to PowerPoint"
+                                disabled={exportingId === project.id}
+                              >
+                                {exportingId === project.id ? (
+                                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Download className="w-4 h-4" />
+                                )}
+                              </button>
+                              <button
+                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(e, project.id);
+                                }}
+                                title="Delete presentation"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
                 </>
-            </div>
+              </div>
             </div>
 
             {/* Footer */}
