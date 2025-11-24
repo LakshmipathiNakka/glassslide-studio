@@ -152,23 +152,44 @@ const exportShapeElement = (slide: any, element: Element) => {
     slide.addShape(shapeType, options);
 };
 
-const exportImageElement = (slide: any, element: Element) => {
+const exportImageElement = async (slide: any, element: Element) => {
     if (!element.imageUrl) return;
 
-    const options: any = {
-        data: element.imageUrl,
-        x: pxToInches(element.x),
-        y: pxToInches(element.y),
-        w: pxToInches(element.width),
-        h: pxToInches(element.height),
-    };
+    try {
+        let imageData = element.imageUrl;
 
-    if (element.rotation) options.rotate = element.rotation;
-    if (element.opacity !== undefined && element.opacity < 1) {
-        options.transparency = Math.round((1 - element.opacity) * 100);
+        // If the image is not already a data URL, convert it
+        if (!imageData.startsWith('data:')) {
+            // Fetch the image and convert to base64
+            const response = await fetch(imageData);
+            const blob = await response.blob();
+
+            // Convert blob to base64
+            imageData = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        const options: any = {
+            data: imageData,
+            x: pxToInches(element.x),
+            y: pxToInches(element.y),
+            w: pxToInches(element.width),
+            h: pxToInches(element.height),
+        };
+
+        if (element.rotation) options.rotate = element.rotation;
+        if (element.opacity !== undefined && element.opacity < 1) {
+            options.transparency = Math.round((1 - element.opacity) * 100);
+        }
+
+        slide.addImage(options);
+    } catch (error) {
+        // Skip images that fail to export
     }
-
-    slide.addImage(options);
 };
 
 const exportTableElement = (slide: any, element: Element) => {
@@ -256,7 +277,7 @@ export async function exportSlidesToPPTX(slides: Slide[], fileName = 'GlassSlide
                         break;
 
                     case 'image':
-                        exportImageElement(slide, element);
+                        await exportImageElement(slide, element);
                         break;
 
                     case 'table':
