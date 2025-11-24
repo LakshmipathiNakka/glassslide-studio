@@ -1181,7 +1181,14 @@ const Editor = () => {
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
               <div className="flex items-center bg-white/80 dark:bg-gray-900/70 backdrop-blur-md rounded-full px-2 py-1 border border-gray-200 dark:border-gray-700 shadow-md">
                 <button
-                  onClick={() => setZoom((z) => Math.max(0.3, Math.round((z - 0.1) * 10) / 10))}
+                  onClick={() => {
+                    setZoom((z) => {
+                      const newZoom = Math.max(0.3, Math.round((z - 0.1) * 10) / 10);
+                      // Record zoom in history meta (coalesced)
+                      pushSnapshot(slides, { coalesceKey: 'zoom' }, { zoom: newZoom });
+                      return newZoom;
+                    });
+                  }}
                   className="w-9 h-9 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
                   aria-label="Zoom out"
                   title="Zoom out"
@@ -1194,7 +1201,14 @@ const Editor = () => {
                   {Math.round(zoom * 100)}%
                 </span>
                 <button
-                  onClick={() => setZoom((z) => Math.min(1.2, Math.round((z + 0.1) * 10) / 10))}
+                  onClick={() => {
+                    setZoom((z) => {
+                      const newZoom = Math.min(1.2, Math.round((z + 0.1) * 10) / 10);
+                      // Record zoom in history meta (coalesced)
+                      pushSnapshot(slides, { coalesceKey: 'zoom' }, { zoom: newZoom });
+                      return newZoom;
+                    });
+                  }}
                   className="w-9 h-9 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
                   aria-label="Zoom in"
                   title="Zoom in"
